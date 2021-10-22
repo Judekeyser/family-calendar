@@ -17,23 +17,65 @@ NetworkMessage.baseUrl =
 
 
 		<style type="text/css">
+body {
+	font-family: Verdana, sans-serif;
+	font-size: 14px;
+}
 dt.cancelled, dt.cancelled + dd, dt.cancelled + dd * {
 	text-decoration: line-through;
 }
 dt button+span {
 	margin-left:  1em;
 }
+
+#phantom_rule {
+	height: 2em;
+	width: 2em;
+	visibility: hidden;
+	display: inline-block;
+}
+
+#global_container {
+	position: relative;
+	padding: 2em;;
+	width: 100%;
+	min-width: 35em;
+	box-sizing: border-box;
+}
+#global_container > nav, #global_container > section {
+	padding: 1em;
+	border: 1px solid #333;
+	border-box: box-sizing;
+}
+#phantom_rule {
+	height: 2em;
+	width: 2em;
+	visibility: hidden;
+	display: inline-block;
+}
+@media only screen and (min-width: 55em) {
+	#global_container > section, #global_container > nav {
+		display: inline-block;
+		vertical-align: top;
+	}
+	#global_container > section {
+		min-width: 30em;
+	}
+	#global_container > nav {
+		width: 18em;
+	}
+}
 		</style>
 	
 	</head>
-	<body style="font-family: Courier New; font-size: 14px;">
+	<body>
 
-		<div style="position: relative; padding: 16px;">
-			<nav style="width: 340px; border: 1px solid black; float: left; padding: 4px;">
+		<div id="global_container">
+			<nav>
 				<form name="menuCtrl">
-					<input type="range"  name="rowCountSlider"       value="1"    min="1" max="9" step="1">
+					<input type="range" name="rowCountSlider" value="1" min="1" max="9" step="1">
 					<br>
-					<input type="date"   name="directDateInput"                                      >
+					<input type="date" name="directDateInput">
 				</form>
 				<table class="focus-on">
 					<colgroup>
@@ -56,7 +98,9 @@ dt button+span {
 				</table>
 			</nav>
 
-			<section style="border: 1px solid black; width: 500px; margin-left: 372px; padding: 4px" class="focus-on fetchEvents-result">
+			<div id="phantom_rule"></div>
+
+			<section class="focus-on fetchEvents-result">
 				<header>
 					<h1></h1>
 				</header>

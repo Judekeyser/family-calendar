@@ -35,7 +35,7 @@ NetworkMessage.prototype = {
 	password: undefined,
 
 	askForUserCredentials: function() {
-		return prompt("Déverrouiller le calendrier");
+		return Promise.resolve(prompt("Déverrouiller le calendrier"));
 	},
 
 	send: function() {
@@ -47,13 +47,15 @@ NetworkMessage.prototype = {
 		   	}, 4000);
 		   }))
 		   .then(({ unauth, content }) => {
-		   	if (unauth) {
-		   		var password = this.askForUserCredentials();
-		   		if (! password)
-		   			throw "Le mot de passe n'a pas été fourni";
-		   		this.password = btoa(password);
-		   		return this.send();
-		   	} else return { content };
+		   	return unauth
+				   ? this.askForUserCredentials()
+					.then(maybePassword => {
+						if (! maybePassword)
+							throw "Le mot de passe n'a pas été fourni";
+						this.password = btoa(maybePassword);
+						return this.send();
+					})
+			   	    : ({ content });
 		   });
 	}
 }

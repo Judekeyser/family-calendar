@@ -14,6 +14,7 @@ ENCRYPTION_KEY_SECRET     = os.environ.get('ENCRYPTION_KEY_SECRET')
 HASH_KEY_SECRET           = os.environ.get('HASH_KEY_SECRET')
 AUTHENTICATION_KEY_SECRET = os.environ.get('AUTHENTICATION_KEY_SECRET')
 PASSWORD                  = os.environ.get('PASSWORD')
+MUTE_SECURITY             = os.environ.get('MUTE_SECURITY')
 
 
 ###############################################################################
@@ -118,17 +119,18 @@ def flask_answer_wrapper (f):
         if cookie_content is not None:
             flask_response.set_cookie('token', cookie_content,
                     max_age = cookie_age,
-                    secure = True,
+                    secure = MUTE_SECURITY is None,
                     httponly = True
             )
 
-        # Browser-Server aggreements on security headers
-        flask_response.headers['X-Frame-Options'] = 'sameorigin'
-        flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'
-        flask_response.headers['X-Content-Type-Options'] = 'nosniff'
-        flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
-        flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-        flask_response.headers['Content-Security-Policy'] = "default-src * data:; script-src https: 'unsafe-inline' 'unsafe-eval'; style-src https: 'unsafe-inline'"
+        if MUTE_SECURITY is not None:
+            # Browser-Server aggreements on security headers
+            flask_response.headers['X-Frame-Options'] = 'sameorigin'
+            flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'
+            flask_response.headers['X-Content-Type-Options'] = 'nosniff'
+            flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+            flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            flask_response.headers['Content-Security-Policy'] = "default-src * data:; script-src https: 'unsafe-inline' 'unsafe-eval'; style-src https: 'unsafe-inline'"
 
         return flask_response
     return K

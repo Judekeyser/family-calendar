@@ -1,7 +1,6 @@
-function Event ({ strDate, strTime, strLoan, strDescription, kind }) {
+function Event ({ strDate, strTime, strDescription, kind }) {
 	this.date = MyDate.fromFormattedString(strDate);
 	this.time = strTime;
-	this.loan = strLoan;
 	this.description = strDescription;
 	this.kind = kind;
 }
@@ -17,7 +16,6 @@ Event.prototype = {
 		printer (JSON.stringify({
 			strDate,
 			strTime,
-			strLoan,
 			strDescription,
 			version: 1,
 			kind

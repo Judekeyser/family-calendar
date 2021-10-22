@@ -123,7 +123,7 @@ def flask_answer_wrapper (f):
                     httponly = True
             )
 
-        if MUTE_SECURITY is not None:
+        if MUTE_SECURITY is None:
             # Browser-Server aggreements on security headers
             flask_response.headers['X-Frame-Options'] = 'sameorigin'
             flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'

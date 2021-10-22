@@ -4,7 +4,6 @@ from base64               import urlsafe_b64encode as encode_to_base64,\
                                  b64decode         as std_base64_decode
 from cryptography.fernet  import Fernet
 from datetime             import datetime, timezone
-from gzip                 import compress, decompress
 from hashlib              import sha256, sha512
 from uuid                 import uuid4
 

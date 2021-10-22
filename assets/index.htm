@@ -3,6 +3,7 @@
 <html>
 	<head>
 		<base href="https://family-calendar.herokuapp.com/">
+		<!-- <base href="http://localhost:5000/"> -->
 		<link href="assets/normalize.css" rel="stylesheet">
 
 		<script src="assets/ArrayPolyfill.js"></script>
@@ -303,6 +304,10 @@ var menuTable = (function() {
 	table.addEventListener("focus-on", function({ detail }) {
 		var focusDate = detail;
 		_.setFocus(focusDate);
+	});
+
+	table.addEventListener("fetchEvents-result", function({ detail }) {
+		var eventsStorage = detail;
 	});
 
 	return _;

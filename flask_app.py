@@ -36,7 +36,7 @@ def get_secure (binary_token, auth_scheme_recover):
     auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
     password = PASSWORD .encode('ascii')
 
-    token = secure_bridge.auth_strategy(binary_token, 30, 90,
+    token = secure_bridge.auth_strategy(binary_token, 1*60*60, 24*60*60,
         auth_scheme_recover,
         enc_key, hash_key, auth_key, password
     )
@@ -112,7 +112,7 @@ def flask_answer_wrapper (f):
             cookie_age = 0
         elif not secure_token == token_session:
             cookie_content = secure_token
-            cookie_age = 60
+            cookie_age = 8*60*60
         else:
             cookie_content = cookie_age = None
 

@@ -1,5 +1,6 @@
 from pg       import connect
 from datetime import datetime, timezone
+from base64   import b64encode, b64decode
 
 
 ###############################################################################
@@ -39,18 +40,20 @@ def insert_event (data, connection):
         return int((now_time - reference) .total_seconds())
 
     now = to_seconds(datetime.now(timezone.utc))
+    b64_data = b64encode(data)
 
     query_db("insert_event",
         connection,
-        args = (now, data)
+        args = (now, b64_data)
     )
     return now
 
 def get_from_date (pivot_date, connection):
-    return query_db("get_events",
+    db_result = query_db("get_events",
         connection,
         args = (pivot_date,)
     )
+    return [ (b64decode(t[0]), t[1]) for t in db_result ]
 
 
 ###############################################################################

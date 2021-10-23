@@ -1,5 +1,6 @@
-from flask       import Flask, g, request
+from flask       import Flask, g, request, render_template
 from json        import dumps, loads
+from os          import environ
 
 import db_bridge
 import secure_bridge
@@ -9,12 +10,12 @@ import secure_bridge
 ####################  ENVIRONMENT CONFIGURATION VARIABLES  ####################
 
 import os
-DATABASE_URL              = os.environ.get('DATABASE_URL')
-ENCRYPTION_KEY_SECRET     = os.environ.get('ENCRYPTION_KEY_SECRET')
-HASH_KEY_SECRET           = os.environ.get('HASH_KEY_SECRET')
-AUTHENTICATION_KEY_SECRET = os.environ.get('AUTHENTICATION_KEY_SECRET')
-PASSWORD                  = os.environ.get('PASSWORD')
-MUTE_SECURITY             = os.environ.get('MUTE_SECURITY')
+DATABASE_URL              = environ.get('DATABASE_URL')
+ENCRYPTION_KEY_SECRET     = environ.get('ENCRYPTION_KEY_SECRET')
+HASH_KEY_SECRET           = environ.get('HASH_KEY_SECRET')
+AUTHENTICATION_KEY_SECRET = environ.get('AUTHENTICATION_KEY_SECRET')
+PASSWORD                  = environ.get('PASSWORD')
+MUTE_SECURITY             = environ.get('MUTE_SECURITY')
 
 
 ###############################################################################
@@ -65,6 +66,11 @@ def close_db(error):
 ###############################################################################
 ################################  FLASK ROUTES  ###############################
 
+@flask_app.route('/', methods = ['GET'])
+
+def main_page():
+    return __main_page()
+
 @flask_app.route('/send_event', methods = ['POST'])
 def send_event():
     # TODO: Current this route allows smth else than
@@ -80,6 +86,20 @@ def fetch_events():
 
 ###############################################################################
 ###############################  BUSINESS UNITS  ##############################
+
+def with_browser_security_enforced (f):
+    def K(*args, **kwargs):
+        flask_response = f(*args, **kwargs)
+        if MUTE_SECURITY is None:
+            flask_response.headers['X-Frame-Options'] = 'sameorigin'
+            flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'
+            flask_response.headers['X-Content-Type-Options'] = 'nosniff'
+            flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+            flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            flask_response.headers['Content-Security-Policy'] = "default-src * data:; script-src https: 'unsafe-inline' 'unsafe-eval'; style-src https: 'unsafe-inline'"
+        return flask_response
+    
+    return K
 
 def flask_answer_wrapper (f):
     def K(*args, **kwargs):
@@ -123,18 +143,19 @@ def flask_answer_wrapper (f):
                     httponly = True
             )
 
-        if MUTE_SECURITY is None:
-            # Browser-Server aggreements on security headers
-            flask_response.headers['X-Frame-Options'] = 'sameorigin'
-            flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'
-            flask_response.headers['X-Content-Type-Options'] = 'nosniff'
-            flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
-            flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-            flask_response.headers['Content-Security-Policy'] = "default-src * data:; script-src https: 'unsafe-inline' 'unsafe-eval'; style-src https: 'unsafe-inline'"
-
         return flask_response
     return K
 
+@with_browser_security_enforced
+def __main_page():
+    return render_template('index.htm',
+               csrf_token = "MySecretToken",
+               base_url = "http://localhost:5000" if (
+                             MUTE_SECURITY is not None
+                          ) else "https://family-calendar.herokuapp.com"
+           )
+
+@with_browser_security_enforced
 @flask_answer_wrapper
 def __send_event ():
     provided = request.json
@@ -144,6 +165,7 @@ def __send_event ():
     time = insert_event (truncated)
     return dumps(time)
 
+@with_browser_security_enforced
 @flask_answer_wrapper
 def __fetch_events():
     time = request.args.get('from', type=int)

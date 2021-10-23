@@ -9,7 +9,6 @@ Event.prototype = {
 	print: function(printer) {
 		var strDate = this.date.asFormattedString(),
 		    strTime = this.time,
-		    strLoan = this.loan,
 		    strDescription = this.description,
 		    kind = this.kind;
 
@@ -72,7 +71,7 @@ Event.read = function (data) {
 			var records = JSON.parse (content)
 							.map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
 							.filter(([_1]) => !!_1)
-							.sort ((rec1, rec2) => rec1[1] - rec2[1]);
+							.sortedBy (([_1, _2]) => _2);
 
 			lastTrackTime = records.isNotEmpty()
 								? records.map(([_1, timeTrack]) => timeTrack).last()

@@ -148,12 +148,17 @@ def flask_answer_wrapper (f):
 
 @with_browser_security_enforced
 def __main_page():
-    return render_template('index.htm',
+    html_content = render_template('index.htm',
                csrf_token = "MySecretToken",
                base_url = "http://localhost:5000" if (
                              MUTE_SECURITY is not None
                           ) else "https://family-calendar.herokuapp.com"
            )
+    return flask_app.response_class(
+            content = html_content,
+            status = 200,
+            mimetype = 'text/html'
+    )
 
 @with_browser_security_enforced
 @flask_answer_wrapper

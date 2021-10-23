@@ -155,7 +155,7 @@ def __main_page():
                           ) else "https://family-calendar.herokuapp.com"
            )
     return flask_app.response_class(
-            content = html_content,
+            response = html_content,
             status = 200,
             mimetype = 'text/html'
     )

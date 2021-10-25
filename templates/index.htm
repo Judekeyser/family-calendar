@@ -24,7 +24,7 @@ NetworkMessage.csrfToken = "{{ csrf_token }}";
 					<form name="menuCtrl">
 						<input type="range" name="rowCountSlider" value="4" min="1" max="9" step="1">
 						<br>
-						<input type="date" name="directDateInput">
+						<input type="date" name="directDateInput" class="focus-on">
 					</form>
 					<table class="focus-on fetchEvents-result">
 						<colgroup>
@@ -246,7 +246,21 @@ var menuTable = (function() {
 			}
 		},
 		updateReference: function (referenceDate) {
-			if (!this.referenceDate || ! referenceDate.equals(this.referenceDate)) {
+			var shouldUpdate = true;
+			if (this.referenceDate && ! this.referenceDate.equals(referenceDate)) {
+				if (this.expectedRowCount) {
+					var cursor = this.referenceDate;
+					for(let i = 0; i < this.expectedRowCount; i++) {
+						for (let j = 0; j < 7; j++) {
+							if (cursor.equals (referenceDate)) {
+								shouldUpdate = false;
+							} else cursor = cursor.nextDate();
+						}
+					}
+				}
+			}
+
+			if (shouldUpdate) {	
 				this.referenceDate = referenceDate;
 				this.repaint();
 			}
@@ -261,7 +275,13 @@ var menuTable = (function() {
 
 	table.addEventListener("focus-on", function({ detail }) {
 		var focusDate = detail;
+		if (! focusDate) return;
 		_.setFocus(focusDate);
+
+		var monday = focusDate;
+		while (! monday.isMonday())
+			monday = monday.previousDate();
+		_.updateReference(monday);
 	});
 
 	table.addEventListener("fetchEvents-result", function({ detail }) {
@@ -281,24 +301,26 @@ var rowCountSliderController = ((ctrl) => {
 document.menuCtrl.rowCountSlider.addEventListener("change", function() { rowCountSliderController(this); });
 rowCountSliderController(document.menuCtrl.rowCountSlider);
 
-var directDateInputController = ((ctrl) => {
-	var value = ctrl.value;
-	if (! ctrl.value) {
+var directDateInputController = ((ctrl, value) => {
+	if (! value) {
 		var date = MyDate.now();
 	} else {
-		var date = MyDate.fromFormattedString(ctrl.value);
+		var date = MyDate.fromFormattedString(value);
 	}
-	while (! date.isMonday())
-		date = date.previousDate();
-
-	if (ctrl.value != date.asFormattedString())
+	if (ctrl.value != date.asFormattedString()) {
 		ctrl.value = date.asFormattedString();
-
-	menuTable.updateReference(date);
+	}
 });
 
-document.menuCtrl.directDateInput.addEventListener("change", function() { directDateInputController(this); });
-directDateInputController(document.menuCtrl.directDateInput);
+document.menuCtrl.directDateInput.addEventListener("change", function() {
+	if (this.value)
+		dispatchEvent(new CustomEvent("force-location-change", { detail: `/?focus=${this.value}` }));
+});
+document.menuCtrl.directDateInput.addEventListener("focus-on", function({ detail }) {
+	var focusDate = detail;
+	directDateInputController(this, focusDate && focusDate.asFormattedString());
+});
+directDateInputController(document.menuCtrl.directDateInput, document.menuCtrl.directDateInput.value);
 		</script>
 
 	</body>

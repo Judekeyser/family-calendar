@@ -1,4 +1,4 @@
-from flask       import Flask, g, request, render_template
+from flask       import Flask, g, request, render_template, redirect
 from json        import dumps, loads
 from os          import environ
 
@@ -103,11 +103,14 @@ def with_browser_security_enforced (f):
     
     return K
 
+def cookie_name():
+    return '__Host-token' if MUTE_SECURITY is None else 'token'
+
 def flask_answer_wrapper (f):
     def K(*args, **kwargs):
         token_session, authentication_request = [
             w.encode('ascii') if w is not None else None for w in (
-                request.cookies.get('token'),
+                request.cookies.get(cookie_name()),
                 request.headers.get('Authentication')
             )
         ]
@@ -139,15 +142,29 @@ def flask_answer_wrapper (f):
             cookie_content = cookie_age = None
 
         if cookie_content is not None:
-            flask_response.set_cookie('token', cookie_content,
+            flask_response.set_cookie(cookie_name(), cookie_content,
                     max_age = cookie_age,
                     secure = MUTE_SECURITY is None,
-                    httponly = True
+                    httponly = True,
+                    path = '/',
+                    domain = None,
+                    samesite = 'Strict'
             )
 
         return flask_response
     return K
 
+def with_enforced_https(f):
+    def K(*args, **kwargs):
+        if MUTE_SECURITY is None:
+            if not request.is_secure:
+                return redirect('https://family-calendar.herokuapp.com',
+                    code = 301
+                )
+        return f(*args, **kwargs)
+    return K
+
+@with_enforced_https
 @with_browser_security_enforced
 def __main_page():
     html_content = render_template('index.htm',
@@ -162,6 +179,7 @@ def __main_page():
             mimetype = 'text/html'
     )
 
+@with_enforced_https
 @with_browser_security_enforced
 @flask_answer_wrapper
 def __send_event ():
@@ -172,6 +190,7 @@ def __send_event ():
     time = insert_event (truncated)
     return dumps(time)
 
+@with_enforced_https
 @with_browser_security_enforced
 @flask_answer_wrapper
 def __fetch_events():

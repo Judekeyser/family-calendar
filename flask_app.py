@@ -92,7 +92,7 @@ def with_browser_security_enforced (f):
         flask_response = f(*args, **kwargs)
         if MUTE_SECURITY is None:
             flask_response.headers['X-Frame-Options'] = 'sameorigin'
-            flask_response.headers['X-XSS-Protection'] = '1; mode=blocki'
+            flask_response.headers['X-XSS-Protection'] = '1; mode=block'
             flask_response.headers['X-Content-Type-Options'] = 'nosniff'
             flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
             flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'

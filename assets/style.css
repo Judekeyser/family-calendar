@@ -13,13 +13,16 @@
 * {
 	cursor: default;
 	font-family: 'Quicksand', sans-serif;
-	font-size: 18px;
 	margin: 0;
 	padding: 0;
 }
 body {
-	font-size: 18px;
+	font-size: 2vw;
 	background-color: white;
+}
+hr {
+	margin-top: 1em;
+	visibility: hidden;
 }
 
 
@@ -28,54 +31,17 @@ body {
 
 section {
 	width: 100%;
-	border-box: box-sizing;
 	position: relative;
-	padding-top: 10em;
-}
-section header {
-	position: absolute;
-	top: 0; left: 0;
-	box-sizing: border-box;
-	width: 100%;
 	padding: 1em;
-	background-color: white;
-	border-bottom: 1px solid black;
-	z-index: 2021;
-}
-section header:hover {
-	box-shadow: 0 10px 10px rgba(0,0,0,0.2);
-}
-section header h1 {
-	padding-top: 1em;
-	padding-bottom: 0.5em;
-	padding-right: 1em;
-	font-size: 3em;
-	text-align: right;
+	box-sizing: border-box;
 }
 
 
 /*******************************************************************************
 **************************** CALENDAR DISPLAY ZONE ****************************/
 
-@keyframes opentoppanel {
-	0% {
-		max-height: 0;
-	}
-	100% {
-		max-height: 30em;
-	}
-}
-header.opened nav {
-	animation-name: opentoppanel;
-	animation-duration: 0.8s;
-	height: auto;
-}
-
 nav {
 	text-align: center;
-	float: left;
-	overflow: hidden;
-	height: 0;
 }
 nav + *:before {
 	content: "";
@@ -83,13 +49,14 @@ nav + *:before {
 	clear: both;
 }
 
-nav form {
-	margin-bottom: 2em;
+nav form input {
+	font-size: 1em;
 }
 
 nav table, nav tr, nav th, nav td {
 	border-width: 0;
 }
+
 nav thead th {
 	border-bottom-width: 1px!important;
 	border-bottom-style: solid;
@@ -98,11 +65,14 @@ nav thead th {
 nav table {
 	border-spacing: 0;
 	border-collapse: separate;
+	width: 94.5%;
+	margin-right: auto;
+	margin-left: auto;
 }
 nav td, nav th {
 	padding: 0;
 	height: 3em;
-	width: 8vw;
+	width: 13.5%;
 }
 nav td a, nav th abbr, nav td span.active-link {
 	display: inline-block;
@@ -131,29 +101,18 @@ nav td span.active-link {
 	width: 75%;
 	margin-left: auto;
 	margin-right: auto;
-	margin-top: 5em;
 	padding-bottom: 2em;
 }
 
-#content hr {
-	min-width: 550px;
-	margin-top: 1.6em;
-	margin-bottom: 0.8em;
+#content form input, #content form button {
+	font-size: 0.9em;
 }
-
-form * {
-	padding: 0.2em;
-}
-form button {
+#content form button {
 	padding-left: 0.8em;
 	padding-right: 0.8em;
 	cursor: pointer;
 }
 
-
-dt {
-	margin-top: 1.2em;
-}
 dt.cancelled, dt.cancelled + dd, dt.cancelled + dd * {
 	text-decoration: line-through;
 }
@@ -161,11 +120,4 @@ dt button {
 	background-color: white;
 	border-width: 0px;
 	cursor: pointer;
-}
-dt button+span {
-	margin-left:  1em;
-}
-dd {
-	margin-left: 3em;
-	margin-top: 0.8em;
 }

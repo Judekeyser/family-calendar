@@ -8,44 +8,49 @@
 		<script src="assets/ArrayPolyfill.js"></script>
 		<script src="assets/MyDate.js"></script>
 		<script src="assets/NetworkMessage.js"></script>
-		<script src="assets/LocationChange.js"></script>
+		<script src="assets/GuiMessage.js"></script>
 		<script src="assets/Event.js"></script>
 	</head>
 	<body>
 
-		<section class="focus-on fetchEvents-result">
-			<header>
-				<nav>
-					<form name="menuCtrl">
-						<input type="range" name="rowCountSlider" value="4" min="1" max="9" step="1">
-						<br>
-						<input type="date" name="directDateInput" class="focus-on">
-					</form>
-					<table class="focus-on fetchEvents-result">
-						<colgroup>
-							<col span="5">
-							<col span="2">
-						</colgroup>
-						<thead>
-							<tr>
-								<th><abbr title="Lundi"    >Lun</abbr></th>
-								<th><abbr title="Mardi"    >Mar</abbr></th>
-								<th><abbr title="Mercredi" >Mer</abbr></th>
-								<th><abbr title="Jeudi"    >Jeu</abbr></th>
-								<th><abbr title="Vendredi" >Ven</abbr></th>
-								<th><abbr title="Samedi"   >Sam</abbr></th>
-								<th><abbr title="Dimanche" >Dim</abbr></th>
-							</tr>
-						</thead>
-						<tbody>
-						</tbody>
-					</table>
-				</nav>
+		<nav>
+			<form name="menuCtrl">
+				<input type="range" name="rowCountSlider" value="4" min="1" max="9" step="1">
+				<hr>
+				<input type="date" name="directDateInput">
+			</form>
+			<hr>
+			<table class="view-update fetchEvents-result">
+				<colgroup>
+					<col span="5">
+					<col span="2">
+				</colgroup>
+				<thead>
+					<tr>
+						<th><abbr title="Lundi"    >Lun</abbr></th>
+						<th><abbr title="Mardi"    >Mar</abbr></th>
+						<th><abbr title="Mercredi" >Mer</abbr></th>
+						<th><abbr title="Jeudi"    >Jeu</abbr></th>
+						<th><abbr title="Vendredi" >Ven</abbr></th>
+						<th><abbr title="Samedi"   >Sam</abbr></th>
+						<th><abbr title="Dimanche" >Dim</abbr></th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</nav>
 
-				<h1></h1>
-			</header>
+		<hr>
+
+		<div id="content" class="view-update"></div>
+
+		<!--
+		<section class="focus-on fetchEvents-result">
 
 			<div id="content">
+				<hr>
+
 				<div id="day-detail"></div>
 
 				<hr>
@@ -57,6 +62,7 @@
 				</form>
 			</div>
 		</section>
+		-->
 
 
 		<script src="assets/guiInitializer.js"></script>

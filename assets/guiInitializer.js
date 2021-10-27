@@ -1,31 +1,19 @@
 NetworkMessage.baseUrl = document.querySelector("base").getAttribute("href");
 
-var panelSection = (function() {
+/*
+(function() {
 	var section          = document.querySelector("section"),
 	    largeContentBox  = section.querySelector("div#content"),
 	    contentContainer = section.querySelector("div#day-detail"),
-	    header           = section.querySelector("header"),
-	    h1               = header.querySelector("h1"),
 	    form             = largeContentBox.querySelector("form"),
 	    panelDate        = undefined;
-
-	h1.addEventListener("click", function() {
-		const OPENED = "opened";
-		if (header.classList.contains(OPENED)) {
-			header.classList.remove(OPENED);
-		} else {
-			header.classList.add(OPENED);
-		}
-	});
 
 	section.addEventListener("focus-on", function({ detail }) {
 		var targetDate = detail;
 		panelDate = targetDate;
 		if (! panelDate) {
-			h1.textContent = "Choisir une date...";
 			largeContentBox.style.display = "none";
 		} else {
-			h1.textContent = targetDate.asFormattedString();
 			contentContainer.textContent = "Chargement des données...";
 			window.dispatchEvent(new CustomEvent("fetchEvents"));
 			largeContentBox.style.display = "block";
@@ -118,8 +106,174 @@ var panelSection = (function() {
 		return false;
 	}
 })();
+*/
 
+(function() {
+	var focusDate, viewSize;
 
+	function handleEmission({ date, weekCount }) {
+		if (! date && focusDate)
+			handleEmission({ date: focusDate, weekCount });
+		else if (! weekCount && viewSize)
+			handleEmission({ date, weekCount: viewSize });
+		else {
+			focusDate = date;
+			viewSize = weekCount;
+
+			var monday = date;
+			while(monday && ! monday.isMonday())
+				monday = monday.previousDate();
+
+			if (focusDate && viewSize)
+				new GuiMessage("view-update", { date, weekCount, monday })
+					.send();
+		}	
+	}
+
+	window.addEventListener("focus-on", function({ detail }) {
+		var { date } = detail;
+		handleEmission({ date });
+	});
+
+	window.addEventListener("view-size", function({ detail }) {
+		var { weekCount } = detail;
+		handleEmission({ weekCount });
+	});
+})();
+
+(function() {
+	var datePicker = document.menuCtrl.directDateInput;
+
+	function emitEvent() {
+		var value = this.value,
+		     date = value && MyDate.fromFormattedString(value);
+
+		new GuiMessage("focus-on", { date }, "global")
+			.send();
+	};
+
+	datePicker.addEventListener("change", emitEvent);
+	window.addEventListener("load", function() {
+		datePicker.value = MyDate.now().asFormattedString();
+		emitEvent.bind(datePicker)();	
+	});
+})();
+
+(function() {
+	var slider = document.menuCtrl.rowCountSlider;
+
+	function emitEvent() {
+		var weekCount = this.value;
+
+		new GuiMessage("view-size", { weekCount }, "global")
+			.send();
+	};
+
+	slider.addEventListener("change", emitEvent);
+	window.addEventListener("load", function() {
+		emitEvent.bind(slider)();
+	});
+})();
+
+(function() {
+	var table = document.querySelector("nav table"),
+	    tbody = table.querySelector("tbody");
+
+	function TableView() {}
+	TableView.prototype = {
+		paint: function() {
+			if (!this.weekCount || !this.monday) return;
+
+			var trs = tbody.getElementsByTagName("tr");
+			while (trs.length > this.weekCount) {
+				tbody.removeChild (trs[this.weekCount]);
+			}
+			while (trs.length < this.weekCount) {
+				var tr = document.createElement("tr");
+				for (let i = 0; i < 7; i++)
+					tr.appendChild(document.createElement("td"));
+				tbody.appendChild(tr);
+			}
+
+			var dateCursor = this.monday;
+			for (let i = 0; i < trs.length; i++) {
+				var tds = trs[i].getElementsByTagName("td");
+				for (let j = 0; j < tds.length; j++) {
+					tds[j].innerHTML = "";
+					if (this.date && this.date.equals(dateCursor)) {
+						var cellChild = document.createElement("span");
+						cellChild.classList.add("active-link");
+					} else {
+						var cellChild = document.createElement("span");
+						cellChild.onclick = function(event) {
+							event.preventDefault();
+							return false;
+						}
+						if (this.date.hasSameMonthThan(dateCursor)) ;
+						else {
+							cellChild.style.color = "#666666";
+						}
+					}
+					cellChild.textContent = dateCursor.twoDigitsDay();
+					tds[j].appendChild(cellChild);
+					if (this.boldMarkerPredicate && this.boldMarkerPredicate(dateCursor)) {
+						tds[j].style.fontWeight = "bold";
+					}
+					dateCursor = dateCursor .nextDate();
+				}
+			}
+		}
+	}
+
+	table.addEventListener("view-update", function({ detail }) {
+		var { date, weekCount, monday } = detail;
+		console.log(detail);
+
+		var struct = { date, weekCount, monday };
+		Object.setPrototypeOf(struct, TableView.prototype);
+
+		struct.paint();
+	});
+})();
+
+(function() {
+	var content = document.querySelector("#content");
+
+	function ContentView() {}
+	ContentView.prototype = {
+		paint: function() {
+			if (!this.weekCount || !this.monday) return;
+
+			var scs = content.getElementsByTagName("section");
+			while (scs.length > this.weekCount) {
+				content.removeChild (scs[this.weekCount]);
+			}
+			while (scs.length < this.weekCount) {
+				content.appendChild(document.createElement("section"));
+			}
+
+			var dateCursor = this.monday;
+			for (let i = 0; i < scs.length; i++) {
+				var section = scs[i];
+				section.innerHTML = "";
+				var h1 = document.createElement("h1");
+				h1.textContent = dateCursor.asFormattedString();
+				section.appendChild(h1);
+				dateCursor = dateCursor .nextDate();
+			}
+		}
+	}
+
+	content.addEventListener("view-update", function({ detail }) {
+		var { date, weekCount, monday } = detail;
+		var struct = { date, weekCount, monday };
+		Object.setPrototypeOf(struct, ContentView.prototype);
+
+		struct.paint();
+	});
+})();
+
+/*
 var menuTable = (function() {
 	var table = document.querySelector("nav table"),
 	    tbody = table.querySelector("tbody");
@@ -257,3 +411,5 @@ document.menuCtrl.directDateInput.addEventListener("focus-on", function({ detail
 	directDateInputController(this, focusDate && focusDate.asFormattedString());
 });
 directDateInputController(document.menuCtrl.directDateInput, document.menuCtrl.directDateInput.value);
+
+*/

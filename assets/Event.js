@@ -69,13 +69,13 @@ Event.read = function (data) {
 	window.addEventListener ("fetchEvents", () => {
 		const contentHandler = content => {
 			var records = JSON.parse (content)
-							.map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
-							.filter(([_1]) => !!_1)
-							.sortedBy (([_1, _2]) => _2);
+					.map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
+					.filter(([_1]) => !!_1)
+					.sortedBy (([_1, _2]) => _2);
 
 			lastTrackTime = records.isNotEmpty()
-								? records.map(([_1, timeTrack]) => timeTrack).last()
-								: lastTrackTime;
+						? records.map(([_1, timeTrack]) => timeTrack).last()
+						: lastTrackTime;
 			
 			records.map (([event, _2]) => event)
 				.forEach(event => {
@@ -85,8 +85,8 @@ Event.read = function (data) {
 					eventsStorage[dateKey].push(event);
 				});
 
-			[...document.querySelectorAll(".fetchEvents-result")]
-			.forEach(elem => elem.dispatchEvent(new CustomEvent("fetchEvents-result", { detail: eventsStorage })));
+			new GuiMessage("fetchEvents-result", eventsStorage)
+				.send();
 		};
 
 		new NetworkMessage({

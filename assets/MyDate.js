@@ -14,6 +14,9 @@ MyDate.prototype = {
 	isMonday: function() {
 		return this.dateRepr.getDay() == 1;
 	},
+	hasSameMonthThan: function(another) {
+		return this.twoDigitsMonth() == another.twoDigitsMonth();
+	},
 	fourDigitsYear: function() {
 		return this.dateRepr.getFullYear();
 	},

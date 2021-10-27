@@ -90,13 +90,13 @@ def fetch_events():
 def with_browser_security_enforced (f):
     def K(*args, **kwargs):
         flask_response = f(*args, **kwargs)
+        flask_response.headers['Content-Security-Policy'] = "default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'"
         if MUTE_SECURITY is None:
             flask_response.headers['X-Frame-Options'] = 'sameorigin'
             flask_response.headers['X-XSS-Protection'] = '1; mode=block'
             flask_response.headers['X-Content-Type-Options'] = 'nosniff'
             flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
             flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-            flask_response.headers['Content-Security-Policy'] = "default-src * data:; script-src https: 'unsafe-inline' 'unsafe-eval'; style-src https: 'unsafe-inline'"
             flask_response.headers['Referrer-Policy'] = "no-referrer-when-downgrade"
             flask_response.headers['Feature-Policy'] = "camera 'none'; fullscreen 'self'; geolocation 'none'; microphone 'none'"
         return flask_response

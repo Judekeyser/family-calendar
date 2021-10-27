@@ -90,7 +90,7 @@ def fetch_events():
 def with_browser_security_enforced (f):
     def K(*args, **kwargs):
         flask_response = f(*args, **kwargs)
-        flask_response.headers['Content-Security-Policy'] = "default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'"
+        flask_response.headers['Content-Security-Policy'] = "default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
         if MUTE_SECURITY is None:
             flask_response.headers['X-Frame-Options'] = 'sameorigin'
             flask_response.headers['X-XSS-Protection'] = '1; mode=block'

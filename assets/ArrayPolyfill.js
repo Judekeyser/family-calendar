@@ -42,6 +42,12 @@ if (! Array.prototype.flatten) {
 		return this.reduce ((a,b) => [...a, ...b], []);
 	};
 }
+if (! Array.prototype.peek) {
+	Array.prototype.peek = function (consumer) {
+		this.forEach(_ => consumer(_));
+		return this;
+	};
+}
 if (! Array.prototype.flatMap) {
 	Array.prototype.flatMap = function(f) {
 		return this.map(_ => f(_)).flatten();
@@ -71,5 +77,14 @@ if (! Array.prototype.groupBy) {
 			stack[hash].push(_);
 		});
 		return keys.map(key => ({key, values: stack[key]}));
+	}
+}
+if (! Array.asKeyValueStream) {
+	Array.asKeyValueStream = function(obj) {
+		return Object.keys(obj)
+			.map(key => ({
+				key,
+				value: obj[key]
+			}));
 	}
 }

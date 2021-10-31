@@ -64,37 +64,63 @@ Event.read = function (data) {
 
 (function() {
 	var lastTrackTime = 0,
+	    lastFetchTime = 0,
+	    lastHookFetch = null,
 	    eventsStorage = {};
 
-	window.addEventListener ("fetchEvents", () => {
-		const contentHandler = content => {
-			var records = JSON.parse (content)
-					.map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
-					.filter(([_1]) => !!_1)
-					.sortedBy (([_1, _2]) => _2);
+	function contentHandler (content) {
+		var records = JSON.parse (content)
+				.map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
+				.filter(([_1]) => !!_1)
+				.sortedBy (([_1, _2]) => _2);
 
-			lastTrackTime = records.isNotEmpty()
-						? records.map(([_1, timeTrack]) => timeTrack).last()
-						: lastTrackTime;
-			
-			records.map (([event, _2]) => event)
-				.forEach(event => {
-					var dateKey = event.dateKey();
-					if (! eventsStorage[dateKey])
-						eventsStorage[dateKey] = [];
-					eventsStorage[dateKey].push(event);
-				});
+		lastTrackTime = records.isNotEmpty()
+					? records.map(([_1, timeTrack]) => timeTrack).last()
+					: lastTrackTime;
+		
+		records.map (([event, _2]) => event)
+			.forEach(event => {
+				var dateKey = event.dateKey();
+				if (! eventsStorage[dateKey])
+					eventsStorage[dateKey] = [];
+				eventsStorage[dateKey].push(event);
+			});
+	}
 
-			new GuiMessage("fetchEvents-result", eventsStorage)
-				.send();
-		};
+	function sendToUIListeners() {
+		new GuiMessage("fetchEvents-result", eventsStorage)
+			.send();
+	}
 
-		new NetworkMessage({
+	function fetchEvents() {
+		return new NetworkMessage({
 			method: "GET",
 			url: `fetch_events?from=${lastTrackTime}`
 		}).send()
-		.then(({ content }) => contentHandler(content));
+		.then(({ content }) => contentHandler(content))
+		.then(() => sendToUIListeners());
+	}
 
+	window.addEventListener ("fetchEvents", () => {
+		sendToUIListeners();
+
+		const WAIT_BEFORE_FETCH = 3000;
+
+		var now = Date.now();
+		if (now - lastFetchTime < 1000) {
+			sendToUIListeners();
+		} else if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
+			sendToUIListeners();
+			lastFetchTime = now;
+			fetchEvents();
+		} else if (! lastHookFetch) lastHookFetch = setTimeout(() => {
+			var now = Date.now();
+			if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
+				lastFetchTime = now;
+				fetchEvents();
+			}
+			lastHookFetch = null;
+		}, 3000);
 	});
 
 })();

@@ -24,6 +24,51 @@ hr {
 	margin-top: 1em;
 	visibility: hidden;
 }
+.right-align {
+	text-align: right;
+}
+
+
+/*******************************************************************************
+****************************** MODAL DIALOG ASPECT ****************************/
+
+dialog {
+	padding: 2em;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 25vh;
+	width: 58vw;
+	font-size: 1em;
+	position relative;
+}
+dialog fieldset {
+	padding: 1em;
+}
+dialog legend {
+	margin-left: 1em;
+	margin-bottom: 1em;
+}
+dialog p {
+	font-size: 0.9em;
+	padding: 0.5em;
+}
+dialog button {
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	padding-left: 1.2em;
+	padding-right: 1.2em;
+	cursor: pointer;
+}
+dialog button[value=cancel] {
+	position: absolute;
+	top: 0;
+	right: 0;
+	background-color: white;
+	border-width: 0;
+}
+dialog input[type=button]:hover {
+	background-color: #EAEAEA;
+}
 
 
 /*******************************************************************************
@@ -90,7 +135,7 @@ nav td a:hover {
 	cursor: pointer;
 }
 nav td span.active-link {
-	text-decoration: underline;
+	background-color: #EFEFEF;
 }
 
 

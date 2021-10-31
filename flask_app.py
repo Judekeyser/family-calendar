@@ -43,6 +43,10 @@ def get_secure (binary_token, auth_scheme_recover):
     )
     return token.decode('ascii') if token is not None else None
 
+def get_csrf_token ():
+    token = secure_bridge.random_word()
+    return token .decode('ascii')
+
 
 ###############################################################################
 ###########@###  FLASK SET UP (CONFIGURATION AND ROUTE GUARDS)  ###@###########
@@ -103,14 +107,26 @@ def with_browser_security_enforced (f):
     
     return K
 
-def cookie_name():
-    return '__Host-token' if MUTE_SECURITY is None else 'token'
+def auth_cookie_name():
+    return '__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
+
+def csrf_cookie_name():
+    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
 
 def flask_answer_wrapper (f):
     def K(*args, **kwargs):
+        csrf_token_from_cookie = request.cookies.get(csrf_cookie_name())
+        csrf_token_from_header = request.headers.get('X-Csrf-Token')
+        if not csrf_token_from_header == csrf_token_from_cookie:
+           return flask_app.response_class(
+                response = 'Untrusted request',
+                status = 403,
+                mimetype = 'application/json'
+           )
+
         token_session, authentication_request = [
             w.encode('ascii') if w is not None else None for w in (
-                request.cookies.get(cookie_name()),
+                request.cookies.get(auth_cookie_name()),
                 request.headers.get('Authentication')
             )
         ]
@@ -120,8 +136,8 @@ def flask_answer_wrapper (f):
         )
         if secure_token is None:
             flask_response = flask_app.response_class(
-                response = 'Forbidden access',
-                status = 403,
+                response = 'Unauthentified user',
+                status = 401,
                 mimetype = 'application/json'
             )
         else:
@@ -142,7 +158,7 @@ def flask_answer_wrapper (f):
             cookie_content = cookie_age = None
 
         if cookie_content is not None:
-            flask_response.set_cookie(cookie_name(), cookie_content,
+            flask_response.set_cookie(auth_cookie_name(), cookie_content,
                     max_age = cookie_age,
                     secure = MUTE_SECURITY is None,
                     httponly = True,
@@ -167,17 +183,27 @@ def with_enforced_https(f):
 @with_enforced_https
 @with_browser_security_enforced
 def __main_page():
+    csrf_token = get_csrf_token()
     html_content = render_template('index.htm',
-               csrf_token = "MySecretToken",
+               csrf_token = csrf_token,
                base_url = "http://localhost:5000" if (
                              MUTE_SECURITY is not None
                           ) else "https://family-calendar.herokuapp.com"
-           )
-    return flask_app.response_class(
+    )
+    response = flask_app.response_class(
             response = html_content,
             status = 200,
             mimetype = 'text/html'
     )
+    response.set_cookie(csrf_cookie_name(), csrf_token,
+            max_age = 24*60*60,
+            secure = MUTE_SECURITY is None,
+            httponly = True,
+            path = '/',
+            domain = None,
+            samesite = 'Strict'
+    )
+    return response
 
 @with_enforced_https
 @with_browser_security_enforced

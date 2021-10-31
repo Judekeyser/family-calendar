@@ -12,9 +12,12 @@ NetworkMessage.prototype = {
 				if (req.readyState == 4) {
 					if (req.status == 200)
 						resolve({ content: req.response });
-					else if (req.status == 401 || req.status == 403)
+					else if (req.status == 401)
 						resolve({ unauth: true });
-					else reject();
+					else if (req.status == 403) {
+						alert("L'accès est interdit,\nce qui peut signifier une session corrompue.\nLe plus simple est de recharger la page.");
+						reject();
+					} else reject();
 				}
 			};
 			req.onerror = () => reject();
@@ -22,6 +25,7 @@ NetworkMessage.prototype = {
 			req.open(this.method, `${NetworkMessage.baseUrl}${this.url}`);
 			if(this.password)
 				req.setRequestHeader('Authentication', this.password);
+			req.setRequestHeader('X-Csrf-Token', NetworkMessage.csrfToken);
 			req.setRequestHeader('Accept', 'application/json');
 			if (this.method == 'POST') {
 				req.setRequestHeader('Content-Type', 'application/json');

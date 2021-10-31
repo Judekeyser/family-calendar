@@ -41,29 +41,30 @@
 			</table>
 		</nav>
 
+		<dialog class="ask-user-appointment-details">
+			<form method="dialog">
+				<fieldset>
+					<legend>Ajouter un rendez-vous au <span>2021-09-28</span></legend>
+					<p>
+						<label for="time">Heure du rendez-vous:</label>
+						<input type="time" id="time" name="time">
+					</p>
+					<p>
+						<label for="shortTitle">Courte description</label>
+						<input type="text" id="shortTitle" name="shortTitle">
+					</p>
+					<p class="right-align">
+						<input type="hidden" value="{{csrf_token}}">
+						<button value="confirm">+</button>
+						<button value="cancel">&#128473;</button>
+					</p>
+				</fieldset>
+			</form>
+		</dialog>
+
 		<hr>
 
-		<div id="content" class="view-update"></div>
-
-		<!--
-		<section class="focus-on fetchEvents-result">
-
-			<div id="content">
-				<hr>
-
-				<div id="day-detail"></div>
-
-				<hr>
-
-				<form>
-					<input type="time" name="time">
-					<input type="text" name="shortTitle">
-					<button>+</button>
-				</form>
-			</div>
-		</section>
-		-->
-
+		<div id="content" class="view-update fetchEvents-result"></div>
 
 		<script src="assets/guiInitializer.js"></script>
 

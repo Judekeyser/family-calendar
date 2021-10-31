@@ -3,6 +3,9 @@ function MyDate(timeStamp) {
 }
 
 MyDate.prototype = {
+	copy: function() {
+		return new MyDate(this.timeStamp);
+	},
 	nextDate: function() {
 		var nextTimeStamp = this.timeStamp + 24*60*60*1_000;
 		return new MyDate (nextTimeStamp);

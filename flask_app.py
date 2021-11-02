@@ -4,12 +4,12 @@ from os          import environ
 
 import db_bridge
 import secure_bridge
+import browser_security_response_headers
 
 
 ###############################################################################
 ####################  ENVIRONMENT CONFIGURATION VARIABLES  ####################
 
-import os
 DATABASE_URL              = environ.get('DATABASE_URL')
 ENCRYPTION_KEY_SECRET     = environ.get('ENCRYPTION_KEY_SECRET')
 HASH_KEY_SECRET           = environ.get('HASH_KEY_SECRET')
@@ -31,35 +31,130 @@ def get_from_date (time):
 ###############################################################################
 ########################  GATEWAYS TO SECURITY MODULE  ########################
 
-def get_secure (binary_token, auth_scheme_recover):
-    enc_key = ENCRYPTION_KEY_SECRET .encode('ascii')
-    hash_key = HASH_KEY_SECRET .encode('ascii')
-    auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
-    password = PASSWORD .encode('ascii')
-
-    token = secure_bridge.auth_strategy(binary_token, 1*60*60, 24*60*60,
-        auth_scheme_recover,
-        enc_key, hash_key, auth_key, password
-    )
-    return token.decode('ascii') if token is not None else None
-
 def get_csrf_token ():
     token = secure_bridge.random_word()
     return token .decode('ascii')
 
+def auth_cookie_name():
+    return '__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
+
+class Authentifier:
+    def __init__(self, request):
+        token_session = request.cookies.get(auth_cookie_name())
+        self.token_session = token_session .encode('ascii') if (
+                                 token_session is not None
+                             ) else None
+
+        auth_request = request.headers.get('Authentication')
+        auth_request = auth_request .encode('ascii') if (
+                          auth_request is not None
+                       ) else None
+
+        enc_key = ENCRYPTION_KEY_SECRET .encode('ascii')
+        hash_key = HASH_KEY_SECRET .encode('ascii')
+        auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
+        password = PASSWORD .encode('ascii')
+
+        token = secure_bridge.auth_strategy(self.token_session,
+            8*60*60, 24*60*60,
+            auth_request,
+            enc_key, hash_key, auth_key, password
+        )
+        if token is not None:
+            self.secure_token = token .decode('ascii')
+        else:
+            self.secure_token = None
+
+        setattr(request, '__authentifier', self)
+
+    def validates_request (self):
+        return self.secure_token is not None
+
+    def alters_cookies (self, c_consumer):
+        if not self .validates_request():
+            c_consumer(auth_cookie_name(), '', 0)
+        elif self.secure_token == self.token_session:
+            pass
+        else:
+            c_consumer(auth_cookie_name(), self.secure_token, 23*60*60)
+
 
 ###############################################################################
-###########@###  FLASK SET UP (CONFIGURATION AND ROUTE GUARDS)  ###@###########
+##############  FLASK DECORATORS TO TOKENS AND SECURITY CONCERNS  #############
+
+def csrf_cookie_name():
+    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
+
+
+###############################################################################
+###############  FLASK SET UP (CONFIGURATION AND ROUTE GUARDS)  ###############
 
 flask_app = Flask(__name__,
     static_folder = 'assets'
 )
 
+@flask_app.after_request
+def add_browser_security_headers(response):
+    def h_consumer (key, value):
+        response.headers[key] = value
+    browser_security_response_headers .apply(h_consumer, MUTE_SECURITY is None)
+    return response
+
+@flask_app.after_request
+def set_authentication_cookie (response):
+    def c_consumer(name, content, max_age):
+        response.set_cookie(
+            name, content,
+            max_age = max_age,
+            secure = MUTE_SECURITY is None,
+            httponly = True,
+            path = '/',
+            domain = None,
+            samesite = 'Strict'
+        )
+    authentifier = getattr(request, '__authentifier', None)
+    if authentifier is not None:
+        authentifier .alters_cookies (c_consumer)
+    return response
+
 @flask_app.before_request
-def before_request():
+def prepare_connection_object():
     db = getattr(g, 'db', None)
     if db is None:
         g.db = db_bridge.open_connection(DATABASE_URL)
+
+@flask_app.before_request
+def ssl_guard():
+    if MUTE_SECURITY is None:
+        if not request.is_secure:
+           return redirect('https://family-calendar.herokuapp.com',
+               code = 301
+           )
+
+@flask_app.before_request
+def csrf_guard():
+    if request.endpoint in ('send_event' 'fetch_events'):
+        csrf_token_from_cookie = request.cookies.get(csrf_cookie_name())
+        csrf_token_from_header = request.headers.get('X-Csrf-Token')
+        if not csrf_token_from_header == csrf_token_from_cookie:
+            return flask_app.response_class(
+                response = 'Untrusted request',
+                status = 403,
+                mimetype = 'application/json'
+            )
+
+@flask_app.before_request
+def auth_token_guard():
+    if request.endpoint in ('send_event', 'fetch_events'):
+        authentifier Authentifier (request)
+        if getattr(request, '__authentifier') is not authentifier:
+            raise Exception("Corrupted script: unset __authentifier")
+        if not authentifier .validates_request():
+            return flask_app.response_class(
+                response = 'Unauthentified user',
+                status = 401,
+                mimetype = 'application/json'
+            )
 
 @flask_app.teardown_appcontext
 def close_db(error):
@@ -71,16 +166,13 @@ def close_db(error):
 ################################  FLASK ROUTES  ###############################
 
 @flask_app.route('/', methods = ['GET'])
-
 def main_page():
     return __main_page()
 
 @flask_app.route('/send_event', methods = ['POST'])
 def send_event():
-    # TODO: Current this route allows smth else than
-    # Content-Type: applicatin/json and when it happens, null is stored in db
-    # It should not be... change this
-    
+    if not request.headers.get('Content-Type') == 'application/json':
+        raise Exception("Malformed request does not prove JSON content type")
     return __send_event()
 
 @flask_app.route('/fetch_events', methods = ['GET'])
@@ -91,97 +183,18 @@ def fetch_events():
 ###############################################################################
 ###############################  BUSINESS UNITS  ##############################
 
-def with_browser_security_enforced (f):
-    def K(*args, **kwargs):
-        flask_response = f(*args, **kwargs)
-        flask_response.headers['Content-Security-Policy'] = "default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
-        flask_response.headers['X-Frame-Options'] = 'none'
-        flask_response.headers['Referrer-Policy'] = "no-referrer"
-        flask_response.headers['Feature-Policy'] = "camera 'none'; fullscreen 'self'; geolocation 'none'; microphone 'none'"
-        flask_response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
-        flask_response.headers['X-XSS-Protection'] = '1; mode=block'
-        flask_response.headers['X-Content-Type-Options'] = 'nosniff'
-        if MUTE_SECURITY is None:
-            flask_response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-        return flask_response
-    
-    return K
-
-def auth_cookie_name():
-    return '__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
-
-def csrf_cookie_name():
-    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
 
 def flask_answer_wrapper (f):
     def K(*args, **kwargs):
-        csrf_token_from_cookie = request.cookies.get(csrf_cookie_name())
-        csrf_token_from_header = request.headers.get('X-Csrf-Token')
-        if not csrf_token_from_header == csrf_token_from_cookie:
-           return flask_app.response_class(
-                response = 'Untrusted request',
-                status = 403,
-                mimetype = 'application/json'
-           )
-
-        token_session, authentication_request = [
-            w.encode('ascii') if w is not None else None for w in (
-                request.cookies.get(auth_cookie_name()),
-                request.headers.get('Authentication')
-            )
-        ]
-        secure_token = get_secure(
-            token_session,
-            authentication_request
+        content = f(*args, **kwargs)
+        flask_response = flask_app.response_class(
+            response = content,
+            status = 200,
+            mimetype = 'application/json'
         )
-        if secure_token is None:
-            flask_response = flask_app.response_class(
-                response = 'Unauthentified user',
-                status = 401,
-                mimetype = 'application/json'
-            )
-        else:
-            content = f(*args, **kwargs)
-            flask_response = flask_app.response_class(
-                response = content,
-                status = 200,
-                mimetype = 'application/json'
-            )
-
-        if secure_token is None:
-            cookie_content = ''
-            cookie_age = 0
-        elif not secure_token == token_session:
-            cookie_content = secure_token
-            cookie_age = 8*60*60
-        else:
-            cookie_content = cookie_age = None
-
-        if cookie_content is not None:
-            flask_response.set_cookie(auth_cookie_name(), cookie_content,
-                    max_age = cookie_age,
-                    secure = MUTE_SECURITY is None,
-                    httponly = True,
-                    path = '/',
-                    domain = None,
-                    samesite = 'Strict'
-            )
-
         return flask_response
     return K
 
-def with_enforced_https(f):
-    def K(*args, **kwargs):
-        if MUTE_SECURITY is None:
-            if not request.is_secure:
-                return redirect('https://family-calendar.herokuapp.com',
-                    code = 301
-                )
-        return f(*args, **kwargs)
-    return K
-
-@with_enforced_https
-@with_browser_security_enforced
 def __main_page():
     csrf_token = get_csrf_token()
     html_content = render_template('index.htm',
@@ -205,8 +218,6 @@ def __main_page():
     )
     return response
 
-@with_enforced_https
-@with_browser_security_enforced
 @flask_answer_wrapper
 def __send_event ():
     provided = request.json
@@ -216,8 +227,6 @@ def __send_event ():
     time = insert_event (truncated)
     return dumps(time)
 
-@with_enforced_https
-@with_browser_security_enforced
 @flask_answer_wrapper
 def __fetch_events():
     time = request.args.get('from', type=int)

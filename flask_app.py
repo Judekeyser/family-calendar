@@ -74,7 +74,7 @@ class Authentifier:
         if not self .validates_request():
             c_consumer(auth_cookie_name(), '', 0)
         elif self.secure_token == self.token_session:
-            pass
+            return
         else:
             c_consumer(auth_cookie_name(), self.secure_token, 23*60*60)
 
@@ -99,6 +99,17 @@ def add_browser_security_headers(response):
         response.headers[key] = value
     browser_security_response_headers .apply(h_consumer, MUTE_SECURITY is None)
     return response
+
+@flask_app.after_request
+def add_content_type (response):
+   if request.endpoint in ('send_event', 'fetch_events'):
+       type = 'application/json'
+   elif request.endpoint == '':
+       type = 'text/html'
+   else:
+       return response
+   response.headers['Content-Type'] = type
+   return response
 
 @flask_app.after_request
 def set_authentication_cookie (response):
@@ -146,7 +157,7 @@ def csrf_guard():
 @flask_app.before_request
 def auth_token_guard():
     if request.endpoint in ('send_event', 'fetch_events'):
-        authentifier Authentifier (request)
+        authentifier = Authentifier (request)
         if getattr(request, '__authentifier') is not authentifier:
             raise Exception("Corrupted script: unset __authentifier")
         if not authentifier .validates_request():
@@ -183,18 +194,6 @@ def fetch_events():
 ###############################################################################
 ###############################  BUSINESS UNITS  ##############################
 
-
-def flask_answer_wrapper (f):
-    def K(*args, **kwargs):
-        content = f(*args, **kwargs)
-        flask_response = flask_app.response_class(
-            response = content,
-            status = 200,
-            mimetype = 'application/json'
-        )
-        return flask_response
-    return K
-
 def __main_page():
     csrf_token = get_csrf_token()
     html_content = render_template('index.htm',
@@ -218,7 +217,6 @@ def __main_page():
     )
     return response
 
-@flask_answer_wrapper
 def __send_event ():
     provided = request.json
     truncated = dumps(request.json) .encode('utf-8')[:512]
@@ -227,7 +225,6 @@ def __send_event ():
     time = insert_event (truncated)
     return dumps(time)
 
-@flask_answer_wrapper
 def __fetch_events():
     time = request.args.get('from', type=int)
 

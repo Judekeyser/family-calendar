@@ -31,6 +31,9 @@ def get_from_date (time):
 ###############################################################################
 ########################  GATEWAYS TO SECURITY MODULE  ########################
 
+def csrf_cookie_name():
+    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
+
 def get_csrf_token ():
     token = secure_bridge.random_word()
     return token .decode('ascii')
@@ -80,13 +83,6 @@ class Authentifier:
 
 
 ###############################################################################
-##############  FLASK DECORATORS TO TOKENS AND SECURITY CONCERNS  #############
-
-def csrf_cookie_name():
-    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
-
-
-###############################################################################
 ###############  FLASK SET UP (CONFIGURATION AND ROUTE GUARDS)  ###############
 
 flask_app = Flask(__name__,
@@ -102,14 +98,16 @@ def add_browser_security_headers(response):
 
 @flask_app.after_request
 def add_content_type (response):
-   if request.endpoint in ('send_event', 'fetch_events'):
-       type = 'application/json'
-   elif request.endpoint == '':
-       type = 'text/html'
-   else:
-       return response
-   response.headers['Content-Type'] = type
-   return response
+    if request.endpoint in ('send_event', 'fetch_events'):
+        type = 'application/json'
+    elif request.endpoint == '':
+        type = 'text/html'
+    else:
+        type = None
+
+    if type is not None:
+        response.headers['Content-Type'] = type
+    return response
 
 @flask_app.after_request
 def set_authentication_cookie (response):
@@ -178,23 +176,6 @@ def close_db(error):
 
 @flask_app.route('/', methods = ['GET'])
 def main_page():
-    return __main_page()
-
-@flask_app.route('/send_event', methods = ['POST'])
-def send_event():
-    if not request.headers.get('Content-Type') == 'application/json':
-        raise Exception("Malformed request does not prove JSON content type")
-    return __send_event()
-
-@flask_app.route('/fetch_events', methods = ['GET'])
-def fetch_events():
-    return __fetch_events()
-
-
-###############################################################################
-###############################  BUSINESS UNITS  ##############################
-
-def __main_page():
     csrf_token = get_csrf_token()
     html_content = render_template('index.htm',
                csrf_token = csrf_token,
@@ -217,7 +198,10 @@ def __main_page():
     )
     return response
 
-def __send_event ():
+@flask_app.route('/send_event', methods = ['POST'])
+def send_event():
+    if not request.headers.get('Content-Type') == 'application/json':
+        raise Exception("Malformed request does not prove JSON content type")
     provided = request.json
     truncated = dumps(request.json) .encode('utf-8')[:512]
     if not provided == loads(truncated):
@@ -225,7 +209,8 @@ def __send_event ():
     time = insert_event (truncated)
     return dumps(time)
 
-def __fetch_events():
+@flask_app.route('/fetch_events', methods = ['GET'])
+def fetch_events():
     time = request.args.get('from', type=int)
 
     def convert_event(data, timeTrack):

@@ -79,12 +79,16 @@ section {
 	position: relative;
 	padding: 1em;
 	box-sizing: border-box;
+  font-size: 1em;
 }
 
 
 /*******************************************************************************
 **************************** CALENDAR DISPLAY ZONE ****************************/
 
+nav *, nav {
+	font-size: 1em;
+}
 nav {
 	text-align: center;
 }
@@ -92,10 +96,6 @@ nav + *:before {
 	content: "";
 	display: table;
 	clear: both;
-}
-
-nav form input {
-	font-size: 1em;
 }
 
 nav table, nav tr, nav th, nav td {
@@ -147,6 +147,9 @@ nav td span.active-link {
 	margin-left: auto;
 	margin-right: auto;
 	padding-bottom: 2em;
+}
+#content * {
+  font-size: 1em;
 }
 
 #content form input, #content form button {

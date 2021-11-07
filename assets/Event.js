@@ -113,14 +113,16 @@ Event.read = function (data) {
 			sendToUIListeners();
 			lastFetchTime = now;
 			fetchEvents();
-		} else if (! lastHookFetch) lastHookFetch = setTimeout(() => {
-			var now = Date.now();
-			if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
-				lastFetchTime = now;
-				fetchEvents();
-			}
-			lastHookFetch = null;
-		}, 3000);
+		} else if (! lastHookFetch) {
+      lastHookFetch = setTimeout(() => {
+			  var now = Date.now();
+			  if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
+			  	lastFetchTime = now;
+			  	fetchEvents();
+			  }
+			  lastHookFetch = null;
+		  }, 3000);
+    }
 	});
 
 })();

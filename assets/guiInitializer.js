@@ -308,8 +308,22 @@ Emits:
 					section.style.display = "none";
 				} else {
 					valuesPerTime.forEach(({ time, description }) => {
-						var p = document.createElement("p");
-						p.textContent = `${time} - ${description}`;
+						var p = document.createElement("p"),
+             span = document.createElement("span");
+            span.textContent = '[\u2715]';
+            span.style.cursor = 'pointer';
+            span.style.marginRight = '1em';
+            p.appendChild(span);
+            span.onclick = function() {
+              new Event({
+                strDate: section.querySelector("h1").textContent,
+                strTime: time,
+                kind: "cancel"
+              }).send().then(() => {
+                 new GuiMessage("fetchEvents", undefined, "global").send();
+              })
+            };
+						p.appendChild(document.createTextNode(`${time} - ${description}`));
 						section.appendChild(p);
 					});
 					section.style.display = "block";

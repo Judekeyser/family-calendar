@@ -34,24 +34,23 @@ def get_from_date (time):
 def csrf_cookie_name():
     return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
 
-def get_csrf_token ():
-    token = secure_bridge.random_word()
-    return token .decode('ascii')
-
 def auth_cookie_name():
     return '__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
 
 class Authentifier:
-    def __init__(self, request):
-        token_session = request.cookies.get(auth_cookie_name())
-        self.token_session = token_session .encode('ascii') if (
-                                 token_session is not None
-                             ) else None
-
-        auth_request = request.headers.get('Authentication')
-        auth_request = auth_request .encode('ascii') if (
-                          auth_request is not None
-                       ) else None
+    def __init__(self,
+        token_session = None,
+        authentification = None,
+        csrf_cookie = None,
+        csrf_header = None
+    ):
+        self.csrf_cookie = csrf_cookie
+        self.csrf_header = csrf_header
+        self.token_session, authentification = [
+          w.encode('ascii') if w is not None else None for w in (
+            token_session, authentification
+          )
+        ]
 
         enc_key = ENCRYPTION_KEY_SECRET .encode('ascii')
         hash_key = HASH_KEY_SECRET .encode('ascii')
@@ -60,7 +59,7 @@ class Authentifier:
 
         token = secure_bridge.auth_strategy(self.token_session,
             8*60*60, 24*60*60,
-            auth_request,
+            authentification,
             enc_key, hash_key, auth_key, password
         )
         if token is not None:
@@ -68,18 +67,25 @@ class Authentifier:
         else:
             self.secure_token = None
 
-        setattr(request, '__authentifier', self)
+    def reset_csrf_token (self):
+        self.csrf_cookie = None
+        self.csrf_header = secure_bridge.random_word().decode('ascii')
+        return self.csrf_header
 
     def validates_request (self):
+        return self.csrf_cookie is not None and \
+               self.csrf_cookie == self.csrf_header
+
+    def authentifies_user (self):
         return self.secure_token is not None
 
     def alters_cookies (self, c_consumer):
-        if not self .validates_request():
+        if not self .authentifies_user():
             c_consumer(auth_cookie_name(), '', 0)
-        elif self.secure_token == self.token_session:
-            return
         else:
             c_consumer(auth_cookie_name(), self.secure_token, 23*60*60)
+        if not self .validates_request() and self.csrf_header is not None:
+            c_consumer(csrf_cookie_name(), self.csrf_header, 24*60*60)
 
 
 ###############################################################################
@@ -141,24 +147,23 @@ def ssl_guard():
            )
 
 @flask_app.before_request
-def csrf_guard():
-    if request.endpoint in ('send_event' 'fetch_events'):
-        csrf_token_from_cookie = request.cookies.get(csrf_cookie_name())
-        csrf_token_from_header = request.headers.get('X-Csrf-Token')
-        if not csrf_token_from_header == csrf_token_from_cookie:
+def auth_token_guard():
+    if request.endpoint in ('send_event', 'fetch_events', 'main_page'):
+        authentifier = Authentifier (
+          token_session = request.cookies.get(auth_cookie_name()),
+          authentification = request.headers.get('Authentication'),
+          csrf_cookie = request.cookies.get(csrf_cookie_name()),
+          csrf_header = request.headers.get('X-Csrf-Token')
+        )
+        setattr(request, '__authentifier', authentifier)
+    if request.endpoint in ('send_event', 'fetch_events'):
+        if not authentifier .validates_request():
             return flask_app.response_class(
                 response = 'Untrusted request',
                 status = 403,
                 mimetype = 'application/json'
             )
-
-@flask_app.before_request
-def auth_token_guard():
-    if request.endpoint in ('send_event', 'fetch_events'):
-        authentifier = Authentifier (request)
-        if getattr(request, '__authentifier') is not authentifier:
-            raise Exception("Corrupted script: unset __authentifier")
-        if not authentifier .validates_request():
+        elif not authentifier .authentifies_user():
             return flask_app.response_class(
                 response = 'Unauthentified user',
                 status = 401,
@@ -176,7 +181,7 @@ def close_db(error):
 
 @flask_app.route('/', methods = ['GET'])
 def main_page():
-    csrf_token = get_csrf_token()
+    csrf_token = getattr(request, '__authentifier', None) .reset_csrf_token()
     html_content = render_template('index.htm',
                csrf_token = csrf_token,
                base_url = "http://localhost:5000" if (
@@ -187,14 +192,6 @@ def main_page():
             response = html_content,
             status = 200,
             mimetype = 'text/html'
-    )
-    response.set_cookie(csrf_cookie_name(), csrf_token,
-            max_age = 24*60*60,
-            secure = MUTE_SECURITY is None,
-            httponly = True,
-            path = '/',
-            domain = None,
-            samesite = 'Strict'
     )
     return response
 

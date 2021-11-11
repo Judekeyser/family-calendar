@@ -33,13 +33,15 @@ hr {
 ****************************** MODAL DIALOG ASPECT ****************************/
 
 dialog {
-	padding: 2em;
+	padding: 1em;
 	margin-left: auto;
 	margin-right: auto;
 	margin-top: 25vh;
 	width: 58vw;
-	font-size: 1em;
 	position relative;
+}
+dialog * {
+	font-size: 1em;
 }
 dialog fieldset {
 	padding: 1em;
@@ -118,6 +120,7 @@ nav td, nav th {
 	padding: 0;
 	height: 3em;
 	width: 13.5%;
+  font-size: 1em;
 }
 nav td a, nav th abbr, nav td span.active-link {
 	display: inline-block;

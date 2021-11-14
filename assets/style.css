@@ -15,6 +15,7 @@
   font-family: 'Quicksand', sans-serif;
   margin: 0;
   padding: 0;
+  font-size: 3.2vw;
 }
 body {
   font-size: 3.2vw;
@@ -52,7 +53,6 @@ dialog legend {
   margin-bottom: 1em;
 }
 dialog p {
-  font-size: 0.9em;
   padding: 0.5em;
 }
 dialog button {
@@ -82,16 +82,12 @@ section {
   position: relative;
   padding: 1em;
   box-sizing: border-box;
-  font-size: 1em;
 }
 
 
 /*******************************************************************************
 **************************** CALENDAR DISPLAY ZONE ****************************/
 
-nav *, nav {
-  font-size: 1em;
-}
 nav {
   text-align: center;
 }
@@ -121,7 +117,6 @@ nav td, nav th {
   padding: 0;
   height: 3em;
   width: 13.5%;
-  font-size: 1em;
 }
 nav td a, nav th abbr, nav td span.active-link {
   display: inline-block;
@@ -147,17 +142,10 @@ nav td span.active-link {
 ************************** BODY CONTENT DISPLAY ZONE **************************/
 
 #content {
-  width: 75%;
+  width: 85vw;
   margin-left: auto;
   margin-right: auto;
   padding-bottom: 2em;
-}
-#content * {
-  font-size: 1em;
-}
-
-#content form input, #content form button {
-  font-size: 0.9em;
 }
 #content form button {
   padding-left: 0.8em;

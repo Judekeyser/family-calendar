@@ -12,27 +12,27 @@ from uuid                 import uuid4
 ####################  TOKEN COMPOSITION AND DECOMPOSITON  #####################
 
 def hash (binary_string, secret_key):
-	digester = sha512()
-	digester .update (binary_string)
-	digester .update (secret_key)
-	return digester .digest()
+  digester = sha512()
+  digester .update (binary_string)
+  digester .update (secret_key)
+  return digester .digest()
 
 def encrypt (binary_string, key):
-	return Fernet(key) .encrypt(binary_string)
+  return Fernet(key) .encrypt(binary_string)
 
 def decrypt (binary_string, key):
-	return Fernet(key) .decrypt(binary_string)
+  return Fernet(key) .decrypt(binary_string)
 
 def merge (seq):
-	return b'.'.join([encode_to_base64(w) for w in seq])
+  return b'.'.join([encode_to_base64(w) for w in seq])
 
 def split (binary_string):
-	return [decode_from_base64(w) for w in binary_string.split(b'.')]
+  return [decode_from_base64(w) for w in binary_string.split(b'.')]
 
 def create_token (information, encrypt_key, hash_key):
-	merged = merge(information)
-	merged = merge ((merged, hash(merged, hash_key)))
-	return encode_to_base64(encrypt(merged, encrypt_key))
+  merged = merge(information)
+  merged = merge ((merged, hash(merged, hash_key)))
+  return encode_to_base64(encrypt(merged, encrypt_key))
 
 def assert_validity (token, encrypt_key, hash_key,maximal_time_shifts):
     decoded = decrypt(decode_from_base64(token), encrypt_key)

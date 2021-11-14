@@ -8,24 +8,24 @@
   font-display: swap;
   src: url(https://fonts.gstatic.com/s/quicksand/v24/6xK-dSZaM9iE8KbpRA_LJ3z8mH9BOJvgkP8o58i-wi40.woff2) format('woff2');
   unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}	
+}  
 
 * {
-	cursor: default;
-	font-family: 'Quicksand', sans-serif;
-	margin: 0;
-	padding: 0;
+  cursor: default;
+  font-family: 'Quicksand', sans-serif;
+  margin: 0;
+  padding: 0;
 }
 body {
-	font-size: 2vw;
-	background-color: white;
+  font-size: 2vw;
+  background-color: white;
 }
 hr {
-	margin-top: 1em;
-	visibility: hidden;
+  margin-top: 1em;
+  visibility: hidden;
 }
 .right-align {
-	text-align: right;
+  text-align: right;
 }
 
 
@@ -33,43 +33,43 @@ hr {
 ****************************** MODAL DIALOG ASPECT ****************************/
 
 dialog {
-	padding: 1em;
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 25vh;
-	width: 58vw;
-	position relative;
+  padding: 1em;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 25vh;
+  width: 58vw;
+  position relative;
 }
 dialog * {
-	font-size: 1em;
+  font-size: 1em;
 }
 dialog fieldset {
-	padding: 1em;
+  padding: 1em;
 }
 dialog legend {
-	margin-left: 1em;
-	margin-bottom: 1em;
+  margin-left: 1em;
+  margin-bottom: 1em;
 }
 dialog p {
-	font-size: 0.9em;
-	padding: 0.5em;
+  font-size: 0.9em;
+  padding: 0.5em;
 }
 dialog button {
-	padding-top: 0.5em;
-	padding-bottom: 0.5em;
-	padding-left: 1.2em;
-	padding-right: 1.2em;
-	cursor: pointer;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  padding-left: 1.2em;
+  padding-right: 1.2em;
+  cursor: pointer;
 }
 dialog button[value=cancel] {
-	position: absolute;
-	top: 0;
-	right: 0;
-	background-color: white;
-	border-width: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: white;
+  border-width: 0;
 }
 dialog input[type=button]:hover {
-	background-color: #EAEAEA;
+  background-color: #EAEAEA;
 }
 
 
@@ -77,10 +77,10 @@ dialog input[type=button]:hover {
 ********************* HEADER POSITIONING AND HEADER ASPECT ********************/
 
 section {
-	width: 100%;
-	position: relative;
-	padding: 1em;
-	box-sizing: border-box;
+  width: 100%;
+  position: relative;
+  padding: 1em;
+  box-sizing: border-box;
   font-size: 1em;
 }
 
@@ -89,56 +89,56 @@ section {
 **************************** CALENDAR DISPLAY ZONE ****************************/
 
 nav *, nav {
-	font-size: 1em;
+  font-size: 1em;
 }
 nav {
-	text-align: center;
+  text-align: center;
 }
 nav + *:before {
-	content: "";
-	display: table;
-	clear: both;
+  content: "";
+  display: table;
+  clear: both;
 }
 
 nav table, nav tr, nav th, nav td {
-	border-width: 0;
+  border-width: 0;
 }
 
 nav thead th {
-	border-bottom-width: 1px!important;
-	border-bottom-style: solid;
-	border-bottom-color: #999;
+  border-bottom-width: 1px!important;
+  border-bottom-style: solid;
+  border-bottom-color: #999;
 }
 nav table {
-	border-spacing: 0;
-	border-collapse: separate;
-	width: 94.5%;
-	margin-right: auto;
-	margin-left: auto;
+  border-spacing: 0;
+  border-collapse: separate;
+  width: 94.5%;
+  margin-right: auto;
+  margin-left: auto;
 }
 nav td, nav th {
-	padding: 0;
-	height: 3em;
-	width: 13.5%;
+  padding: 0;
+  height: 3em;
+  width: 13.5%;
   font-size: 1em;
 }
 nav td a, nav th abbr, nav td span.active-link {
-	display: inline-block;
-	height: 3em;
-	line-height: 3em;
-	width: 100%;
-	text-align: center;
-	text-decoration: none;
+  display: inline-block;
+  height: 3em;
+  line-height: 3em;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
 }
 nav td a {
-	color: black;
+  color: black;
 }
 nav td a:hover {
-	background-color: #EAEAEA;
-	cursor: pointer;
+  background-color: #EAEAEA;
+  cursor: pointer;
 }
 nav td span.active-link {
-	background-color: #EFEFEF;
+  background-color: #EFEFEF;
 }
 
 
@@ -146,29 +146,29 @@ nav td span.active-link {
 ************************** BODY CONTENT DISPLAY ZONE **************************/
 
 #content {
-	width: 75%;
-	margin-left: auto;
-	margin-right: auto;
-	padding-bottom: 2em;
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 2em;
 }
 #content * {
   font-size: 1em;
 }
 
 #content form input, #content form button {
-	font-size: 0.9em;
+  font-size: 0.9em;
 }
 #content form button {
-	padding-left: 0.8em;
-	padding-right: 0.8em;
-	cursor: pointer;
+  padding-left: 0.8em;
+  padding-right: 0.8em;
+  cursor: pointer;
 }
 
 dt.cancelled, dt.cancelled + dd, dt.cancelled + dd * {
-	text-decoration: line-through;
+  text-decoration: line-through;
 }
 dt button {
-	background-color: white;
-	border-width: 0px;
-	cursor: pointer;
+  background-color: white;
+  border-width: 0px;
+  cursor: pointer;
 }

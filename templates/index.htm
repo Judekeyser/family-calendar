@@ -1,72 +1,72 @@
 <!DOCTYPE HTML>
 
 <html>
-	<head>
-		<base href="{{base_url}}/">
-		<link href="assets/style.css" rel="stylesheet">
+  <head>
+    <base href="{{base_url}}/">
+    <link href="assets/style.css" rel="stylesheet">
 
-		<script src="assets/ArrayPolyfill.js"></script>
-		<script src="assets/MyDate.js"></script>
-		<script src="assets/NetworkMessage.js"></script>
-		<script src="assets/GuiMessage.js"></script>
-		<script src="assets/Event.js"></script>
-	</head>
-	<body>
+    <script src="assets/ArrayPolyfill.js"></script>
+    <script src="assets/MyDate.js"></script>
+    <script src="assets/NetworkMessage.js"></script>
+    <script src="assets/GuiMessage.js"></script>
+    <script src="assets/Event.js"></script>
+  </head>
+  <body>
 
-		<nav>
-			<form name="menuCtrl">
-				<input type="range" name="rowCountSlider" value="4" min="1" max="9" step="1">
-				<hr>
-				<input type="date" name="directDateInput">
-			</form>
-			<hr>
-			<table class="view-update fetchEvents-result">
-				<colgroup>
-					<col span="5">
-					<col span="2">
-				</colgroup>
-				<thead>
-					<tr>
-						<th><abbr title="Lundi"    >Lun</abbr></th>
-						<th><abbr title="Mardi"    >Mar</abbr></th>
-						<th><abbr title="Mercredi" >Mer</abbr></th>
-						<th><abbr title="Jeudi"    >Jeu</abbr></th>
-						<th><abbr title="Vendredi" >Ven</abbr></th>
-						<th><abbr title="Samedi"   >Sam</abbr></th>
-						<th><abbr title="Dimanche" >Dim</abbr></th>
-					</tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-		</nav>
+    <nav>
+      <form name="menuCtrl">
+        <input type="range" name="rowCountSlider" value="4" min="1" max="9" step="1">
+        <hr>
+        <input type="date" name="directDateInput">
+      </form>
+      <hr>
+      <table class="view-update fetchEvents-result">
+        <colgroup>
+          <col span="5">
+          <col span="2">
+        </colgroup>
+        <thead>
+          <tr>
+            <th><abbr title="Lundi"    >Lun</abbr></th>
+            <th><abbr title="Mardi"    >Mar</abbr></th>
+            <th><abbr title="Mercredi" >Mer</abbr></th>
+            <th><abbr title="Jeudi"    >Jeu</abbr></th>
+            <th><abbr title="Vendredi" >Ven</abbr></th>
+            <th><abbr title="Samedi"   >Sam</abbr></th>
+            <th><abbr title="Dimanche" >Dim</abbr></th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </nav>
 
-		<dialog class="ask-user-appointment-details">
-			<form method="dialog">
-				<fieldset>
-					<legend>Ajouter un rendez-vous au <span>2021-09-28</span></legend>
-					<p>
-						<label for="time">Heure du rendez-vous:</label>
-						<input type="time" id="time" name="time">
-					</p>
-					<p>
-						<label for="shortTitle">Courte description</label>
-						<input type="text" id="shortTitle" name="shortTitle">
-					</p>
-					<p class="right-align">
-						<input type="hidden" value="{{csrf_token}}">
-						<button value="confirm">+</button>
-						<button value="cancel">&#128473;</button>
-					</p>
-				</fieldset>
-			</form>
-		</dialog>
+    <dialog class="ask-user-appointment-details">
+      <form method="dialog">
+        <fieldset>
+          <legend>Ajouter un rendez-vous au <span>2021-09-28</span></legend>
+          <p>
+            <label for="time">Heure du rendez-vous:</label>
+            <input type="time" id="time" name="time">
+          </p>
+          <p>
+            <label for="shortTitle">Courte description</label>
+            <input type="text" id="shortTitle" name="shortTitle">
+          </p>
+          <p class="right-align">
+            <input type="hidden" value="{{csrf_token}}">
+            <button value="confirm">+</button>
+            <button value="cancel">&#128473;</button>
+          </p>
+        </fieldset>
+      </form>
+    </dialog>
 
-		<hr>
+    <hr>
 
-		<div id="content" class="view-update fetchEvents-result"></div>
+    <div id="content" class="view-update fetchEvents-result"></div>
 
-		<script src="assets/guiInitializer.js"></script>
+    <script src="assets/guiInitializer.js"></script>
 
-	</body>
+  </body>
 </html>

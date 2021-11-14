@@ -1,9 +1,9 @@
 NetworkMessage.baseUrl = document
-              .querySelector("base")
-              .getAttribute("href");
+                        .querySelector("base")
+                        .getAttribute("href");
 NetworkMessage.csrfToken = document
-              .querySelector("dialog form input[type=hidden]")
-              .getAttribute("value");
+                           .querySelector("dialog form input[type=hidden]")
+                           .getAttribute("value");
 
 /***********************  VIRTUAL VIEW UPDATE COMPONENT  ***********************
 ********************************************************************************
@@ -23,47 +23,47 @@ Emits:
 (function() {
   var focusDate, viewSize,
       listeners = {
-          "focus-on": ({ detail }) => {
-    var { date } = detail;
-    patch ({ date });
-  },
-  "view-size": ({ detail }) => {
-    var { weekCount } = detail;
-    patch ({ weekCount });
-  }
+        "focus-on": ({ detail }) => {
+          var { date } = detail;
+          patch ({ date });
+        },
+        "view-size": ({ detail }) => {
+          var { weekCount } = detail;
+          patch ({ weekCount });
+        }
       };
 
   function patch({ date, weekCount }) {
-  if (! date && focusDate)
-    patch({ date: focusDate, weekCount });
-  else if (! weekCount && viewSize)
-    patch({ date, weekCount: viewSize });
-  else {
-    focusDate = date;
-    viewSize = weekCount;
+    if (! date && focusDate)
+      patch({ date: focusDate, weekCount });
+    else if (! weekCount && viewSize)
+      patch({ date, weekCount: viewSize });
+    else {
+      focusDate = date;
+      viewSize = weekCount;
 
-    if (focusDate && viewSize) {
-    var monday = focusDate;
-    while(! monday.isMonday())
-      monday = monday.previousDate();
-    new GuiMessage("view-update", {
-      date,
-      weekCount,
-      monday,
-      today: MyDate.now()
-    }).send();
-    }
-  }  
+      if (focusDate && viewSize) {
+        var monday = focusDate;
+        while(! monday.isMonday())
+          monday = monday.previousDate();
+        new GuiMessage("view-update", {
+          date,
+          weekCount,
+          monday,
+          today: MyDate.now()
+        }).send();
+      }
+    }  
   }
 
   window.addEventListener("focus-on", function({ detail }) {
-  var { date } = detail;
-  patch({ date });
+    var { date } = detail;
+    patch({ date });
   });
 
   window.addEventListener("view-size", function({ detail }) {
-  var { weekCount } = detail;
-  patch({ weekCount });
+    var { weekCount } = detail;
+    patch({ weekCount });
   });
 })();
 
@@ -84,17 +84,16 @@ Emits:
   var datePicker = document.menuCtrl.directDateInput;
 
   function emitEvent() {
-  var value = this.value,
-       date = value && MyDate.fromFormattedString(value);
+    var value = this.value,
+         date = value && MyDate.fromFormattedString(value);
 
-  new GuiMessage("focus-on", { date }, "global")
-    .send();
+    new GuiMessage("focus-on", { date }, "global") .send();
   };
 
   datePicker.addEventListener("change", emitEvent);
   window.addEventListener("load", function() {
-  datePicker.value = MyDate.now().asFormattedString();
-  emitEvent.bind(datePicker)();  
+    datePicker.value = MyDate.now().asFormattedString();
+    emitEvent.bind(datePicker)();  
   });
 })();
 
@@ -115,15 +114,14 @@ Emits:
   var slider = document.menuCtrl.rowCountSlider;
 
   function emitEvent() {
-  var weekCount = this.value;
+    var weekCount = this.value;
 
-  new GuiMessage("view-size", { weekCount }, "global")
-    .send();
+    new GuiMessage("view-size", { weekCount }, "global") .send();
   };
 
   slider.addEventListener("change", emitEvent);
   window.addEventListener("load", function() {
-  emitEvent.bind(slider)();
+    emitEvent.bind(slider)();
   });
 })();
 
@@ -236,7 +234,7 @@ Emits:
 })();
 
 
-/*********************  APPOINTMENTS LISTING VIEW COMPONENT  ********************
+/*********************  APPOINTMENTS LISTING VIEW COMPONENT  *******************
 ********************************************************************************
 
 Listens to:

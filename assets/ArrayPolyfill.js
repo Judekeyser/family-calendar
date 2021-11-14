@@ -2,7 +2,9 @@ if (! Array.prototype.max) {
   Array.prototype.max = function(accessor) {
     if (! accessor)
       return this.max (x => x);
-    else return this.reduce ((x, y) => x === null ? y : (accessor(x) < accessor(y) ? y : x), null);
+    else return this.reduce (
+      (x, y) => x === null ? y : (accessor(x) < accessor(y) ? y : x), null
+    );
   };
 }
 if (! Array.prototype.first) {
@@ -87,4 +89,9 @@ if (! Array.asKeyValueStream) {
         value: obj[key]
       }));
   }
+}
+if (! Array.prototype.toSet) {
+  Array.prototype.toSet = function() {
+    return new Set(this);
+  };
 }

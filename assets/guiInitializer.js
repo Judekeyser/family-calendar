@@ -183,7 +183,7 @@ Emits:
           }
           if (this.date.hasSameMonthThan(dateCursor)) ;
           else {
-            cellChild.style.color = "#999";
+            cellChild.classList.add("out-of-month");
           }
         }
         tds[j].setAttribute("data-for-date", dateCursor.asFormattedString());
@@ -323,8 +323,7 @@ Emits:
           var p = document.createElement("p"),
            span = document.createElement("span");
           span.textContent = '[\u2715]';
-          span.style.cursor = 'pointer';
-          span.style.marginRight = '1em';
+          span.classList.add("cancel-button");
           p.appendChild(span);
           span.onclick = function() {
             new Event({

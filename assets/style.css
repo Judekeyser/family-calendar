@@ -15,7 +15,7 @@
   font-family: 'Quicksand', sans-serif;
   margin: 0;
   padding: 0;
-  font-size: 3.2vw;
+  font-size: 3.2vw!important;
 }
 body {
   font-size: 3.2vw;
@@ -136,6 +136,9 @@ nav td a:hover {
 nav td span.active-link {
   background-color: #EFEFEF;
 }
+nav td span.out-of-month {
+  color: #999;
+}
 
 
 /*******************************************************************************
@@ -147,17 +150,15 @@ nav td span.active-link {
   margin-right: auto;
   padding-bottom: 2em;
 }
-#content form button {
-  padding-left: 0.8em;
-  padding-right: 0.8em;
-  cursor: pointer;
+#content h1 {
+  margin-top: 0.7em;
+  margin-bottom: 0.45em;
 }
-
-dt.cancelled, dt.cancelled + dd, dt.cancelled + dd * {
-  text-decoration: line-through;
+#content p {
+  margin-bottom: 0.3em;
+  margin-left: 0.3em;
 }
-dt button {
-  background-color: white;
-  border-width: 0px;
+span.cancel-button {
   cursor: pointer;
+  margin-right: 1em;
 }

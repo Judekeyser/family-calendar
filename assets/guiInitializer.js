@@ -371,5 +371,7 @@ Emits:
 				);
 			}
 		}
+    form.time.value = "";
+    form.shortTitle.value = "";
 	});
 })();

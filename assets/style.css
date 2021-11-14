@@ -17,8 +17,9 @@
   padding: 0;
 }
 body {
-  font-size: 2vw;
+  font-size: 3.2vw;
   background-color: white;
+  padding-top: 1em;
 }
 hr {
   margin-top: 1em;
@@ -37,7 +38,7 @@ dialog {
   margin-left: auto;
   margin-right: auto;
   margin-top: 25vh;
-  width: 58vw;
+  width: 90vw;
   position relative;
 }
 dialog * {
@@ -112,7 +113,7 @@ nav thead th {
 nav table {
   border-spacing: 0;
   border-collapse: separate;
-  width: 94.5%;
+  width: 94.5vw;
   margin-right: auto;
   margin-left: auto;
 }

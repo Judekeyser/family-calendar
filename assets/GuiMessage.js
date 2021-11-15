@@ -10,6 +10,11 @@ function GuiMessage(channel, detail, policy) {
   }
 }
 GuiMessage.prototype = {
+  __getEvent: function() {
+    return new CustomEvent (this.channel,
+      { detail: this.detail }
+    );
+  },
   send: function() {
     [
       this.isGlobal
@@ -20,10 +25,9 @@ GuiMessage.prototype = {
         : undefined
     ].filter(_ => !!_)
     .flatten()
-    .forEach(_ => _.dispatchEvent(
-      new CustomEvent(this.channel,
-          { detail: this.detail }
-      )
-    ));
+    .forEach(_ => _.dispatchEvent(this.__getEvent()));
+  },
+  sendTo: function (target) {
+    target.dispatchEvent(this.__getEvent());
   }
 };

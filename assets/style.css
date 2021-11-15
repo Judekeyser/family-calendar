@@ -53,13 +53,6 @@ dialog legend {
 dialog p {
   padding: 0.5em;
 }
-dialog button {
-  padding-top: 0.5em;
-  padding-bottom: 0.5em;
-  padding-left: 1.2em;
-  padding-right: 1.2em;
-  cursor: pointer;
-}
 dialog button[value=cancel] {
   position: absolute;
   top: 0;
@@ -67,8 +60,16 @@ dialog button[value=cancel] {
   background-color: white;
   border-width: 0;
 }
-dialog input[type=button]:hover {
-  background-color: #EAEAEA;
+
+/*******************************************************************************
+*********************************** BUTTONS ***********************************/
+
+button, input[type=button] {
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
+  padding-left: 0.8em;
+  padding-right: 0.8em;
+  cursor: pointer;
 }
 
 
@@ -89,17 +90,12 @@ section {
 nav {
   text-align: center;
 }
-nav + *:before {
-  content: "";
-  display: table;
-  clear: both;
-}
 
 nav table, nav tr, nav th, nav td {
   border-width: 0;
 }
 
-nav thead th {
+nav th {
   border-bottom-width: 1px!important;
   border-bottom-style: solid;
   border-bottom-color: #999;
@@ -116,20 +112,14 @@ nav td, nav th {
   height: 3em;
   width: 13.5%;
 }
-nav td a, nav th abbr, nav td span.active-link {
+nav td span, nav th abbr, nav td span.active-link {
   display: inline-block;
   height: 3em;
   line-height: 3em;
   width: 100%;
   text-align: center;
   text-decoration: none;
-}
-nav td a {
   color: black;
-}
-nav td a:hover {
-  background-color: #EAEAEA;
-  cursor: pointer;
 }
 nav td span.active-link {
   background-color: #EFEFEF;

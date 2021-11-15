@@ -68,11 +68,55 @@ Emits:
 })();
 
 
-/***************************  DATE PICKER COMPONENT  ***************************
+/************************  NEXT WEEK BUTTON COMPONENT  *************************
 ********************************************************************************
 
 Listens to:
   nothing
+
+Emits:
+  - change-date: { next = true }
+
+*******************************************************************************/
+
+(function() {
+  var button = document.menuCtrl.nextWeek;
+
+  button.addEventListener("click", function() {
+    new GuiMessage("change-date", { next: true }) .sendTo(
+      document.menuCtrl.directDateInput
+    );
+  });
+})();
+
+
+/**********************  PREVIOUS WEEK BUTTON COMPONENT  ***********************
+********************************************************************************
+
+Listens to:
+  nothing
+
+Emits:
+  - change-date: { previous = true }
+
+*******************************************************************************/
+
+(function() {
+  var button = document.menuCtrl.previousWeek;
+
+  button.addEventListener("click", function() {
+    new GuiMessage("change-date", { previous: true }) .sendTo(
+      document.menuCtrl.directDateInput
+    );
+  });
+})();
+
+
+/***************************  DATE PICKER COMPONENT  ***************************
+********************************************************************************
+
+Listens to:
+  - change-date: { previous = true } || { next = true }
 
 Emits:
   - focus-on: { date }
@@ -83,17 +127,34 @@ Emits:
 (function() {
   var datePicker = document.menuCtrl.directDateInput;
 
-  function emitEvent() {
-    var value = this.value,
-         date = value && MyDate.fromFormattedString(value);
+  function getValue() {
+    var value = datePicker.value;
+    return value && MyDate.fromFormattedString (value);
+  }
 
+  function emitEvent() {
+    var date = getValue();
     new GuiMessage("focus-on", { date }, "global") .send();
   };
 
-  datePicker.addEventListener("change", emitEvent);
+  datePicker.addEventListener("change", () => emitEvent());
+  datePicker.addEventListener("change-date", ({ detail }) => {
+    var { previous, next } = detail,
+                      date = getValue();
+    if (! date) return;
+    if (next) {
+      for (let i = 0; i < 7; i++)
+        date = date .nextDate();
+    } else if (previous) {
+      for (let i = 0; i < 7; i++)
+        date = date .previousDate();
+    }
+    datePicker.value = date.asFormattedString();
+    emitEvent();
+  });
   window.addEventListener("load", function() {
     datePicker.value = MyDate.now().asFormattedString();
-    emitEvent.bind(datePicker)();  
+    emitEvent();
   });
 })();
 

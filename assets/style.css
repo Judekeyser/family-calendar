@@ -16,9 +16,10 @@
   margin: 0;
   padding: 0;
   font-size: 3.2vw!important;
+  box-sizing: border-box;
 }
 body {
-  font-size: 3.2vw;
+  width: 100vw;
   background-color: white;
   padding-top: 1em;
 }
@@ -39,7 +40,7 @@ dialog {
   margin-left: auto;
   margin-right: auto;
   margin-top: 25vh;
-  width: 90vw;
+  width: 90%;
   position relative;
 }
 dialog * {
@@ -109,7 +110,7 @@ nav thead th {
 nav table {
   border-spacing: 0;
   border-collapse: separate;
-  width: 94.5vw;
+  width: 94.5%;
   margin-right: auto;
   margin-left: auto;
 }
@@ -145,7 +146,7 @@ nav td span.out-of-month {
 ************************** BODY CONTENT DISPLAY ZONE **************************/
 
 #content {
-  width: 85vw;
+  width: 85%;
   margin-left: auto;
   margin-right: auto;
   padding-bottom: 2em;

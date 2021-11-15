@@ -167,7 +167,6 @@ Emits:
         var cellChild = document.createElement("span");
         cellChild.textContent = dateCursor.twoDigitsDay();
         if (this.date && this.date.equals(dateCursor)) {
-          console.log(cellChild);
           cellChild.classList.add("active-link");
         } else {
           cellChild.onclick = function(event) {
@@ -250,29 +249,38 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var content = document.querySelector("#content"),
+  var content = document.querySelector("main dl"),
          view = {};
 
-  view.paint = function() {
+  function removeNextDDs (dtElement) {
+    var parentElement = dtElement.parentElement;
+    do {
+      var ddElement = dtElement.nextElementSibling;
+      if (ddElement && ddElement.tagName == "DD")
+        parentElement.removeChild (ddElement);
+      else break;
+    } while(true);
+  }
+
+  function paint() {
     if (!this.weekCount || !this.monday) return;
 
-    var scs = content.getElementsByTagName("section");
+    var scs = content.getElementsByTagName("dt");
     while (scs.length > this.weekCount) {
-      content.removeChild (scs[this.weekCount]);
+      var dtElement = scs[this.weekCount];
+      removeNextDDs(dtElement);
+      content.removeChild (dtElement);
     }
     while (scs.length < this.weekCount*7) {
       content.appendChild(
-      document.createElement("section")
+        document.createElement("dt")
       );
     }
 
     var dateCursor = this.monday;
     for (let i = 0; i < scs.length; i++) {
-      var section = scs[i];
-      section.innerHTML = "";
-      var h1 = document.createElement("h1");
-      h1.textContent = dateCursor.asFormattedString();
-      section.appendChild(h1);
+      var dtElement = scs[i];
+      dtElement.textContent = dateCursor.asFormattedString();
       dateCursor = dateCursor .nextDate();
     }
   }
@@ -283,61 +291,56 @@ Emits:
     view .weekCount = weekCount;
     view .monday = monday;
 
-    view .paint();
-    new GuiMessage("fetchEvents", undefined, "global")
-      .send();
-    });
+    paint.bind(view)();
+    new GuiMessage("fetchEvents", undefined, "global").send();
+  });
 
-    content.addEventListener("fetchEvents-result", function ({ detail }) {
-      var eventMap = detail;
-
-      [...content.querySelectorAll("section")]
-      .map(section => ({
-        section,
-        values: eventMap[section.querySelector("h1").textContent] || []
-      }))
-      .map(({section, values}) => ({
-        section,
-        valuesPerTime: values
-                       .map(event => event.perDayProjection())
-                       .groupBy(({ time }) => time)
-                       .map(group => ({
-                         key: group.key,
-                         last: group.values.last()
-                       }))
-                       .filter(({ last }) => !!last)
-                       .map(({ last }) => last)
-                       .filter(({ kind }) => kind == "create")
-                       .sortedBy(({ time }) => time)
-      }))
-      .peek(({ section }) => {
-        var pars = section.getElementsByTagName("p");
-        while(pars.length > 0)
-          section.removeChild(pars[0]);
-      }) 
-      .forEach(({ section, valuesPerTime }) => {
+  content.addEventListener("fetchEvents-result", function ({ detail }) {
+    var eventMap = detail;
+    [...content.querySelectorAll("dt")]
+    .map(dt => ({
+      dt,
+      values: eventMap[dt.textContent] || []
+    }))
+    .map(({dt, values}) => ({
+      dt,
+      valuesPerTime: values
+                     .map(event => event.perDayProjection())
+                     .groupBy(({ time }) => time)
+                     .map(group => ({
+                       key: group.key,
+                       last: group.values.last()
+                     }))
+                     .filter(({ last }) => !!last)
+                     .map(({ last }) => last)
+                     .filter(({ kind }) => kind == "create")
+                     .sortedBy(({ time }) => time)
+    }))
+    .forEach(({ dt, valuesPerTime }) => {
+        removeNextDDs(dt);
+        var nextDt = dt.nextElementSibling;
         if (valuesPerTime.isEmpty()) {
-          section.style.display = "none";
+          dt.style.display = "none";
         } else {
           valuesPerTime.forEach(({ time, description }) => {
-          var p = document.createElement("p"),
-           span = document.createElement("span");
-          span.textContent = '[\u2715]';
-          span.classList.add("cancel-button");
-          p.appendChild(span);
-          span.onclick = function() {
-            new Event({
-              strDate: section.querySelector("h1").textContent,
-              strTime: time,
-              kind: "cancel"
-            }).send().then(() => {
-              new GuiMessage("fetchEvents", undefined, "global").send();
-            })
-          };
-          p.appendChild(document.createTextNode(`${time} - ${description}`));
-          section.appendChild(p);
+            var dd = document.createElement("dd"),
+              span = document.createElement("span");
+            span.textContent = '[\u2715]';
+            span.classList.add("cancel-button");
+            dd.appendChild(span);
+            span.onclick = function() {
+              new Event({
+                strDate: dt.textContent,
+                strTime: time,
+                kind: "cancel"
+              }).send().then(() => {
+                new GuiMessage("fetchEvents", undefined, "global").send();
+              })
+            };
+            dd.appendChild(document.createTextNode(`${time} - ${description}`));
+            content.insertBefore(dd, nextDt);
         });
-        section.style.display = "block";
+        dt.style.display = "block";
       }
     });
   });

@@ -17,6 +17,14 @@ MyDate.prototype = {
   isMonday: function() {
     return this.dateRepr.getDay() == 1;
   },
+  isDaysBefore: function(another) {
+    if (this.timeStamp < another.timeStamp) {
+      if (this.asFormattedString() < another.asFormattedString()) {
+        return true;
+      }
+    }
+    return false;
+  },
   hasSameMonthThan: function(another) {
     return this.twoDigitsMonth() == another.twoDigitsMonth();
   },

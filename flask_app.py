@@ -106,8 +106,8 @@ def add_browser_security_headers(response):
 def add_content_type (response):
     if request.endpoint in ('send_event', 'fetch_events'):
         type = 'application/json'
-    elif request.endpoint == '':
-        type = 'text/html'
+    elif request.endpoint == 'main_page':
+        type = 'text/html; charset=UTF-8'
     else:
         type = None
 
@@ -202,7 +202,7 @@ def send_event():
     provided = request.json
     truncated = dumps(request.json) .encode('utf-8')[:512]
     if not provided == loads(truncated):
-        raise Error("Invalid JSON Input, likely too long")
+        raise Exception("Invalid JSON Input, likely too long")
     time = insert_event (truncated)
     return dumps(time)
 

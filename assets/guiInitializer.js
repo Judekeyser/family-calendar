@@ -2,7 +2,7 @@ NetworkMessage.baseUrl = document
                         .querySelector("base")
                         .getAttribute("href");
 NetworkMessage.csrfToken = document
-                           .querySelector("dialog form input[type=hidden]")
+                           .querySelector("dialog input[type=hidden]")
                            .getAttribute("value");
 
 /***********************  VIRTUAL VIEW UPDATE COMPONENT  ***********************
@@ -421,32 +421,31 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var dialog = document.querySelector("dialog"),
-        form = dialog.querySelector("form"),
-   dateLabel = form.querySelector("legend span");
+  var     dialog = document.querySelector("dialog"),
+      shortTitle = document.getElementById("shortTitle"),
+            time = document.getElementById("time"),
+        memoDate = null;
 
   dialog.addEventListener("ask-user-appointment-details", function({ detail }) {
     var { date } = detail;
-    dateLabel.textContent = date.asFormattedString();
+    memoDate = date;
     this.showModal();
   });
 
   dialog.addEventListener("close", function() {
     if (this.returnValue == "confirm") {
-      var time      = form.time.value,
-        description = form.shortTitle.value;
-      if (time && description) {
+      if (time.value && shortTitle.value) {
         new Event({
-          strDate: dateLabel.textContent,
-          strTime: time,
-          strDescription: description,
+          strDate: memoDate.asFormattedString(),
+          strTime: time.value,
+          strDescription: shortTitle.value,
           kind: "create"
         }).send().then(() =>
           new GuiMessage("fetchEvents", undefined, "global").send()
         );
       }
     }
-    form.time.value = "";
-    form.shortTitle.value = "";
+    time.value = "";
+    shortTitle.value = "";
   });
 })();

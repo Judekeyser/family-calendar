@@ -51,24 +51,19 @@
 
     <main>
       <dialog class="ask-user-appointment-details">
-        <form>
-          <fieldset>
-            <legend>Ajouter un rendez-vous au <span>2021-09-28</span></legend>
-            <p>
-              <label for="time">Heure du rendez-vous:</label>
-              <input type="time" id="time" name="time">
-            </p>
-            <p>
-              <label for="shortTitle">Courte description</label>
-              <input type="text" id="shortTitle" name="shortTitle">
-            </p>
-            <p class="right-align">
-              <input type="hidden" value="{{csrf_token}}">
-              <button value="confirm">+</button>
-              <button value="cancel">&#128473;</button>
-            </p>
-          </fieldset>
-         </form>
+        <p>
+          <label for="time">Heure du rendez-vous:</label>
+          <input type="time" id="time" name="time">
+        </p>
+        <p>
+          <label for="shortTitle">Courte description</label>
+          <input type="text" id="shortTitle" name="shortTitle">
+        </p>
+        <p class="right-align">
+          <input type="hidden" value="{{csrf_token}}">
+          <button value="confirm">+</button>
+          <button value="cancel">&#128473;</button>
+        </p>
       </dialog>
       <section>
         <header>

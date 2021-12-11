@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt,a4paper]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage[T1]{fontenc}
@@ -22,7 +22,7 @@
 
 \usepackage{amsthm}
 \newtheorem{definition}{Definition}
-\newtheorem{proposition}{Proposition}
+\newtheorem{deduction}{Deduction}
 
 \definecolor{jskeywords}{HTML}{0000FF}% JavaScript keywords
 \definecolor{jsextkeywords}{HTML}{9900FF}% JavaScript extended keywords
@@ -171,6 +171,10 @@
 \newcommand{\word}[1]{\texttt{#1}}
 
 \newcommand{\focusConcern}[2]{}
+\newcommand{\typedef}[1]{\word{#1}}
+\newcommand{\typeref}[1]{\word{#1}}
+
+\newcommand{\symboldef}[2]{#1\ $\equiv$\ (\ref{#2}; page~\pageref{#2})}
 
 \begin{document}
 
@@ -181,128 +185,233 @@ You are currently reading the source code of the application.\linebreak
 Run the processor to build.
 \end{flushright}
 
-\section{Handling network calls}
+\chapter{Algebras}
+
+\section{Network calls}
 
 The application being meant to run in a web browser, we need to handle
 communication between the application runtime environment and a remote backend
 server we own, in order to guarantee information sharing between different
 clients (users, but also devices).
 
-\begin{proposition}\label{remote_action_existence}[Remote action]
-\focusConcern{RemoteAction}{fo}
-There can be constructed a callable object
-	\[ \word{RemoteAction}: \word{url}\times\word{data}\to ()\to () \]
-that associates, to every pair $\word{url}\times\word{data}$,
-an asynchronous stateful action on the remote endpoint target by the
-\word{url}, defined by a GET request
-if \word{data} is unset, a POST request otherwise, with \word{data} as sent data.
+This task covers different cross-cutting concerns we need to tackle
+correctly.
 
-If a network communication error occurs, a retry is performed with
-a delay of some seconds. If the user is discovered to be unauthentified,
-he gets prompted by a dialog box until the provided credentials allow access.
-\end{proposition}
+An \word{url} is a characters string representing a remote endpoint
+we communicate with, and to which we may send \word{record} as raw
+JSON structures.
 
-The basic wrapping around the XMLHttpRequest object
-is a stateless function sensitive to contextualized information.
+The exchange is made in a context of a known base URL that identifies
+the server and the protocol in use, a \word{csrfToken}
+that legitimates requests, and that may also suggest a \word{password}
+that legitimates the user and allows the server to inject protected 
+token in secured cookies.
 
+We do not plan to handle those tokens and cookies by hand, as we left this
+concern at the discretion of the browser.
+
+\subsection{Low-level HTTP bridge}
+
+The native HTTP communication API we exploit is the XMLHttpRequest
+API. The following definition is a bridge around it:
+
+\begin{definition}[Http Request Bridge]\label{http_request_bridge}
+The native Http Request Bridge is the asynchronous map
+	\[ \word{url}\times\word{record}\times\word{method}\times\word{headers}
+		\rightsquigarrow
+	\word{status}\times\word{records} \]
+defined by the code
 \begin{code}
-var commit = function({ url, data }, password, csrfToken, baseUrl) {
-  var method = data ? 'POST' : 'GET';
-  return new Promise((resolve, reject) => {
-    var req = new XMLHttpRequest();
-    req.onreadystatechange = () => {
-      if (req.readyState == 4) {
-        if (req.status == 200)
-          resolve({ content: req.response });
-        else if (req.status == 401)
-          resolve({ unauth: true });
-        else if (req.status == 403) {
-          alert(translation.fatal.forbidden_access_alert);
-          reject();
-        } else reject();
-      }
-    };
-    req.onerror = () => reject();
-    req.open(method, baseUrl + url);
-    if (password)  req.setRequestHeader('Authentication', password );
-    if (csrfToken) req.setRequestHeader('X-Csrf-Token'  , csrfToken);
-    req.setRequestHeader('Accept', 'application/json');
-    if (method == 'POST') {
-      req.setRequestHeader('Content-Type', 'application/json');
-      req.send(data);
-    } else req.send();
-  });
+({ url, record, headers }) => new Promise((res, rej) => {
+  var req = new XMLHttpRequest();
+  req.onerror = e => rej(e);
+  req.onreadystatechange = () => {
+    if (req.readyState == 4)
+      res({ status: req.status, data: req.response });
+  };
+  req.open(method, url);
+  for(key in headers) if (headers[key])
+    req.setRequestHeader(key, headers[key]);
+  req.send(record);
+});
+\end{code}
+\end{definition}
+
+\subsection{Higher-level HTTP bridge}
+
+The previous HTTP bridge is too low-level to reflect part of
+our core business. We therefore construct a wrapper around it,
+with business-oriented quantities.
+
+\begin{definition}[Business Request Bridge]\label{http_business_request_bridge}
+The Business Request Bridge is the map
+	\[ (\word{record} + \word{cursor})\times \word{password}\times\word{csrfToken}
+		\to \word{headers} \]
+defined by the code
+\begin{code}
+({ record, cursor, password, csrfToken }) => ({
+  'Accept'         : 'application/json',
+  'Content-Type'   : record ? 'application/json' : undefined,
+  'Authentication' : password,
+  'X-Csrf-Token'   : csrfToken
+ });
+\end{code}
+\end{definition}
+
+Similarly, we can wrap the Http response with a business-oriented
+API that will suit us more:
+
+\begin{definition}[Business Response Bridge]\label{http_business_response_bridge}
+The Http Business Response Bridge is the map
+	\[ \word{status}\times\word{records}
+		\to \perp\vee (\word{isNotAuth}\times \word{records})
+	\]
+defined by the code
+\begin{code}
+({ status, records }) => {
+  switch(status || 0) {
+    case 200: return { records };
+    case 401: return { isNotAuth: true };
+    case 403: throw "Forbidden";
+    default : throw "Unknown";
+  }
 };
 \end{code}
+\end{definition}
 
-The contextual information are handled by appropriate hooks.
-The \word{baseUrl} hook fetches the base url information from the
-HTML head area.
+Gluing the business bridges around the low-level one,
+we infer the following deduction:
 
+\begin{deduction}[Higher-level HTTP Bridge]\label{http_business_bridge}
+Given \symboldef{f}{http_request_bridge}, \symboldef{h}{http_business_request_bridge}
+and \symboldef{r}{http_business_response_bridge},
+the following code defines an asynchronous mapping
+	\[ \word{url}\times(\word{record} + \word{cursor})\times
+		\word{password}\times\word{csrfToken}
+	\rightsquigarrow \word{isNotAuth}\times \word{records}
+	\]
 \begin{code}
-var getBaseUrl = (function() {
-  var _ = undefined;
-  return function() {
-    return _ || (_ =
-      document.querySelector("base")
-              .getAttribute("href")
-    );
+x => !(x.headers = h(x)) || f(x).then(r);
+\end{code}
+\end{deduction}
+
+\section{Records and Events}
+
+The \word{record} type is the basic type that travels through the network,
+from frontend to backend (POST request) and from backend to frontend (GET request).
+
+A contrario, the \word{event} type corresponds to what the user will send,
+from a business point of view. It corresponds to an appointment in the calendar,
+or more generally, to an action on the calendar.
+
+The two notions are related according to the following decomposition:
+	\[ \word{record} = \word{event} \times \word{version} \times \word{time} ;\]
+where \word{version} is the version number of the event,
+and \word{time} is a long number that represents the timestamp (in millis)
+at which the server accepted to register the event.
+
+The timestamp is approximately unique, due to the low usage of the application.
+However, it will not be used as an identifier, but rather as a cursor
+in order to sort the events chronologically.
+
+The version number is low and corresponds to evolution of the data model
+in the event type itself: as the application grows and evolves, this
+type may change its shape.
+
+\subsection{Version-0 events}
+
+Events versionned with 0 (or unversionned) are events used directly by the
+frontend. This model is expected to change from version to version.
+
+Currently, the pattern is
+	\[ \word{date} \times \word{time}\times \word{description} \times\word{kind} ,\]
+where \word{kind} can take the values \textit{create} or \textit{cancel},
+depending on whether the event at timestamp $\word{date}\times\word{time}$
+is created or cancelled.
+
+The types \word{date} and \word{time} are expected to be totally
+ordered. The \word{record} type, as being the type that travels through the
+network, is always concerned with JSON versions of the V0-JavaScript
+event definition.
+
+The conversion is handled by the following definitions:
+\begin{definition}[Event to record]\label{event_to_record_converter}
+The following map defines a converter
+	\[ \word{event} \to \word{record} \]
+\begin{code}
+event => ({
+  event: f(event),
+  version: 1
+});
+\end{code}
+where \symboldef{f}{event_v1} is the map that defines version-1 events.
+\end{definition}
+
+The above definition is likely to change, since it is usually not useful
+to keep it if the current event version is greater that 1.
+
+Conversely, however, since the remote end point may still contain older versionned
+events, we need a way to convert a record back on a V0 event.
+The following definition should be updated according to evolution changes:
+
+\begin{definition}[Version to converter]\label{version_to_record_converter}
+Let \symboldef{f1}{event_v1_invert} be the invert map for V1 events.
+The following code defines a mapping
+	\[ \word{record}\to (\word{record}\to \word{event})\]
+\begin{code}
+({ version }) => {
+  switch (version) {
+    case 1:  return f1;
+    default: return () => null;
   }
-})();
+};
 \end{code}
+\end{definition}
 
-In order to legitimate request, we need the \word{csrfToken} hook
-to query the the HTML document
-for the anti Cross Site Request Forgery token:
-
+Reducing currying yields:
+\begin{deduction}[Record to Event]\label{record_to_event_converter}
+Let \symboldef{f}{version_to_record_converter} be the map that associates, to
+each version, a converter of \word{record}. The following code defines a map
+	\[ \word{record}\to \word{event}\]
 \begin{code}
-var getCsrfToken = (function() {
-  var _ = undefined;
-  return _ || (_ = document.querySelector("input[type=hidden]")
-                   .getAttribute("value")
-              );
-})();
+({ event, version }) => f(version)(event);
 \end{code}
+\end{deduction}
 
-The mechanism to legitimate the user is different, as it is most of
-the time handled by transferring protected cookie. However, at some point
-it will be necessary to transmit credentials to the remote endpoint for
-authentication. For such use case, we sketch the password related hooks:
+\subsection{Version-1 events}
 
+\begin{definition}[Version-1 Event]\label{event_v1}
+Events of version 1 are defined as the range of the mapping
 \begin{code}
-var [getPassword, askPassword] = (function() {
-  var _ = undefined;
-  return [
-    () => _,
-    () => Promise.resolve(prompt(translation.dialog.unclock_calendar))
-          .then(maybePwd => {
-            if (!maybePwd) throw translation.fatal.no_password;
-            else _ = btoa(maybePwd);
-          })
-  ];
-})();
+({ date, time, description, kind }) => ({
+  strDate: date.toString(),
+  strTime: time.toString(),
+  description,
+  kind
+});
 \end{code}
+\end{definition}
 
-\begin{proof}[Construction for \ref{remote_action_existence}]
-We define
+\begin{definition}[Invert mapping]\label{event_v1_invert}
+Let \symboldef{h}{event_v1} be the event v1 definition map.
+The following code defines an invert mapping
+	\[ \word{eventv1}\to \word{event} \]
 \begin{code}
-async function() { for(;;) {
-  for(;;) { try {
-    var            password = getPassword(),
-                  csrfToken = getCsrfToken(),
-                    baseUrl = getBaseUrl();
-        { unauth, content } = commit (this, password, csrfToken, baseUrl)
-    ; break;
-  } catch (ignored) {
-    alert(translation.fatal.error_retry_alert);
-    await new Promise(r => setTimeout(() => r(), 4000);
-  } }
-  if (! unauth) return { content }; else await askPassword();
-} }
+({ strDate, strTime, description, kind }) => {
+  convert: {
+    if (!kind || !description || !strDate || !strTime)
+      break convert;
+    var date = MyDate.fromString(strDate),
+        time = MyTime.fromString(strTime);
+    if (!date || !time) break convert;
+    if (kind != 'create' || kind != 'cancel') break convert;
+
+    return { kind, description, date, time };
+  } or_else_nothing: {
+    return null;
+  }
+};
 \end{code}
-The above construction fullfils the contract.
-\end{proof}
-The user can now benefit from \word{RemoteAction}(\{ url, data \})
-to create a callable object that performs a network call.
+\end{definition}
 
 \end{document}

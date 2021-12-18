@@ -1,3 +1,6 @@
+var number_format = x => !(x < 0 : (x = 0)|true : x) ||  x <= 9 ? x : ('0' + x);
+
+
 var event_v1 = ({ date, time, description, kind }) => ({
   strDate: date.toString(),
   strTime: time.toString(),
@@ -13,12 +16,12 @@ var event_to_record_converter = (function(f) {
 });
 })(event_v1);
 
-var http_business_response_bridge = ({ status, records }) => {
+var http_business_response_bridge = ({ status }) => {
   switch(status || 0) {
-    case 200: return { records };
-    case 401: return { isNotAuth: true };
-    case 403: throw "Forbidden";
-    default : throw "Unknown";
+    case 200: return Promise.resolve(x => x);
+    case 401: return Promise.resolve(x => undefined);
+    case 403: return Promise.reject("Forbidden");
+    default : return Promise.reject("Unknown");
   }
 };
 
@@ -45,13 +48,39 @@ var http_request_bridge = ({ url, record, headers }) => new Promise((res, rej) =
 });
 
 
-var event_v1_invert = (function(h) {
+var as_time = (function(f) {
+ return strTime => { try {
+  var x = strTime.split(':').splice(0,2).map(f);
+  if (x[0] >= 24 || x[1] >= 60) return null;
+  x.toString = function() {
+    return this.join(':');
+  }
+  return x;
+} catch(ignored) { return null; } }
+})(number_format);
+
+var as_date = (function(f) {
+ return strDate => { try {
+  var date = Date.parse (strDate),
+         x = [
+               date.getFullYear(),
+               date.getMonth() + 1,
+               date.getDate()
+             ].map(f);
+  x.toString = function() {
+    return this.join('-');
+  };
+  return x;
+} catch(ignored) { return null; } }
+})(number_format);
+
+var event_v1_invert = (function(h,asDate,asTime) {
  return ({ strDate, strTime, description, kind }) => {
   convert: {
     if (!kind || !description || !strDate || !strTime)
       break convert;
-    var date = MyDate.fromString(strDate),
-        time = MyTime.fromString(strTime);
+    var date = asDate(strDate),
+        time = asTime(strTime);
     if (!date || !time) break convert;
     if (kind != 'create' || kind != 'cancel') break convert;
 
@@ -60,7 +89,7 @@ var event_v1_invert = (function(h) {
     return null;
   }
 };
-})(event_v1);
+})(event_v1,as_date,as_time);
 
 var version_to_record_converter = (function(f1) {
  return ({ version }) => {

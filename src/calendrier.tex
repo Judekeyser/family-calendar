@@ -167,14 +167,12 @@
    numberstyle=\normalfont\tiny\textcolor{linenumber} % line number
 }
 
-\lstnewenvironment{code}{\lstset{language=JavaScript,inputencoding=latin1}}{}
+\lstnewenvironment{code}{\lstset{language=JavaScript,inputencoding=latin1,mathescape}}{}
 \newcommand{\word}[1]{\texttt{#1}}
 
-\newcommand{\focusConcern}[2]{}
-\newcommand{\typedef}[1]{\word{#1}}
-\newcommand{\typeref}[1]{\word{#1}}
-
 \newcommand{\symboldef}[2]{#1\ $\equiv$\ (\ref{#2}; page~\pageref{#2})}
+
+\input{typedefs.tex}
 
 \begin{document}
 
@@ -197,19 +195,6 @@ clients (users, but also devices).
 This task covers different cross-cutting concerns we need to tackle
 correctly.
 
-An \word{url} is a characters string representing a remote endpoint
-we communicate with, and to which we may send \word{record} as raw
-JSON structures.
-
-The exchange is made in a context of a known base URL that identifies
-the server and the protocol in use, a \word{csrfToken}
-that legitimates requests, and that may also suggest a \word{password}
-that legitimates the user and allows the server to inject protected 
-token in secured cookies.
-
-We do not plan to handle those tokens and cookies by hand, as we left this
-concern at the discretion of the browser.
-
 \subsection{Low-level HTTP bridge}
 
 The native HTTP communication API we exploit is the XMLHttpRequest
@@ -217,9 +202,12 @@ API. The following definition is a bridge around it:
 
 \begin{definition}[Http Request Bridge]\label{http_request_bridge}
 The native Http Request Bridge is the asynchronous map
-	\[ \word{url}\times\word{record}\times\word{method}\times\word{headers}
-		\rightsquigarrow
-	\word{status}\times\word{records} \]
+	\[
+	\asyncmap{
+	  \typurl\times\typrecord\times\typmethod\times\plural{\typheader}
+	}{
+	  \typstatus\times\plural{\typrecord}
+	} \]
 defined by the code
 \begin{code}
 ({ url, record, headers }) => new Promise((res, rej) => {
@@ -245,8 +233,12 @@ with business-oriented quantities.
 
 \begin{definition}[Business Request Bridge]\label{http_business_request_bridge}
 The Business Request Bridge is the map
-	\[ (\word{record} + \word{cursor})\times \word{password}\times\word{csrfToken}
-		\to \word{headers} \]
+	\[
+	\map{
+	  (\typrecord + \typcursor)\times \typpassword\times\typcsrf
+	}{
+	  \plural{\typheader}
+	} \]
 defined by the code
 \begin{code}
 ({ record, cursor, password, csrfToken }) => ({
@@ -263,17 +255,20 @@ API that will suit us more:
 
 \begin{definition}[Business Response Bridge]\label{http_business_response_bridge}
 The Http Business Response Bridge is the map
-	\[ \word{status}\times\word{records}
-		\to \perp\vee (\word{isNotAuth}\times \word{records})
+	\[ \map{
+	  \typstatus
+	}{
+	  (\asyncmap{\plural{\typrecord}}{\opt{\plural{\typrecord}}})
+	}
 	\]
 defined by the code
 \begin{code}
-({ status, records }) => {
-  switch(status || 0) {
-    case 200: return { records };
-    case 401: return { isNotAuth: true };
-    case 403: throw "Forbidden";
-    default : throw "Unknown";
+({ status }) => {
+  switch(status) {
+    case 200: return x => Promise.resolve(x);
+    case 401: return x => Promise.resolve(null);
+    case 403: return x => Promise.reject("Forbidden");
+    default : return x => Promise.reject("Unknown");
   }
 };
 \end{code}
@@ -286,12 +281,17 @@ we infer the following deduction:
 Given \symboldef{f}{http_request_bridge}, \symboldef{h}{http_business_request_bridge}
 and \symboldef{r}{http_business_response_bridge},
 the following code defines an asynchronous mapping
-	\[ \word{url}\times(\word{record} + \word{cursor})\times
-		\word{password}\times\word{csrfToken}
-	\rightsquigarrow \word{isNotAuth}\times \word{records}
+	\[
+	\asyncmap{
+	  \typurl\times(\typrecord + \typcursor)\times
+		\typpassword\times\typcsrf
+	}{
+	  \opt{\plural{\typrecord}}
+	}
 	\]
 \begin{code}
-x => !(x.headers = h(x)) || f(x).then(r);
+x => !(x.headers = h(x))
+     || f(x).then(({ status, records }) => r(status)(records));
 \end{code}
 \end{deduction}
 
@@ -393,7 +393,9 @@ Events of version 1 are defined as the range of the mapping
 \end{definition}
 
 \begin{definition}[Invert mapping]\label{event_v1_invert}
-Let \symboldef{h}{event_v1} be the event v1 definition map.
+Let \symboldef{h}{event_v1} be the event v1 definition map, and
+let \symboldef{asDate}{as_date}, \symboldef{asTime}{as_time}
+be respectively given by the custom date and time algebras (see below).
 The following code defines an invert mapping
 	\[ \word{eventv1}\to \word{event} \]
 \begin{code}
@@ -401,8 +403,8 @@ The following code defines an invert mapping
   convert: {
     if (!kind || !description || !strDate || !strTime)
       break convert;
-    var date = MyDate.fromString(strDate),
-        time = MyTime.fromString(strTime);
+    var date = asDate(strDate),
+        time = asTime(strTime);
     if (!date || !time) break convert;
     if (kind != 'create' || kind != 'cancel') break convert;
 
@@ -413,5 +415,72 @@ The following code defines an invert mapping
 };
 \end{code}
 \end{definition}
+
+\section{Dates and times}
+
+\subsection{String representations}
+
+Dates and times are of crucial importance for the calendar application.
+Dates are always thought of as being strings following the pattern
+\textit{yyyy-mm-dd}, while times are strings following the pattern
+\textit{hh:mm}.
+
+Those definitions are consistent with how HTML input fields of type
+date and time, are managing data. It also automatically fixes for us the
+question about how to sort, since string-ordering is now equivalent to
+date and time ordereing.
+
+We begin with a simple utility function:
+\begin{definition}[Number formatter]\label{number_format}
+The following formatter can be used to convert non negative numbers to
+two-digits-long characters strings:
+\begin{code}
+x => !(x < 0 : (x = 0)|true : x) ||  x <= 9 ? x : ('0' + x);
+\end{code}
+\end{definition}
+
+Formatting dates and times is straightforward:
+
+\begin{definition}[String as date]\label{as_date}
+Let \symboldef{f}{number_format} be the standard number formatter on
+two-digits. The date formatter
+	\[ \word{string} \to \word{date} \]
+is defined as
+\begin{code}
+strDate => { try {
+  var date = Date.parse (strDate),
+         x = [
+               date.getFullYear(),
+               date.getMonth() + 1,
+               date.getDate()
+             ].map(f);
+  x.toString = function() {
+    return this.join('-');
+  };
+  return x;
+} catch(ignored) { return null; } }
+\end{code}
+\end{definition}
+
+\begin{definition}[String as time]\label{as_time}
+Let \symboldef{f}{number_format} be the standard formatter on two-digits.
+The time formatter
+	\[ \word{string} \to \word{time} \]
+is defined by the code
+\begin{code}
+strTime => { try {
+  var x = strTime.split(':').splice(0,2).map(f);
+  if (x[0] >= 24 || x[1] >= 60) return null;
+  x.toString = function() {
+    return this.join(':');
+  }
+  return x;
+} catch(ignored) { return null; } }
+\end{code}
+\end{definition}
+
+\subsection{Weeks and iterations}
+
+In order to
 
 \end{document}

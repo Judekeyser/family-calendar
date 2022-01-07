@@ -63,10 +63,35 @@ Event.read = function (data) {
 };
 
 (function() {
-  var lastTrackTime = 0,
-      lastFetchTime = 0,
-      lastHookFetch = null,
+  var lastHookFetch = null,
       eventsStorage = {};
+
+  var tracker = (function() {
+    var trackTime = 0,
+        fetchTime = 0;
+
+    return {
+      set trackTime(t) {
+        if(t)
+          trackTime = t;
+      },
+      hasNotFetchedForLong: function() {
+        return Date.now() - fetchTime > 3000;
+      },
+      hasFetchedRecently: function() {
+        return Date.now() - fetchTime < 1000;
+      },
+      fetchNow: function() {
+        fetchTime = Date.now();
+        new NetworkMessage({
+          method: "GET",
+          url: `fetch_events?from=${trackTime}`
+        }).send()
+        .then(({ content }) => contentHandler(content))
+        .then(() => sendToUIListeners());
+      }
+    };
+  })();
 
   function contentHandler (content) {
     var records = JSON.parse (content)
@@ -74,12 +99,11 @@ Event.read = function (data) {
         .filter(([_1]) => !!_1)
         .sortedBy (([_1, _2]) => _2);
 
-    lastTrackTime = records.isNotEmpty()
+    tracker.trackTime = records.isNotEmpty()
           ? records.map(([_1, timeTrack]) => timeTrack).last()
-          : lastTrackTime;
+          : undefined;
     
-    records.map (([event, _2]) => event)
-      .forEach(event => {
+    records.forEach(([event, _2]) => {
         var dateKey = event.dateKey();
         if (! eventsStorage[dateKey])
           eventsStorage[dateKey] = [];
@@ -92,33 +116,17 @@ Event.read = function (data) {
       .send();
   }
 
-  function fetchEvents() {
-    return new NetworkMessage({
-      method: "GET",
-      url: `fetch_events?from=${lastTrackTime}`
-    }).send()
-    .then(({ content }) => contentHandler(content))
-    .then(() => sendToUIListeners());
-  }
-
   window.addEventListener ("fetchEvents", () => {
     sendToUIListeners();
 
-    const WAIT_BEFORE_FETCH = 3000;
-
-    var now = Date.now();
-    if (now - lastFetchTime < 1000) {
+    if (tracker.hasFetchedRecently()) return;
+    if (tracker.hasNotFetchedForLong()) {
       sendToUIListeners();
-    } else if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
-      sendToUIListeners();
-      lastFetchTime = now;
-      fetchEvents();
+      tracker.fetchNow();
     } else if (! lastHookFetch) {
       lastHookFetch = setTimeout(() => {
-        var now = Date.now();
-        if (now - lastFetchTime > WAIT_BEFORE_FETCH) {
-          lastFetchTime = now;
-          fetchEvents();
+        if (tracker.hasNotFetchedForLong()) {
+          tracker.fetchNow();
         }
         lastHookFetch = null;
       }, 3000);

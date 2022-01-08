@@ -84,7 +84,8 @@ class Authentifier:
         auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
         password = PASSWORD .encode('ascii')
 
-        token = secure_bridge.auth_strategy(self.token_session,
+        token = secure_bridge.auth_strategy(
+            self.token_session,
             8*60*60, 24*60*60,
             authentification,
             enc_key, hash_key, auth_key, password

@@ -76,10 +76,10 @@ def validate_information(test, maximal_time_shift):
 ###############################################################################
 ##############  AUTHENTICATION STRATEGY VIA TOKEN WITH RECOVER  ###############
 
-def authentify_credentials (hashed_expected, b64_encoded_got, auth_key):
+def authentify_credentials (hashed_expected, credentials, auth_key):
     if b64_encoded_got is None:
         return False
-    got = std_base64_encode(hash(b64_encoded_got, auth_key))
+    got = std_base64_encode(hash(credentials, auth_key))
     return got == hashed_expected
 
 def auth_strategy(provided_token, max_age, max_refresh_age, auth_recover,
@@ -107,7 +107,6 @@ def auth_strategy(provided_token, max_age, max_refresh_age, auth_recover,
             )
         )
     ) else None
-
 
 
 ###############################################################################

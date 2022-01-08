@@ -1,14 +1,26 @@
-\begin{definition}[My definition]\label{my_definition}
-This is a definition code:
+\chapter{Data model}
+
+\section{User and session models}
+
+\begin{definition}[User]\label{user}
+A \emph{user} is an entity of the form
 \begin{code}
-x => !!x
+<user>
+  <identifier>
+    <xs:simpleType name="user.identifier">
+      <xs:restriction base="xs:string">
+        <xs:maxLength value="7" />
+      </xs:restriction>
+    </xs:simpleType>
+  </identifier>
+  <emailAddress>
+    <xs:simpleType name="user.emailAddress">
+      <xs:restriction base="xs:string">
+        <xs:maxLength value="255" />
+        <xsd:pattern value="[^@]+@[^\.]+\..+"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </emailAddress>
+</user>
 \end{code}
 \end{definition}
-
-\begin{definition}[My second definition]\label{my_second_definition}
-Given \symboldef{f}{my_definition}, here is a dependency:
-\begin{code}
-x => f(x)
-\end{code}
-\end{definition}
-

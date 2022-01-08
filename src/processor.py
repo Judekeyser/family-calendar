@@ -53,7 +53,7 @@ def ordered_blocks():
 
   return ordered_blocks
 
-with open('calendrier.tex', 'r') as f:
+with open('source.tex', 'r') as f:
   lines = f .readlines()
   block = None
   in_code = False
@@ -89,9 +89,18 @@ with open('calendrier.tex', 'r') as f:
         reference_part = line[:line.index('}')]
         line = line[line.index('}')+1:]
         block .store_symbol(symbol_part, reference_part)
-        
-with open('calendrier.js', 'w') as f:
-  for block in ordered_blocks():
+
+
+class JavaScriptPrinter:
+  def __init__(self, block):
+    self.block = block
+
+  def __str__(self):
+    lines = []
+    self.__consume(lambda x:lines.append(x))
+    return "".join(lines)
+
+  def __consume(self, f):
     map_name = block.name
     args = block .symbol_list() 
     if len(args) == 0:
@@ -102,8 +111,12 @@ with open('calendrier.js', 'w') as f:
       start = f"(function({loc_args}) {{\n return "
       end = f"}})({dep_args});"
 
-    f.write(f"var {block.name} = {start}")
+    f(f"var {block.name} = {start}")
     for l in block.code_lines:
-      f.write(l)
-    f.write(f"{end}\n\n")
+      f(l)
+    f(f"{end}\n\n")
+        
+with open('calendrier.js', 'w') as f:
+  for block in ordered_blocks():
+    f.write(str(JavaScriptPrinter(block)))
 

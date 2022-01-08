@@ -4,7 +4,6 @@ from os          import environ
 
 import db_bridge
 import secure_bridge
-import browser_security_response_headers
 
 
 ###############################################################################
@@ -16,6 +15,34 @@ HASH_KEY_SECRET           = environ.get('HASH_KEY_SECRET')
 AUTHENTICATION_KEY_SECRET = environ.get('AUTHENTICATION_KEY_SECRET')
 PASSWORD                  = environ.get('PASSWORD')
 MUTE_SECURITY             = environ.get('MUTE_SECURITY')
+
+
+###############################################################################
+###############################  BUSINESS UNITS  ##############################
+
+__default_headers = {
+    "Content-Security-Policy": "default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'",
+    "X-Frame-Options": "none",
+    "Referrer-Policy": "no-referrer",
+    "Feature-Policy": "camera 'none'; fullscreen 'self'; geolocation 'none'; microphone 'none'",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "X-XSS-Protection": "1; mode=block",
+    "X-Content-Type-Options": "nosniff"
+}
+
+__ssl_ctx_headers = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+}
+
+def apply_security_http_headers (h_consumer, ssl_ctx):
+    global __default_headers, __ssl_ctx_headers
+    for key in __default_headers:
+        h_consumer(key, __default_headers[key])
+
+    if not ssl_ctx:
+        return
+    for key in __ssl_ctx_headers:
+        h_consumer(key, __ssl_ctx_headers[key])
 
 
 ###############################################################################
@@ -57,7 +84,8 @@ class Authentifier:
         auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
         password = PASSWORD .encode('ascii')
 
-        token = secure_bridge.auth_strategy(self.token_session,
+        token = secure_bridge.auth_strategy(
+            self.token_session,
             8*60*60, 24*60*60,
             authentification,
             enc_key, hash_key, auth_key, password
@@ -99,7 +127,7 @@ flask_app = Flask(__name__,
 def add_browser_security_headers(response):
     def h_consumer (key, value):
         response.headers[key] = value
-    browser_security_response_headers .apply(h_consumer, MUTE_SECURITY is None)
+    apply_security_http_headers(h_consumer, MUTE_SECURITY is None)
     return response
 
 @flask_app.after_request

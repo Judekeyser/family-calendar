@@ -136,6 +136,8 @@ def add_content_type (response):
         type = 'application/json'
     elif request.endpoint == 'main_page':
         type = 'text/html; charset=UTF-8'
+    elif request.endpoint == 'hidden_csrf_token':
+        type = 'text/javascript'
     else:
         type = None
 
@@ -176,7 +178,7 @@ def ssl_guard():
 
 @flask_app.before_request
 def auth_token_guard():
-    if request.endpoint in ('send_event', 'fetch_events', 'main_page'):
+    if request.endpoint in ('send_event', 'fetch_events', 'hidden_csrf_token'):
         authentifier = Authentifier (
           token_session = request.cookies.get(auth_cookie_name()),
           authentification = request.headers.get('Authentication'),
@@ -207,21 +209,22 @@ def close_db(error):
 ###############################################################################
 ################################  FLASK ROUTES  ###############################
 
-@flask_app.route('/', methods = ['GET'])
-def main_page():
-    csrf_token = getattr(request, '__authentifier', None) .reset_csrf_token()
-    html_content = render_template('index.htm',
-               csrf_token = csrf_token,
-               base_url = "http://localhost:5000" if (
-                             MUTE_SECURITY is not None
-                          ) else "https://family-calendar.herokuapp.com"
+@flask_app.route('/hiddenCsrfToken.js', methods = ['GET'])
+def hidden_csrf_token():
+    csrf_token = getattr(request, '__authentifier', None).reset_csrf_token()
+    js_content = render_template(
+        'hiddenCsrfToken.js',
+        csrf_token = csrf_token,
     )
     response = flask_app.response_class(
-            response = html_content,
-            status = 200,
-            mimetype = 'text/html'
+            response = js_content,
+            status = 200
     )
     return response
+
+@flask_app.route('/', methods = ['GET'])
+def main_page():
+    return flask_app.send_static_file('index.htm')
 
 @flask_app.route('/send_event', methods = ['POST'])
 def send_event():

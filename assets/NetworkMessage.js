@@ -4,9 +4,21 @@ function NetworkMessage({ method, url, data }) {
   this.data = data;
 }
 
+async function getCsrfToken() {
+  for(let i = 0; i < 5; i++) {
+    var element = window["hidden-csrf-token"];
+    if(!element) {
+      await new Promise(r => setTimeout(() => r(), 200));
+    } else {
+      return element;
+    }
+  }
+  throw "Une erreur s'est produite: le contenu est trop lent à charger";
+}
+
 NetworkMessage.prototype = {
   commit: function() {
-    return new Promise((resolve, reject) => {
+    return getCsrfToken().then(csrfToken => new Promise((resolve, reject) => {
       var req = new XMLHttpRequest();
       req.onreadystatechange = () => {
         if (req.readyState == 4) {
@@ -15,17 +27,17 @@ NetworkMessage.prototype = {
           else if (req.status == 401)
             resolve({ unauth: true });
           else if (req.status == 403) {
-            alert("L'accès est interdit,\nce qui peut signifier une session corrompue.\nLe plus simple est de recharger la page.");
-            reject();
-          } else reject();
+            alert();
+            reject("L'accès est interdit,\nce qui peut signifier une session corrompue.\nLe plus simple est de recharger la page.");
+          } else reject("Une erreur inattendue s'est produite: côté serveur?");
         }
       };
-      req.onerror = () => reject();
+      req.onerror = () => reject("Une erreur inattendue s'est produite: perte de connection internet?");
 
-      req.open(this.method, `${NetworkMessage.baseUrl}${this.url}`);
+      req.open(this.method, `/${this.url}`);
       if(this.password)
         req.setRequestHeader('Authentication', this.password);
-      req.setRequestHeader('X-Csrf-Token', NetworkMessage.csrfToken);
+      req.setRequestHeader('X-Csrf-Token', csrfToken);
       req.setRequestHeader('Accept', 'application/json');
       if (this.method == 'POST') {
         req.setRequestHeader('Content-Type', 'application/json');
@@ -33,7 +45,7 @@ NetworkMessage.prototype = {
       } else {
         req.send();
       }
-    });
+    }));
   },
 
   password: undefined,
@@ -44,8 +56,8 @@ NetworkMessage.prototype = {
 
   send: function() {
     return this.commit()
-       .catch(() => new Promise((resolve, reject) => {
-         alert("Une erreur inattendue semble s'être produite.\nUne nouvelle tentative sera lancée dans quelques secondes...");
+       .catch(err => new Promise((resolve, reject) => {
+         alert(err);
          setTimeout(() => {
            resolve (this.commit());
          }, 4000);

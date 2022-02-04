@@ -1,10 +1,3 @@
-NetworkMessage.baseUrl = document
-                        .querySelector("base")
-                        .getAttribute("href");
-NetworkMessage.csrfToken = document
-                           .querySelector("dialog input[type=hidden]")
-                           .getAttribute("value");
-
 /***********************  VIRTUAL VIEW UPDATE COMPONENT  ***********************
 ********************************************************************************
 

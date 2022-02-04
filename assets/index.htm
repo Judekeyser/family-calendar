@@ -2,10 +2,10 @@
 
 <html lang="fr-be">
   <head>
-    <base href="{{base_url}}/">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="assets/style.css" rel="stylesheet">
 
+    <script src="/hiddenCsrfToken.js"></script>
     <script src="assets/ArrayPolyfill.js"></script>
     <script src="assets/MyDate.js"></script>
     <script src="assets/NetworkMessage.js"></script>
@@ -60,7 +60,6 @@
           <input type="text" id="shortTitle" name="shortTitle">
         </p>
         <p class="right-align">
-          <input type="hidden" value="{{csrf_token}}">
           <button value="confirm">+</button>
           <button value="cancel">&#128473;</button>
         </p>

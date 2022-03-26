@@ -257,24 +257,7 @@ Emits:
   table.addEventListener("fetchEvents-result", function ({ detail }) {
     var eventMap = detail,
           events = Array.asKeyValueStream(eventMap)
-                   .map(({ key, value }) => ({
-                     key, 
-                     values: (value || [])
-                   }))
-                   .map(({key, values}) => ({
-                     key,
-                     valuesPerTime: values
-                                    .map(event => event.perDayProjection())
-                                    .groupBy(({ time }) => time)
-                                    .map(group => ({
-                                      key: group.key,
-                                      last: group.values.last()
-                                    }))
-                                    .filter(({ last }) => !!last)
-                                    .filter(({ last }) => last.kind == 'create')
-                   }))
-                   .filter(({ valuesPerTime }) => !valuesPerTime.isEmpty())
-                   .map(({ key }) => key)
+                   .map(({ key, value }) => key)
                    .toSet();
     
     [...table.querySelectorAll("td")]
@@ -351,24 +334,18 @@ Emits:
 
   content.addEventListener("fetchEvents-result", function ({ detail }) {
     var eventMap = detail;
+    
     [...content.querySelectorAll("dt")]
     .map(dt => ({
       dt,
-      values: eventMap[dt.textContent] || []
+      dailyValues: eventMap[dt.textContent] || {}
     }))
-    .map(({dt, values}) => ({
+    .map(({dt, dailyValues}) => ({
       dt,
-      valuesPerTime: values
-                     .map(event => event.perDayProjection())
-                     .groupBy(({ time }) => time)
-                     .map(group => ({
-                       key: group.key,
-                       last: group.values.last()
-                     }))
-                     .filter(({ last }) => !!last)
-                     .map(({ last }) => last)
-                     .filter(({ kind }) => kind == "create")
-                     .sortedBy(({ time }) => time)
+      valuesPerTime: Array.asKeyValueStream(dailyValues)
+                     .sortedBy(({ key }) => key)
+                     .map(({ key, value }) => ({ hour: key, event: value }))
+                     .map(({ hour, event }) => event.perDayProjection())
     }))
     .forEach(({ dt, valuesPerTime }) => {
         removeNextDDs(dt);

@@ -64,7 +64,11 @@ Event.read = function (data) {
 
 (function() {
   var lastHookFetch = null,
-      eventsStorage = {};
+      eventsStorage = {
+          /*
+          Mapping date -> hour -> Event
+          */
+      };
 
   var tracker = (function() {
     var trackTime = 0,
@@ -106,8 +110,14 @@ Event.read = function (data) {
     records.forEach(([event, _2]) => {
         var dateKey = event.dateKey();
         if (! eventsStorage[dateKey])
-          eventsStorage[dateKey] = [];
-        eventsStorage[dateKey].push(event);
+          eventsStorage[dateKey] = {};
+        if(event.kind == 'cancel') {
+            if (eventsStorage[dateKey][event.time]) {
+                delete eventsStorage[dateKey][event.time];
+            }
+        } else if (event.kind == 'create') {
+            eventsStorage[dateKey][event.time] = event;
+        }
       });
   }
 

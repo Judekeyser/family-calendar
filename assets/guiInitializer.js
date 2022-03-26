@@ -343,9 +343,8 @@ Emits:
     .map(({dt, dailyValues}) => ({
       dt,
       valuesPerTime: Array.asKeyValueStream(dailyValues)
-                     .sortedBy(({ key }) => key)
-                     .map(({ key, value }) => ({ hour: key, event: value }))
-                     .map(({ hour, event }) => event.perDayProjection())
+                     .map(({ value }) => value.perDayProjection())
+                     .sortedBy(({ time }) => time)
     }))
     .forEach(({ dt, valuesPerTime }) => {
         removeNextDDs(dt);
@@ -391,7 +390,7 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var     dialog = document.querySelector("dialog"),
+  var     dialog = document.querySelector("dialog.ask-user-appointment-details"),
       shortTitle = document.getElementById("shortTitle"),
             time = document.getElementById("time"),
         memoDate = null;
@@ -417,5 +416,70 @@ Emits:
     }
     time.value = "";
     shortTitle.value = "";
+  });
+})();
+
+
+
+/***********************  IDENTIFY USER DIALOG COMPONENT  **********************
+********************************************************************************
+
+Listens to:
+  - ask-user-identification
+  asks the user for identification
+
+Emits:
+  - user-identification: { userName }
+    with the user name. That event should be handled by the event sender
+    mechanism to decorate events sent and received.
+
+*******************************************************************************/
+
+(function() {
+  var dialog = document.querySelector("dialog.ask-user-identification"),
+          id = dialog.querySelector("form").identifiant,
+       okBtn = dialog.querySelector('.okBtn'),
+     confBtn = dialog.querySelector('.confirmBtn');
+
+  okBtn.addEventListener("click", function() {
+    dialog.classList.add('confirm');
+    dialog.classList.remove('not-confirm');
+  });
+  
+  ["change", "focus"].forEach(channel => {
+      for(let i = 0; i < 2; i++)
+      id[i].addEventListener(channel, function() {
+        if (id.value) {
+          okBtn.disabled = false;
+        } else {
+          okBtn.disabled = true;
+        }
+      });
+  });
+
+  dialog.addEventListener("ask-user-identification", function() {
+    id[0].focus();
+    dialog.classList.add('not-confirm');
+    dialog.classList.remove('confirm');
+    this.showModal();
+  });
+
+  dialog.addEventListener("close", function() {
+    if (this.returnValue == "confirm") {
+        var userName = id.value;
+        if (userName) {
+            window.localStorage.setItem('userName', userName);
+            new GuiMessage('fetchEvents', undefined, "global").send();
+            return;
+        }
+    }
+    new GuiMessage("ask-user-identification").send();
+  });
+  
+  window.addEventListener("load", function() {
+    var userName = window.localStorage.getItem('userName');
+    if (! userName) {
+      new GuiMessage("ask-user-identification").send();
+    }
   });
 })();

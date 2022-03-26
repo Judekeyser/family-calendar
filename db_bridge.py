@@ -19,6 +19,7 @@ def open_connection(connection_string):
         from event
             where _nbr_send_event > $1
         order by _nbr_send_event
+        limit 50
     """)
     
     return connection

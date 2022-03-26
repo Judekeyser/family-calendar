@@ -1,8 +1,9 @@
-function Event ({ strDate, strTime, strDescription, kind }) {
+function Event ({ strDate, strTime, strDescription, kind, userInitiator }) {
   this.date = MyDate.fromFormattedString(strDate);
   this.time = strTime;
   this.description = strDescription;
   this.kind = kind;
+  this.userInitiator = userInitiator;
 }
 
 Event.prototype = {  
@@ -10,18 +11,23 @@ Event.prototype = {
     var strDate = this.date.asFormattedString(),
         strTime = this.time,
         strDescription = this.description,
-        kind = this.kind;
+        kind = this.kind,
+        userInitiator = this.userInitiator;
 
     printer (JSON.stringify({
       strDate,
       strTime,
       strDescription,
       version: 1,
-      kind
+      kind,
+      userInitiator
     }));
   },
   getKind: function() {
     return this.kind;
+  },
+  getUserInitiator: function() {
+    return this.userInitiator;
   },
   dateKey: function() {
     return this.date.asFormattedString();
@@ -37,6 +43,10 @@ Event.prototype = {
     var messageData = {
       method: "POST",
       url: "send_event"
+    };
+    if (! this.userInitiator) {
+        var userFromStorage = window.localStorage.getItem('userName');
+        this.userInitiator = userFromStorage;
     }
     this.print(_ => (messageData.data = _));
     return new NetworkMessage(messageData)
@@ -45,7 +55,7 @@ Event.prototype = {
   },
 
   muteSend: function() {
-    this. send = function() {
+    this.send = function() {
       throw "Mute of send has been called on this event: impossible to send it again";
     }
   }
@@ -92,7 +102,7 @@ Event.read = function (data) {
           url: `fetch_events?from=${trackTime}`
         }).send()
         .then(({ content }) => contentHandler(content))
-        .then(() => sendToUIListeners());
+        .then(isEmpty => isEmpty ? terminateReading() : this.fetchNow());
       }
     };
   })();
@@ -101,13 +111,13 @@ Event.read = function (data) {
     var records = JSON.parse (content)
         .map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
         .filter(([_1]) => !!_1)
-        .sortedBy (([_1, _2]) => _2);
+        .sortedBy (([_1, timeTrack]) => timeTrack);
 
     tracker.trackTime = records.isNotEmpty()
-          ? records.map(([_1, timeTrack]) => timeTrack).last()
+          ? records.last()[1]
           : undefined;
     
-    records.forEach(([event, _2]) => {
+    records.forEach(([event, timetrack]) => {
         var dateKey = event.dateKey();
         if (! eventsStorage[dateKey])
           eventsStorage[dateKey] = {};
@@ -118,7 +128,13 @@ Event.read = function (data) {
         } else if (event.kind == 'create') {
             eventsStorage[dateKey][event.time] = event;
         }
-      });
+    });
+    
+    return records.isEmpty();
+  }
+  
+  function terminateReading() {
+      sendToUIListeners();
   }
 
   function sendToUIListeners() {
@@ -128,6 +144,14 @@ Event.read = function (data) {
 
   window.addEventListener ("fetchEvents", () => {
     sendToUIListeners();
+    
+    var userIdentifier = window.localStorage.getItem('userName');
+    if(! userIdentifier) {
+        setTimeout(() => {
+          new GuiMessage("fetchEvents", undefined, "global").send();
+        }, 3000);
+        return;
+    }
 
     if (tracker.hasFetchedRecently()) return;
     if (tracker.hasNotFetchedForLong()) {

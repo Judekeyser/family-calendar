@@ -61,6 +61,17 @@ dialog button[value=cancel] {
   border-width: 0;
 }
 
+
+/*******************************************************************************
+************************** MODAL USER ID BUTTON SWITCH ************************/
+
+dialog.ask-user-identification.not-confirm .confirm {
+    display: none;
+}
+dialog.ask-user-identification.confirm .not-confirm {
+    display: none;
+}
+
 /*******************************************************************************
 *********************************** BUTTONS ***********************************/
 

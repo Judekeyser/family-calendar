@@ -60,11 +60,13 @@ def get_from_date (pivot_date, connection):
 ####################   MAIN PROCESS IS SETTING UP DATABASE   ##################
 
 if __name__ == '__main__':
-#    conn = open_connection(FILL ME WITH CONFIG)
+    """
+create table EVENT (
+  _nbr_send_event integer not null,
+  _data bytea
+)
+    """
+    from os import environ
+    conn = open_connection(environ.get('DATABASE_URL'))
 
-    query_db("""
-    create table EVENT (
-        _nbr_send_event integer not null,
-        _data bytea
-    )
-    """, conn)
+    get_from_date(0, conn)

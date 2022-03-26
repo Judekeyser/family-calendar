@@ -16,7 +16,6 @@ AUTHENTICATION_KEY_SECRET = environ.get('AUTHENTICATION_KEY_SECRET')
 PASSWORD                  = environ.get('PASSWORD')
 MUTE_SECURITY             = environ.get('MUTE_SECURITY')
 
-
 ###############################################################################
 ###############################  BUSINESS UNITS  ##############################
 
@@ -58,62 +57,31 @@ def get_from_date (time):
 ###############################################################################
 ########################  GATEWAYS TO SECURITY MODULE  ########################
 
-def csrf_cookie_name():
-    return '__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken'
+AUTHENTIFIER_CONFIG = secure_bridge.AuthentifierConfig(
+    encrypt_key=ENCRYPTION_KEY_SECRET.encode('ascii'),
+    hash_key=HASH_KEY_SECRET.encode('ascii'),
+    auth_key=AUTHENTICATION_KEY_SECRET.encode('ascii'),
+    password=PASSWORD.encode('ascii'),
+    max_age_hrs=8,
+    max_refresh_age_hrs=24,
+    csrf_cookie_name='__Host-csrftoken' if MUTE_SECURITY is None else 'csrftoken',
+    auth_cookie_name='__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
+)
 
-def auth_cookie_name():
-    return '__Host-authtoken' if MUTE_SECURITY is None else 'authtoken'
-
-class Authentifier:
+class Authentifier(secure_bridge.Authentifier):
     def __init__(self,
         token_session = None,
-        authentification = None,
+        credentials = None,
         csrf_cookie = None,
         csrf_header = None
     ):
-        self.csrf_cookie = csrf_cookie
-        self.csrf_header = csrf_header
-        self.token_session, authentification = [
-          w.encode('ascii') if w is not None else None for w in (
-            token_session, authentification
-          )
-        ]
-
-        enc_key = ENCRYPTION_KEY_SECRET .encode('ascii')
-        hash_key = HASH_KEY_SECRET .encode('ascii')
-        auth_key = AUTHENTICATION_KEY_SECRET .encode('ascii')
-        password = PASSWORD .encode('ascii')
-
-        token = secure_bridge.auth_strategy(
-            self.token_session,
-            8*60*60, 24*60*60,
-            authentification,
-            enc_key, hash_key, auth_key, password
+        secure_bridge.Authentifier.__init__(self,
+            token_session=token_session,
+            credentials=credentials,
+            csrf_cookie=csrf_cookie,
+            csrf_header=csrf_header,
+            config=AUTHENTIFIER_CONFIG
         )
-        if token is not None:
-            self.secure_token = token .decode('ascii')
-        else:
-            self.secure_token = None
-
-    def reset_csrf_token (self):
-        self.csrf_cookie = None
-        self.csrf_header = secure_bridge.random_word().decode('ascii')
-        return self.csrf_header
-
-    def validates_request (self):
-        return self.csrf_cookie is not None and \
-               self.csrf_cookie == self.csrf_header
-
-    def authentifies_user (self):
-        return self.secure_token is not None
-
-    def alters_cookies (self, c_consumer):
-        if not self .authentifies_user():
-            c_consumer(auth_cookie_name(), '', 0)
-        else:
-            c_consumer(auth_cookie_name(), self.secure_token, 23*60*60)
-        if not self .validates_request() and self.csrf_header is not None:
-            c_consumer(csrf_cookie_name(), self.csrf_header, 24*60*60)
 
 
 ###############################################################################
@@ -180,9 +148,9 @@ def ssl_guard():
 def auth_token_guard():
     if request.endpoint in ('send_event', 'fetch_events', 'hidden_csrf_token'):
         authentifier = Authentifier (
-          token_session = request.cookies.get(auth_cookie_name()),
-          authentification = request.headers.get('Authentication'),
-          csrf_cookie = request.cookies.get(csrf_cookie_name()),
+          token_session = request.cookies.get(AUTHENTIFIER_CONFIG.auth_cookie_name),
+          credentials = request.headers.get('Authentication'),
+          csrf_cookie = request.cookies.get(AUTHENTIFIER_CONFIG.csrf_cookie_name),
           csrf_header = request.headers.get('X-Csrf-Token')
         )
         setattr(request, '__authentifier', authentifier)

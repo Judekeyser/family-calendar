@@ -217,28 +217,33 @@ Emits:
     for (let i = 0; i < trs.length; i++) {
       var tds = trs[i].getElementsByTagName("td");
       for (let j = 0; j < tds.length; j++) {
+        // clean td element 
         tds[j].innerHTML = "";
+        
+        // create cell child and reset styles
         var cellChild = document.createElement("span");
         cellChild.textContent = dateCursor.twoDigitsDay();
         if (this.date && this.date.equals(dateCursor)) {
           cellChild.classList.add("active-link");
-        } else {
-          cellChild.onclick = function(event) {
-            event.preventDefault();
-            new GuiMessage("ask-user-appointment-details",
-              {
-                date: MyDate.fromFormattedString(
-                        this.parentElement.getAttribute("data-for-date")
-                      )
-              }
-            ).send();
-            return false;
-          }
-          if (this.date.hasSameMonthThan(dateCursor)) ;
-          else {
-            cellChild.classList.add("out-of-month");
-          }
         }
+        if (! this.date.hasSameMonthThan(dateCursor)) {
+          cellChild.classList.add("out-of-month");
+        }
+        
+        // add behavior
+        cellChild.onclick = function(event) {
+          event.preventDefault();
+          new GuiMessage("ask-user-appointment-details",
+            {
+              date: MyDate.fromFormattedString(
+                      this.parentElement.getAttribute("data-for-date")
+                    )
+            }
+          ).send();
+          return false;
+        }
+        
+        // append cell child into td element
         tds[j].setAttribute("data-for-date", dateCursor.asFormattedString());
         tds[j].appendChild(cellChild);
         dateCursor = dateCursor .nextDate();

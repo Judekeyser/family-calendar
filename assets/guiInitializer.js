@@ -291,7 +291,7 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var content = document.querySelector("main dl"),
+  var content = document.querySelector("#content"),
          view = {};
 
   function removeNextDDs (dtElement) {
@@ -378,6 +378,60 @@ Emits:
         dt.style.display = "block";
       }
     });
+  });
+})();
+
+
+/*******************  NEW APPOINTMENTS LISTING VIEW COMPONENT  *****************
+********************************************************************************
+
+Listens to:
+  - newEvents-result:
+  decorate the component state
+
+*******************************************************************************/
+
+(function() {
+  var content = document.querySelector("#news_content"),
+      section = document.querySelector("#news_section"),
+      markReadBtn = document.querySelector("#mark_as_read");
+  
+  section.style.display = "none";
+  markReadBtn.addEventListener("click", function() {
+      this.disabled = true;
+      new GuiMessage("acknowledgeEvents", undefined, "global").send();
+  });
+  
+  function handleEvents(eventMap) {
+    content.innerHTML = "";
+    section.style.display = "none";
+    
+    dayLoop: for(day in eventMap) {
+        var dayGroup = eventMap[day];
+        checkForAtLeastOneUnread: {
+            for(time in dayGroup)
+                if(dayGroup[time].isUnreadForUser) break checkForAtLeastOneUnread;
+            continue dayLoop;
+        }
+        var dtElement = document.createElement("dt");
+        dtElement.textContent = day;
+        content.appendChild(dtElement);
+        
+        section.style.display = "block";
+        
+        for(time in dayGroup)
+            if(dayGroup[time].isUnreadForUser) {
+                var ddElement = document.createElement("dd");
+                ddElement.appendChild(document.createTextNode(`${time} - ${dayGroup[time].description}`));
+                content.appendChild(ddElement);
+            }
+    }
+  }
+
+  content.addEventListener("eventMap-updates", function ({ detail }) {
+    var eventMap = detail;
+    handleEvents(eventMap);
+    markReadBtn.disabled = false;
   });
 })();
 

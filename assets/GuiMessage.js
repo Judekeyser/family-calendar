@@ -26,6 +26,8 @@ GuiMessage.prototype = {
     ].filter(_ => !!_)
     .flatten()
     .forEach(_ => _.dispatchEvent(this.__getEvent()));
+    
+    return Promise.resolve();
   },
   sendTo: function (target) {
     target.dispatchEvent(this.__getEvent());

@@ -6,7 +6,8 @@ function Event ({ strDate, strTime, strDescription, kind, userInitiator }) {
   this.userInitiator = userInitiator;
 }
 
-Event.prototype = {  
+Event.prototype = {
+  isUnreadForUser: false,
   print: function(printer) {
     var strDate = this.date.asFormattedString(),
         strTime = this.time,
@@ -102,45 +103,91 @@ Event.read = function (data) {
           url: `fetch_events?from=${trackTime}`
         }).send()
         .then(({ content }) => contentHandler(content))
-        .then(isEmpty => isEmpty ? terminateReading() : this.fetchNow());
+        .then(({ userIdentifier, isEmpty, lastFetchTime }) => {
+            this.trackTime = lastFetchTime;
+            return !isEmpty ? this.fetchNow() : sendToUIListeners();
+        });
+      },
+      acknowledgeEvents: function() {
+          for(day in eventsStorage) {
+              for(time in eventsStorage[day]) {
+                  delete eventsStorage[day][time].isUnreadForUser;
+              }
+          }
+          var userInitiator = window.localStorage.getItem('userName');
+          if(! userInitiator) return;
+          new NetworkMessage({
+              method: "POST",
+              url: "send_event",
+              data: JSON.stringify({
+                  cursor: trackTime,
+                  userInitiator,
+                  type: "cursor_move"
+              })
+          }).send().then(() => new GuiMessage("eventMap-updates", eventsStorage).send());
       }
     };
   })();
 
   function contentHandler (content) {
     var records = JSON.parse (content)
+        .filter(([_1, _2]) => !!_1 && !!_2);
+    
+    var lastFetchTime = records.isNotEmpty() ? records.last()[1] : undefined;
+    var userIdentifier = window.localStorage.getItem('userName');
+    
+    var lastReadCursor = 0;
+    for(record of records) {
+        const { userInitiator, type, cursor } = record[0] /* = event */;
+        if(type == 'cursor_move' && userInitiator == userIdentifier) {
+            if (lastReadCursor <= cursor)
+                lastReadCursor = cursor;
+        }
+    }
+        
+    var timestampedEvents = records
         .map(([data, timeTrack]) => ([Event.read(data), timeTrack]))
         .filter(([_1]) => !!_1)
         .sortedBy (([_1, timeTrack]) => timeTrack);
-
-    tracker.trackTime = records.isNotEmpty()
-          ? records.last()[1]
-          : undefined;
     
-    records.forEach(([event, timetrack]) => {
+    for(record of timestampedEvents) {
+        var [event, timetrack] = record;
         var dateKey = event.dateKey();
         if (! eventsStorage[dateKey])
           eventsStorage[dateKey] = {};
         if(event.kind == 'cancel') {
             if (eventsStorage[dateKey][event.time]) {
                 delete eventsStorage[dateKey][event.time];
+                if(Object.keys(eventsStorage[dateKey]).length == 0)
+                    delete eventsStorage[dateKey];
             }
         } else if (event.kind == 'create') {
             eventsStorage[dateKey][event.time] = event;
         }
-    });
+        
+        // Manage unread events 
+        if(timetrack > lastReadCursor && event.userInitiator && event.userInitiator != userIdentifier) {
+            event.isUnreadForUser = true;
+        }
+    };
     
-    return records.isEmpty();
-  }
-  
-  function terminateReading() {
-      sendToUIListeners();
+    return {
+        userIdentifier,
+        lastFetchTime,
+        isEmpty: records.isEmpty()
+    };
   }
 
   function sendToUIListeners() {
-    new GuiMessage("fetchEvents-result", eventsStorage)
-      .send();
+    return Promise.all([
+        new GuiMessage("fetchEvents-result", eventsStorage).send(),
+        new GuiMessage("eventMap-updates", eventsStorage).send()
+    ]);
   }
+  
+  window.addEventListener("acknowledgeEvents", () => {
+    tracker.acknowledgeEvents();
+  });
 
   window.addEventListener ("fetchEvents", () => {
     sendToUIListeners();

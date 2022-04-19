@@ -50,13 +50,11 @@ Emits:
   }
 
   window.addEventListener("focus-on", function({ detail }) {
-    var { date } = detail;
-    patch({ date });
+    patch(detail /* { date } */);
   });
 
   window.addEventListener("view-size", function({ detail }) {
-    var { weekCount } = detail;
-    patch({ weekCount });
+    patch(detail /* { weekCount } */);
   });
 })();
 
@@ -130,19 +128,19 @@ Emits:
     new GuiMessage("focus-on", { date }, "global") .send();
   };
 
-  datePicker.addEventListener("change", () => emitEvent());
-  datePicker.addEventListener("change-date", ({ detail }) => {
+  datePicker.addEventListener("change", emitEvent);
+  datePicker.addEventListener("change-date", function({ detail }) {
     var { previous, next } = detail,
                       date = getValue();
     if (! date) return;
     if (next) {
       for (let i = 0; i < 7; i++)
-        date = date .nextDate();
+        date = date.nextDate();
     } else if (previous) {
       for (let i = 0; i < 7; i++)
-        date = date .previousDate();
+        date = date.previousDate();
     }
-    datePicker.value = date.asFormattedString();
+    this.value = date.asFormattedString();
     emitEvent();
   });
   window.addEventListener("load", function() {
@@ -174,9 +172,7 @@ Emits:
   };
 
   slider.addEventListener("change", emitEvent);
-  window.addEventListener("load", function() {
-    emitEvent.bind(slider)();
-  });
+  window.addEventListener("load", emitEvent.bind(slider));
 })();
 
 
@@ -196,10 +192,10 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var table = document.querySelector("nav table"),
+  var table = document.querySelector("#calendar_view_table"),
       tbody = table.querySelector("tbody");
 
-  function paint() {
+  function paint(/* Context should have date, weekCount and monday fields */) {
     if (!this.weekCount || !this.monday) return;
 
     var trs = tbody.getElementsByTagName("tr");
@@ -207,28 +203,26 @@ Emits:
       tbody.removeChild (trs[this.weekCount]);
     }
     while (trs.length < this.weekCount) {
-      var tr = document.createElement("tr");
+      let tr = document.createElement("tr");
       for (let i = 0; i < 7; i++)
         tr.appendChild(document.createElement("td"));
       tbody.appendChild(tr);
     }
 
     var dateCursor = this.monday;
-    for (let i = 0; i < trs.length; i++) {
-      var tds = trs[i].getElementsByTagName("td");
-      for (let j = 0; j < tds.length; j++) {
+    for(let tr of trs)
+    for(let td of tr.getElementsByTagName("td"))
+    {
         // clean td element 
-        tds[j].innerHTML = "";
+        td.innerHTML = "";
         
         // create cell child and reset styles
-        var cellChild = document.createElement("span");
+        let cellChild = document.createElement("span");
         cellChild.textContent = dateCursor.twoDigitsDay();
-        if (this.date && this.date.equals(dateCursor)) {
+        if (this.date.equals(dateCursor))
           cellChild.classList.add("active-link");
-        }
-        if (! this.date.hasSameMonthThan(dateCursor)) {
+        if (! this.date.hasSameMonthThan(dateCursor))
           cellChild.classList.add("out-of-month");
-        }
         
         // add behavior
         cellChild.onclick = function(event) {
@@ -244,17 +238,16 @@ Emits:
         }
         
         // append cell child into td element
-        tds[j].setAttribute("data-for-date", dateCursor.asFormattedString());
-        tds[j].appendChild(cellChild);
+        td.setAttribute("data-for-date", dateCursor.asFormattedString());
+        td.appendChild(cellChild);
         dateCursor = dateCursor .nextDate();
-      }
     }
   }
 
   table.addEventListener("view-update", function({ detail }) {
     var { date, weekCount, monday, today } = detail,
-                                    struct = { date, weekCount, monday };
-    paint.bind(struct)();
+                                    struct = { date, weekCount, monday, paint };
+    struct.paint();
 
     new GuiMessage("fetchEvents", undefined, "global").send();
   });
@@ -265,12 +258,13 @@ Emits:
                    .map(({ key, value }) => key)
                    .toSet();
     
-    [...table.querySelectorAll("td")]
-    .forEach(element => {
+    for(let element of table.querySelectorAll("td")){
       var forDate = element.getAttribute("data-for-date");
       if (events.has (forDate))
-        element.querySelector("span").style.fontWeight = "bold";
-    });
+        element.classList.add("cell-with-event");
+      else
+        element.classList.remove("cell-with-event")
+    }
   });
 })();
 
@@ -309,75 +303,59 @@ Emits:
 
     var scs = content.getElementsByTagName("dt");
     while (scs.length > this.weekCount) {
-      var dtElement = scs[this.weekCount];
+      let dtElement = scs[this.weekCount];
       removeNextDDs(dtElement);
       content.removeChild (dtElement);
     }
     while (scs.length < this.weekCount*7) {
-      content.appendChild(
-        document.createElement("dt")
-      );
+      content.appendChild(document.createElement("dt"));
     }
 
     var dateCursor = this.monday;
-    for (let i = 0; i < scs.length; i++) {
-      var dtElement = scs[i];
+    for(let dtElement of scs) {
       dtElement.textContent = dateCursor.asFormattedString();
       dateCursor = dateCursor .nextDate();
     }
   }
 
   content.addEventListener("view-update", function({ detail }) {
-    var { date, weekCount, monday, today } = detail;
-    view .date = date;
-    view .weekCount = weekCount;
-    view .monday = monday;
-
-    paint.bind(view)();
+    paint.bind(detail /* { date, weekCount, monday, today } */)();
     new GuiMessage("fetchEvents", undefined, "global").send();
   });
 
   content.addEventListener("fetchEvents-result", function ({ detail }) {
     var eventMap = detail;
     
-    [...content.querySelectorAll("dt")]
-    .map(dt => ({
-      dt,
-      dailyValues: eventMap[dt.textContent] || {}
-    }))
-    .map(({dt, dailyValues}) => ({
-      dt,
-      valuesPerTime: Array.asKeyValueStream(dailyValues)
-                     .map(({ value }) => value.perDayProjection())
-                     .sortedBy(({ time }) => time)
-    }))
-    .forEach(({ dt, valuesPerTime }) => {
-        removeNextDDs(dt);
-        var nextDt = dt.nextElementSibling;
+    for(let dtElement of content.querySelectorAll("dt")) {
+        let dailyValues = eventMap[dtElement.textContent] || {};
+        let valuesPerTime = Array.asKeyValueStream(dailyValues)
+                    .map(({ value }) => value.perDayProjection())
+                    .sortedBy(({ time }) => time);
+                    
+        removeNextDDs(dtElement);
+        let nextDt = dtElement.nextElementSibling;
         if (valuesPerTime.isEmpty()) {
-          dt.style.display = "none";
+          dtElement.style.display = "none";
         } else {
           valuesPerTime.forEach(({ time, description }) => {
-            var dd = document.createElement("dd"),
+            let dd = document.createElement("dd"),
               span = document.createElement("span");
             span.textContent = '[\u2715]';
             span.classList.add("cancel-button");
             dd.appendChild(span);
             span.onclick = function() {
               new Event({
-                strDate: dt.textContent,
+                strDate: dtElement.textContent,
                 strTime: time,
                 kind: "cancel"
-              }).send().then(() => {
-                new GuiMessage("fetchEvents", undefined, "global").send();
-              })
+              }).send().then(() => new GuiMessage("fetchEvents", undefined, "global").send());
             };
             dd.appendChild(document.createTextNode(`${time} - ${description}`));
             content.insertBefore(dd, nextDt);
-        });
-        dt.style.display = "block";
-      }
-    });
+          });
+          dtElement.style.display = "block";
+        }
+    }
   });
 })();
 
@@ -407,13 +385,13 @@ Listens to:
     section.style.display = "none";
     
     dayLoop: for(day in eventMap) {
-        var dayGroup = eventMap[day];
+        let dayGroup = eventMap[day];
         checkForAtLeastOneUnread: {
             for(time in dayGroup)
                 if(dayGroup[time].isUnreadForUser) break checkForAtLeastOneUnread;
             continue dayLoop;
         }
-        var dtElement = document.createElement("dt");
+        let dtElement = document.createElement("dt");
         dtElement.textContent = day;
         content.appendChild(dtElement);
         
@@ -421,7 +399,7 @@ Listens to:
         
         for(time in dayGroup)
             if(dayGroup[time].isUnreadForUser) {
-                var ddElement = document.createElement("dd");
+                let ddElement = document.createElement("dd");
                 ddElement.appendChild(document.createTextNode(`${time} - ${dayGroup[time].description}`));
                 content.appendChild(ddElement);
             }

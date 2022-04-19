@@ -137,7 +137,7 @@ Event.read = function (data) {
     var userIdentifier = window.localStorage.getItem('userName');
     
     var lastReadCursor = 0;
-    for(record of records) {
+    for(let record of records) {
         const { userInitiator, type, cursor } = record[0] /* = event */;
         if(type == 'cursor_move' && userInitiator == userIdentifier) {
             if (lastReadCursor <= cursor)
@@ -150,18 +150,18 @@ Event.read = function (data) {
         .filter(([_1]) => !!_1)
         .sortedBy (([_1, timeTrack]) => timeTrack);
     
-    for(record of timestampedEvents) {
+    for(let record of timestampedEvents) {
         var [event, timetrack] = record;
         var dateKey = event.dateKey();
-        if (! eventsStorage[dateKey])
-          eventsStorage[dateKey] = {};
         if(event.kind == 'cancel') {
-            if (eventsStorage[dateKey][event.time]) {
+            if (eventsStorage[dateKey] && eventsStorage[dateKey][event.time]) {
                 delete eventsStorage[dateKey][event.time];
                 if(Object.keys(eventsStorage[dateKey]).length == 0)
                     delete eventsStorage[dateKey];
             }
         } else if (event.kind == 'create') {
+            if (! eventsStorage[dateKey])
+                eventsStorage[dateKey] = {};
             eventsStorage[dateKey][event.time] = event;
         }
         

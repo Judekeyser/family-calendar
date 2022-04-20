@@ -39,26 +39,6 @@ Event.prototype = {
       description: this.description,
       kind: this.kind
     };
-  },
-  send: function() {
-    var messageData = {
-      method: "POST",
-      url: "send_event"
-    };
-    if (! this.userInitiator) {
-        var userFromStorage = window.localStorage.getItem('userName');
-        this.userInitiator = userFromStorage;
-    }
-    this.print(_ => (messageData.data = _));
-    return new NetworkMessage(messageData)
-      .send()
-      .then(() => this.muteSend());
-  },
-
-  muteSend: function() {
-    this.send = function() {
-      throw "Mute of send has been called on this event: impossible to send it again";
-    }
   }
 };
 
@@ -68,7 +48,9 @@ Event.read = function (data) {
   var { version } = data;
   if (version == 1) {
     var event = new Event (data);
-    event .muteSend();
+    event.send = function() {
+        throw "Unable to send an event read from the network";
+    }
     return event;
   } else return null;
 };
@@ -83,7 +65,8 @@ Event.read = function (data) {
 
   var tracker = (function() {
     var trackTime = 0,
-        fetchTime = 0;
+        fetchTime = 0,
+        isFetching = false;
 
     return {
       set trackTime(t) {
@@ -96,17 +79,19 @@ Event.read = function (data) {
       hasFetchedRecently: function() {
         return Date.now() - fetchTime < 1000;
       },
-      fetchNow: function() {
-        fetchTime = Date.now();
+      fetchNow: function(eventToSend, allowReentrant) {
+        if(isFetching && !allowReentrant) return;
+        isFetching = true;
         new NetworkMessage({
-          method: "GET",
-          url: `fetch_events?from=${trackTime}`
+          method: "POST",
+          url: `send_event?from=${trackTime}`,
+          data: eventToSend || null
         }).send()
         .then(({ content }) => contentHandler(content))
-        .then(({ userIdentifier, isEmpty, lastFetchTime }) => {
+        .then(({ userIdentifier, isConsideredOver, lastFetchTime }) => {
             this.trackTime = lastFetchTime;
-            return !isEmpty ? this.fetchNow() : sendToUIListeners();
-        });
+            return !isConsideredOver ? this.fetchNow(undefined, true) : sendToUIListeners();
+        }).then(() => (isFetching = false));
       },
       acknowledgeEvents: function() {
           for(day in eventsStorage) {
@@ -116,18 +101,25 @@ Event.read = function (data) {
           }
           var userInitiator = window.localStorage.getItem('userName');
           if(! userInitiator) return;
-          new NetworkMessage({
-              method: "POST",
-              url: "send_event",
-              data: JSON.stringify({
-                  cursor: trackTime,
-                  userInitiator,
-                  type: "cursor_move"
-              })
+          this.fetchNow({
+              cursor: trackTime,
+              userInitiator,
+              type: "cursor_move"
           }).send().then(() => new GuiMessage("eventMap-updates", eventsStorage).send());
       }
     };
   })();
+  
+  /* Tracker is acting on Event Prototype */
+    Event.prototype.send = function() {
+        var data;
+        if (! this.userInitiator) {
+            var userFromStorage = window.localStorage.getItem('userName');
+            this.userInitiator = userFromStorage;
+        }
+        this.print(_ => (data = _));
+        return tracker.fetchNow(data);
+    };
 
   function contentHandler (content) {
     var records = JSON.parse (content)
@@ -174,7 +166,7 @@ Event.read = function (data) {
     return {
         userIdentifier,
         lastFetchTime,
-        isEmpty: records.isEmpty()
+        isConsideredOver: records.length < 50
     };
   }
 

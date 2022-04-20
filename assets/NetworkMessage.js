@@ -1,5 +1,5 @@
-function NetworkMessage({ method, url, data }) {
-  this.method = method;
+function NetworkMessage({ url, data }) {
+  this.method = !data ? "GET" : "POST";
   this.url = url;
   this.data = data;
 }

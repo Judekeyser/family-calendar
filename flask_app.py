@@ -100,7 +100,7 @@ def add_browser_security_headers(response):
 
 @flask_app.after_request
 def add_content_type (response):
-    if request.endpoint in ('send_event', 'fetch_events'):
+    if request.endpoint == 'send_event':
         type = 'application/json'
     elif request.endpoint == 'main_page':
         type = 'text/html; charset=UTF-8'
@@ -146,7 +146,7 @@ def ssl_guard():
 
 @flask_app.before_request
 def auth_token_guard():
-    if request.endpoint in ('send_event', 'fetch_events', 'hidden_csrf_token'):
+    if request.endpoint in ('send_event', 'hidden_csrf_token'):
         authentifier = Authentifier (
           token_session = request.cookies.get(AUTHENTIFIER_CONFIG.auth_cookie_name),
           credentials = request.headers.get('Authentication'),
@@ -154,7 +154,7 @@ def auth_token_guard():
           csrf_header = request.headers.get('X-Csrf-Token')
         )
         setattr(request, '__authentifier', authentifier)
-    if request.endpoint in ('send_event', 'fetch_events'):
+    if request.endpoint == 'send_event':
         if not authentifier .validates_request():
             return flask_app.response_class(
                 response = 'Untrusted request',
@@ -194,21 +194,21 @@ def hidden_csrf_token():
 def main_page():
     return flask_app.send_static_file('index.htm')
 
-@flask_app.route('/send_event', methods = ['POST'])
+@flask_app.route('/send_event', methods = ['POST', 'GET'])
 def send_event():
-    if not request.headers.get('Content-Type') == 'application/json':
-        raise Exception("Malformed request does not prove JSON content type")
-    provided = request.json
-    truncated = dumps(request.json) .encode('utf-8')[:512]
-    if not provided == loads(truncated):
-        raise Exception("Invalid JSON Input, likely too long")
-    time = insert_event (truncated)
-    return dumps(time)
+    if request.method == 'GET':
+        provided = None
+    else:
+        if not request.headers.get('Content-Type') == 'application/json':
+            raise Exception("Malformed request does not prove JSON content type")
+        provided = request.json
+    if provided is not None:
+        truncated = dumps(request.json) .encode('utf-8')[:512]
+        if not provided == loads(truncated):
+            raise Exception("Invalid JSON Input, likely too long")
+        insert_event (truncated)
 
-@flask_app.route('/fetch_events', methods = ['GET'])
-def fetch_events():
     time = request.args.get('from', type=int)
-
     def convert_event(data, timeTrack):
         return [loads(data.decode('utf-8')), timeTrack]
     

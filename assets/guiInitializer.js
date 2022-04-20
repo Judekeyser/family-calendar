@@ -229,9 +229,10 @@ Emits:
           event.preventDefault();
           new GuiMessage("ask-user-appointment-details",
             {
-              date: MyDate.fromFormattedString(
-                      this.parentElement.getAttribute("data-for-date")
-                    )
+              date: {
+                placeholder: this.parentElement.getAttribute("data-for-date"),
+                isReadonly: true
+              }
             }
           ).send();
           return false;
@@ -342,6 +343,7 @@ Emits:
               span = document.createElement("span");
             span.textContent = '[\u2715]';
             span.classList.add("cancel-button");
+            span.setAttribute("title", "Annuler le rendez-vous");
             dd.appendChild(span);
             span.onclick = function() {
               new Event({
@@ -418,7 +420,8 @@ Listens to:
 ********************************************************************************
 
 Listens to:
-  - ask-user-appointment-details: { date }
+  - ask-user-appointment-details: { date: H, time: H, shortTitle: H }
+    where H = { placeholder, isReadonly }
   asks the user for appointment details to add at the provided date
 
 Emits:
@@ -430,19 +433,35 @@ Emits:
   var     dialog = document.querySelector("dialog.ask-user-appointment-details"),
       shortTitle = document.getElementById("shortTitle"),
             time = document.getElementById("time"),
-        memoDate = null;
+            date = document.getElementById("date");
 
   dialog.addEventListener("ask-user-appointment-details", function({ detail }) {
-    var { date } = detail;
-    memoDate = date;
+    const datePlaceholder = (detail && detail.date && detail.date.placeholder) || null;
+    const isDateReadonly = (detail && detail.date && detail.date.isReadonly) || false;
+    const timePlaceholder = (detail && detail.time && detail.time.placeholder) || null;
+    const isTimeReadonly = (detail && detail.time && detail.time.isReadonly) || false;
+    const shortTitlePlaceholder = (detail && detail.shortTitle && detail.shortTitle.placeholder) || null;
+    const isShortTitleReadonly = (detail && detail.shortTitle && detail.shortTitle.isReadonly) || false;
+    
+    if(datePlaceholder)
+        date.value = datePlaceholder;
+    if(timePlaceholder)
+        time.value = timePlaceholder;
+    if(shortTitlePlaceholder)
+        shortTitle.value = shortTitlePlaceholder;
+    
+    date.disabled = isDateReadonly;
+    time.disabled = isTimeReadonly;
+    shortTitle.disabled = isShortTitleReadonly;
+    
     this.showModal();
   });
 
   dialog.addEventListener("close", function() {
     if (this.returnValue == "confirm") {
-      if (time.value && shortTitle.value) {
+      if (date.value && time.value && shortTitle.value) {
         new Event({
-          strDate: memoDate.asFormattedString(),
+          strDate: date.value,
           strTime: time.value,
           strDescription: shortTitle.value,
           kind: "create"

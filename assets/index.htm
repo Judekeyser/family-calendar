@@ -61,11 +61,15 @@
         </p>
         <p>
           <label for="shortTitle">Courte description</label>
-          <input type="text" id="shortTitle" name="shortTitle">
+          <input type="text" id="shortTitle" name="shortTitle" autocomplete="off">
         </p>
         <p class="right-align">
-          <button value="confirm">+</button>
+          <button value="confirm" id="details-btn-confirm">+</button>
           <button value="cancel">&#128473;</button>
+        </p>
+        <p id="cancelAppointmentArea">
+          <input type="checkbox" name="cancelAppointmentMode" id="cancelAppointmentMode">
+          <label for="cancelAppointmentMode">Annuler le rendez-vous</label>
         </p>
       </form></dialog>
       <dialog class="ask-user-identification"><form method="dialog">

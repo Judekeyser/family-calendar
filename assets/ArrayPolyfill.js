@@ -39,20 +39,21 @@ if (! Array.prototype.anyMatch) {
     return this.filter(p).isNotEmpty();
   };
 }
+if (! Array.prototype.flatMap) {
+  Array.prototype.flatMap = function(f) {
+    return this.map(_ => f(_))
+                .reduce((a,b) => [...a, ...b], []);
+  };
+}
 if (! Array.prototype.flatten) {
   Array.prototype.flatten = function () {
-    return this.reduce ((a,b) => [...a, ...b], []);
+    return this.flatMap(x => x);
   };
 }
 if (! Array.prototype.peek) {
   Array.prototype.peek = function (consumer) {
     this.forEach(_ => consumer(_));
     return this;
-  };
-}
-if (! Array.prototype.flatMap) {
-  Array.prototype.flatMap = function(f) {
-    return this.map(_ => f(_)).flatten();
   };
 }
 if (! Array.prototype.sortedBy) {

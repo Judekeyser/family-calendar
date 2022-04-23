@@ -339,20 +339,27 @@ Emits:
           dtElement.style.display = "none";
         } else {
           valuesPerTime.forEach(({ time, description }) => {
-            let dd = document.createElement("dd"),
-              span = document.createElement("span");
-            span.textContent = '[\u2715]';
-            span.classList.add("cancel-button");
-            span.setAttribute("title", "Annuler le rendez-vous");
+            let dd = document.createElement("dd");
+            let span = document.createElement("span");
+            span.classList.add("clickable_appointment");
             dd.appendChild(span);
             span.onclick = function() {
-              new Event({
-                strDate: dtElement.textContent,
-                strTime: time,
-                kind: "cancel"
-              }).send().then(() => new GuiMessage("fetchEvents", undefined, "global").send());
+              new GuiMessage("ask-user-appointment-details",
+                {
+                  date: {
+                    placeholder: dtElement.textContent
+                  },
+                  time: {
+                    placeholder: time
+                  },
+                  shortTitle: {
+                    placeholder: description
+                  },
+                  mode: "edit"
+                }
+              ).send();
             };
-            dd.appendChild(document.createTextNode(`${time} - ${description}`));
+            span.appendChild(document.createTextNode(`${time} - ${description}`));
             content.insertBefore(dd, nextDt);
           });
           dtElement.style.display = "block";
@@ -420,8 +427,9 @@ Listens to:
 ********************************************************************************
 
 Listens to:
-  - ask-user-appointment-details: { date: H, time: H, shortTitle: H }
+  - ask-user-appointment-details: { date: H, time: H, shortTitle: H, mode }
     where H = { placeholder, isReadonly }
+      and mode = new, edit
   asks the user for appointment details to add at the provided date
 
 Emits:
@@ -433,26 +441,131 @@ Emits:
   var     dialog = document.querySelector("dialog.ask-user-appointment-details"),
       shortTitle = document.getElementById("shortTitle"),
             time = document.getElementById("time"),
-            date = document.getElementById("date");
+            date = document.getElementById("date"),
+      confirmBtn = document.getElementById("details-btn-confirm"),
+      cancelArea = document.getElementById("cancelAppointmentArea")
+      cancelCbox = document.getElementById("cancelAppointmentMode");
+  
+    var binding; // H 
+    
+    shortTitle.addEventListener("change", () => binding.handleShortTitleChange());
+    shortTitle.addEventListener("input", () => binding.handleShortTitleChange());
+    cancelCbox.addEventListener("change", () => binding.handleCheckboxChange());
+    
+    var genericBehavior = {
+        initializeFields: function() {
+            date.value = this.date.placeholder;
+            time.value = this.time.placeholder;
+            shortTitle.value = this.shortTitle.placeholder;
+            
+            date.disabled = this.date.isReadonly;
+            time.disabled = this.time.isReadonly;
+            shortTitle.disabled = this.shortTitle.isReadonly;
+            
+            cancelCbox.checked = false;
+            confirmBtn.textContent = "+";
+        },
+        collect: function() {
+            var eventData = {
+                strDate: date.value,
+                strTime: time.value,
+                strDescription: shortTitle.value,
+                kind: "create"
+            };
+            return eventData;
+        }
+    }
+  
+    var behaviorOnNew = {
+        initialize: function() {
+            this.initializeFields();
+            cancelArea.classList.add("out-of-flow");
+            cancelCbox.disabled = true;
+            confirmBtn.textContent = "+";
+        },
+        handleShortTitleChange: function() {}
+    };
+    
+    var behaviorOnEdit = {
+        initialize: function() {
+            this.initializeFields();
+            cancelArea.classList.remove("out-of-flow");
+            cancelCbox.disabled = false;
+        },
+        handleShortTitleChange: function() {
+            cancelArea.classList.add("out-of-flow");
+            cancelCbox.disabled = true;
+        },
+        handleCheckboxChange: function() {
+            if(cancelCbox.checked) {
+                date.disabled = true;
+                time.disabled = true;
+                shortTitle.disabled = true;
+                
+                date.value = this.date.placeholder;
+                time.value = this.time.placeholder;
+                
+                confirmBtn.textContent = "Confirmer l'annulation";
+            } else {
+                date.disabled = this.date.isReadonly;
+                time.disabled = this.time.isReadonly;
+                shortTitle.disabled = this.shortTitle.isReadonly;
+                
+                confirmBtn.textContent = "+";
+            }
+        },
+        collect: function() {
+            var eventToRemove = {
+                strDate: this.date.placeholder,
+                strTime: this.time.placeholder,
+                strDescription: this.shortTitle.placeholder,
+                kind: "cancel"
+            };
+            if(cancelCbox.checked) {
+                return eventToRemove;
+            } else {
+                var eventToCreate = genericBehavior.collect.bind(this)();
+                if (eventToCreate.strDate == eventToRemove.strDate && eventToCreate.strTime == eventToRemove.strTime) {
+                    return eventToCreate;
+                } else return [eventToRemove, eventToCreate];
+            }
+        }
+    }
+    
+    Object.setPrototypeOf(behaviorOnNew, genericBehavior);
+    Object.setPrototypeOf(behaviorOnEdit, genericBehavior);
 
   dialog.addEventListener("ask-user-appointment-details", function({ detail }) {
     const datePlaceholder = (detail && detail.date && detail.date.placeholder) || null;
     const isDateReadonly = (detail && detail.date && detail.date.isReadonly) || false;
     const timePlaceholder = (detail && detail.time && detail.time.placeholder) || null;
     const isTimeReadonly = (detail && detail.time && detail.time.isReadonly) || false;
-    const shortTitlePlaceholder = (detail && detail.shortTitle && detail.shortTitle.placeholder) || null;
+    const shortTitlePlaceholder = (detail && detail.shortTitle && detail.shortTitle.placeholder) || '';
     const isShortTitleReadonly = (detail && detail.shortTitle && detail.shortTitle.isReadonly) || false;
     
-    if(datePlaceholder)
-        date.value = datePlaceholder;
-    if(timePlaceholder)
-        time.value = timePlaceholder;
-    if(shortTitlePlaceholder)
-        shortTitle.value = shortTitlePlaceholder;
+    const mode = (detail && detail.mode) || "new";
+    binding = {
+        date: {
+            placeholder: datePlaceholder,
+            isReadonly: isDateReadonly
+        },
+        time: {
+            placeholder: timePlaceholder,
+            isReadonly: isTimeReadonly
+        },
+        shortTitle: {
+            placeholder: shortTitlePlaceholder,
+            isReadonly: isShortTitleReadonly
+        }
+    };
     
-    date.disabled = isDateReadonly;
-    time.disabled = isTimeReadonly;
-    shortTitle.disabled = isShortTitleReadonly;
+    if(mode == "new") {
+        Object.setPrototypeOf(binding, behaviorOnNew);
+    } else if (mode == "edit") {
+        Object.setPrototypeOf(binding, behaviorOnEdit);
+    }
+    
+    binding.initialize();
     
     this.showModal();
   });
@@ -460,18 +573,17 @@ Emits:
   dialog.addEventListener("close", function() {
     if (this.returnValue == "confirm") {
       if (date.value && time.value && shortTitle.value) {
-        new Event({
-          strDate: date.value,
-          strTime: time.value,
-          strDescription: shortTitle.value,
-          kind: "create"
-        }).send().then(() =>
-          new GuiMessage("fetchEvents", undefined, "global").send()
-        );
+          var data = binding.collect();
+          if (Array.isArray(data)) {
+              var task$ = new Event(data[0]).send()
+                            .then(() => new Promise(res => setTimeout(() => res(), 10)))
+                            .then(() => new Event(data[1]).send());
+          } else {
+              var task$ = new Event(data).send();
+          }
+          task$.then(() => new GuiMessage("fetchEvents", undefined, "global").send())
       }
     }
-    time.value = "";
-    shortTitle.value = "";
   });
 })();
 

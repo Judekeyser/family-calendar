@@ -91,7 +91,10 @@ Event.read = function (data) {
         .then(({ userIdentifier, isConsideredOver, lastFetchTime }) => {
             this.trackTime = lastFetchTime;
             return !isConsideredOver ? this.fetchNow(undefined, true) : sendToUIListeners();
-        }).then(() => (isFetching = false));
+        }).then(() => {
+            isFetching = false;
+            fetchTime = Date.now();
+        });
       },
       acknowledgeEvents: function() {
           for(day in eventsStorage) {

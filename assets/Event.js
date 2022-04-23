@@ -82,7 +82,7 @@ Event.read = function (data) {
       fetchNow: function(eventToSend, allowReentrant) {
         if(isFetching && !allowReentrant) return;
         isFetching = true;
-        new NetworkMessage({
+        return new NetworkMessage({
           method: "POST",
           url: `send_event?from=${trackTime}`,
           data: eventToSend || null
@@ -101,7 +101,7 @@ Event.read = function (data) {
           }
           var userInitiator = window.localStorage.getItem('userName');
           if(! userInitiator) return;
-          this.fetchNow({
+          return new Event({
               cursor: trackTime,
               userInitiator,
               type: "cursor_move"

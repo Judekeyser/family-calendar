@@ -576,7 +576,7 @@ Emits:
           var data = binding.collect();
           if (Array.isArray(data)) {
               var task$ = new Event(data[0]).send()
-                            .then(() => new Promise(res => setTimeout(() => res(), 10)))
+                            .then(() => new Promise(res => setTimeout(() => res(), 1010)))
                             .then(() => new Event(data[1]).send());
           } else {
               var task$ = new Event(data).send();

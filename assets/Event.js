@@ -24,9 +24,6 @@ Event.prototype = {
   getKind: function() {
     return this.kind;
   },
-  getUserInitiator: function() {
-    return this.userInitiator;
-  },
   dateKey: function() {
     return this.date.asFormattedString();
   },
@@ -36,7 +33,8 @@ Event.prototype = {
       description: this.description,
       kind: this.kind
     };
-  }
+  },
+  isUnreadForUser: function() { return false; }
 };
 
 Event.read = function (data) {
@@ -98,7 +96,8 @@ Event.read = function (data) {
         })
         .then(({ checkUnreadForUser, lastFetchTime, isConsideredOver }) => {
             this.trackTime = lastFetchTime;
-            Event.prototype.isUnreadForUser = checkUnreadForUser;
+            if(!!checkUnreadForUser)
+                Event.prototype.isUnreadForUser = checkUnreadForUser;
             return !isConsideredOver ? this.fetchNow(undefined, true) : sendToUIListeners();
         }).then(() => {
             isFetching = false;
@@ -106,18 +105,8 @@ Event.read = function (data) {
         });
       },
       acknowledgeEvents: function() {
-          /*
-        for(day in eventsStorage) {
-            for(time in eventsStorage[day]) {
-                delete eventsStorage[day][time].isUnreadForUser;
-            }
-        }
-        */
-        var userInitiator = window.localStorage.getItem('userName');
-        if(! userInitiator) return;
         Event.prototype.send.bind({
             cursor: trackTime,
-            userInitiator,
             print: function(printer) {
                 printer({
                     cursor: this.cursor,
@@ -148,12 +137,12 @@ Event.read = function (data) {
     var lastFetchTime = records.isNotEmpty() ? records.last()[1] : undefined;
     const userIdentifier = window.localStorage.getItem('userName');
     
-    let lastReadCursor = 0;
+    let lastReadCursor = null;
     for(let record of records) {
         const { userInitiator, kind, cursor } = record[0] /* = event */;
     
         if(kind == 'cursor_move' && userInitiator == userIdentifier) {
-            if (lastReadCursor <= cursor)
+            if (lastReadCursor === null || lastReadCursor <= cursor)
                 lastReadCursor = cursor;
         }
     }
@@ -165,7 +154,7 @@ Event.read = function (data) {
     
     return {
         timestampedEvents,
-        checkUnreadForUser: function() {
+        checkUnreadForUser: lastReadCursor === null ? null : function() {
             const isNew = this.__history && this.__history.timetrack > lastReadCursor;
             const isFromSomeoneElse = this.userInitiator && this.userInitiator != userIdentifier;
             return isNew && isFromSomeoneElse;

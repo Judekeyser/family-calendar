@@ -27,3 +27,33 @@ SOFTWARE.
 Family Calendar is a small, friendly project, to help my family managing
 appointments and tasks. :-)
 
+## Local configuration
+
+### Python environment
+
+Create a Python environment and install the dependencies from the `requirements.txt` file.
+
+You should use Python 3.9.
+
+### Security concerns
+
+Then you'll need the following environment variables to be setup, if you want to run the server with `python flask_app.py`:
+```
+DATABASE_URL=url to postgresql database
+MUTE_SECURITY=1 to turn security off in development
+AUTHENTICATION_KEY_SECRET=use the utility secure_bridge.py to generate the followings
+ENCRYPTION_KEY_SECRET=
+HASH_KEY_SECRET=
+PASSWORD=
+```
+Your system will need to be able to connect a postgre sql server. On Windows, this may require the setting up of
+```
+SET PATH=%PATH%;C:\Program Files\PostgreSQL\14\bin
+```
+
+for Linux platform, you can also run the application with the Heroku service `heroku local web` (which will then use the GUnicorn server),
+in which case the Heroku variables will be used instead.
+
+### Database setup
+
+Make sure you run the `db_bridge.py` script to set up the database.

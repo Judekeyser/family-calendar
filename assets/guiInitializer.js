@@ -397,7 +397,7 @@ Listens to:
         let dayGroup = eventMap[day];
         checkForAtLeastOneUnread: {
             for(time in dayGroup)
-                if(dayGroup[time].isUnreadForUser) break checkForAtLeastOneUnread;
+                if(dayGroup[time].isUnreadForUser()) break checkForAtLeastOneUnread;
             continue dayLoop;
         }
         let dtElement = document.createElement("dt");
@@ -407,7 +407,7 @@ Listens to:
         section.style.display = "block";
         
         for(time in dayGroup)
-            if(dayGroup[time].isUnreadForUser) {
+            if(dayGroup[time].isUnreadForUser()) {
                 let ddElement = document.createElement("dd");
                 ddElement.appendChild(document.createTextNode(`${time} - ${dayGroup[time].description}`));
                 content.appendChild(ddElement);
@@ -576,7 +576,6 @@ Emits:
           var data = binding.collect();
           if (Array.isArray(data)) {
               var task$ = new Event(data[0]).send()
-                            .then(() => new Promise(res => setTimeout(() => res(), 1010)))
                             .then(() => new Event(data[1]).send());
           } else {
               var task$ = new Event(data).send();

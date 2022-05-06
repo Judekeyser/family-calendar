@@ -12,17 +12,14 @@ Event.prototype = {
     var strDate = this.date.asFormattedString(),
         strTime = this.time,
         strDescription = this.description,
-        kind = this.kind,
-        userInitiator = this.userInitiator;
+        kind = this.kind;
 
-    printer (JSON.stringify({
+    printer ({
       strDate,
       strTime,
       strDescription,
-      version: 1,
-      kind,
-      userInitiator
-    }));
+      kind
+    });
   },
   getKind: function() {
     return this.kind;
@@ -47,6 +44,8 @@ Event.read = function (data) {
     return null;
   var { version } = data;
   if (version == 1) {
+    if(data.kind != "create" && data.kind != "cancel")
+        return null;
     var event = new Event (data);
     event.send = function() {
         throw "Unable to send an event read from the network";
@@ -88,8 +87,18 @@ Event.read = function (data) {
           data: eventToSend || null
         }).send()
         .then(({ content }) => contentHandler(content))
-        .then(({ userIdentifier, isConsideredOver, lastFetchTime }) => {
+        .then(({
+            timestampedEvents,
+            checkUnreadForUser,
+            lastFetchTime,
+            isConsideredOver
+        }) => {
+            eventsHandler(timestampedEvents);
+            return { checkUnreadForUser, lastFetchTime, isConsideredOver };
+        })
+        .then(({ checkUnreadForUser, lastFetchTime, isConsideredOver }) => {
             this.trackTime = lastFetchTime;
+            Event.prototype.isUnreadForUser = checkUnreadForUser;
             return !isConsideredOver ? this.fetchNow(undefined, true) : sendToUIListeners();
         }).then(() => {
             isFetching = false;
@@ -97,18 +106,25 @@ Event.read = function (data) {
         });
       },
       acknowledgeEvents: function() {
-          for(day in eventsStorage) {
-              for(time in eventsStorage[day]) {
-                  delete eventsStorage[day][time].isUnreadForUser;
-              }
-          }
-          var userInitiator = window.localStorage.getItem('userName');
-          if(! userInitiator) return;
-          return new Event({
-              cursor: trackTime,
-              userInitiator,
-              type: "cursor_move"
-          }).send().then(() => new GuiMessage("eventMap-updates", eventsStorage).send());
+          /*
+        for(day in eventsStorage) {
+            for(time in eventsStorage[day]) {
+                delete eventsStorage[day][time].isUnreadForUser;
+            }
+        }
+        */
+        var userInitiator = window.localStorage.getItem('userName');
+        if(! userInitiator) return;
+        Event.prototype.send.bind({
+            cursor: trackTime,
+            userInitiator,
+            print: function(printer) {
+                printer({
+                    cursor: this.cursor,
+                    kind: "cursor_move"
+                });
+            }
+        })().then(() => new GuiMessage("eventMap-updates", eventsStorage).send());
       }
     };
   })();
@@ -116,12 +132,13 @@ Event.read = function (data) {
   /* Tracker is acting on Event Prototype */
     Event.prototype.send = function() {
         var data;
-        if (! this.userInitiator) {
-            var userFromStorage = window.localStorage.getItem('userName');
-            this.userInitiator = userFromStorage;
-        }
         this.print(_ => (data = _));
-        return tracker.fetchNow(data);
+        data.version = data.version || 1;
+        if (! data.userInitiator) {
+            var userFromStorage = window.localStorage.getItem('userName');
+            data.userInitiator = userFromStorage;
+        }
+        return tracker.fetchNow(JSON.stringify(data));
     };
 
   function contentHandler (content) {
@@ -129,12 +146,13 @@ Event.read = function (data) {
         .filter(([_1, _2]) => !!_1 && !!_2);
     
     var lastFetchTime = records.isNotEmpty() ? records.last()[1] : undefined;
-    var userIdentifier = window.localStorage.getItem('userName');
+    const userIdentifier = window.localStorage.getItem('userName');
     
-    var lastReadCursor = 0;
+    let lastReadCursor = 0;
     for(let record of records) {
-        const { userInitiator, type, cursor } = record[0] /* = event */;
-        if(type == 'cursor_move' && userInitiator == userIdentifier) {
+        const { userInitiator, kind, cursor } = record[0] /* = event */;
+    
+        if(kind == 'cursor_move' && userInitiator == userIdentifier) {
             if (lastReadCursor <= cursor)
                 lastReadCursor = cursor;
         }
@@ -145,8 +163,22 @@ Event.read = function (data) {
         .filter(([_1]) => !!_1)
         .sortedBy (([_1, timeTrack]) => timeTrack);
     
+    return {
+        timestampedEvents,
+        checkUnreadForUser: function() {
+            const isNew = this.__history && this.__history.timetrack > lastReadCursor;
+            const isFromSomeoneElse = this.userInitiator && this.userInitiator != userIdentifier;
+            return isNew && isFromSomeoneElse;
+        },
+        lastFetchTime: lastFetchTime - 1, // This is based on the very strong property of chain-idempotency
+        isConsideredOver: records.length < 50
+    };
+  }
+  
+  function eventsHandler(timestampedEvents, lastReadCursor) {
     for(let record of timestampedEvents) {
         var [event, timetrack] = record;
+        event.__history = { timetrack };
         var dateKey = event.dateKey();
         if(event.kind == 'cancel') {
             if (eventsStorage[dateKey] && eventsStorage[dateKey][event.time]) {
@@ -159,17 +191,6 @@ Event.read = function (data) {
                 eventsStorage[dateKey] = {};
             eventsStorage[dateKey][event.time] = event;
         }
-        
-        // Manage unread events 
-        if(timetrack > lastReadCursor && event.userInitiator && event.userInitiator != userIdentifier) {
-            event.isUnreadForUser = true;
-        }
-    };
-    
-    return {
-        userIdentifier,
-        lastFetchTime,
-        isConsideredOver: records.length < 50
     };
   }
 
@@ -180,9 +201,7 @@ Event.read = function (data) {
     ]);
   }
   
-  window.addEventListener("acknowledgeEvents", () => {
-    tracker.acknowledgeEvents();
-  });
+  window.addEventListener("acknowledgeEvents", () => tracker.acknowledgeEvents());
 
   window.addEventListener ("fetchEvents", () => {
     sendToUIListeners();

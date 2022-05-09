@@ -136,7 +136,7 @@ nav td span, nav th abbr, nav td span.active-link {
   text-decoration: none;
   color: black;
 }
-nav td.cell-with-event span {
+nav span.cell-with-event {
     font-weight: bold;
 }
 nav td span.active-link {

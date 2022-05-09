@@ -1,3 +1,16 @@
+function __utils_addOrRemoveStyle({ element, style, test }) {
+    if(test) {
+        element.classList.add(style);
+    } else {
+        element.classList.remove(style);
+    }
+}
+function __utils_addOrRemoveStyles({ element, directives }) {
+    for(let directive of directives) {
+        __utils_addOrRemoveStyle({ ... directive, element });
+    }
+}
+
 /***********************  VIRTUAL VIEW UPDATE COMPONENT  ***********************
 ********************************************************************************
 
@@ -71,7 +84,7 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var button = document.menuCtrl.nextWeek;
+  var button = document.getElementById("menuCtrl_nextWeek");
 
   button.addEventListener("click", function() {
     new GuiMessage("change-date", { next: true }) .sendTo(
@@ -93,7 +106,7 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var button = document.menuCtrl.previousWeek;
+  var button = document.getElementById("menuCtrl_previousWeek");
 
   button.addEventListener("click", function() {
     new GuiMessage("change-date", { previous: true }) .sendTo(
@@ -192,81 +205,114 @@ Emits:
 *******************************************************************************/
 
 (function() {
-  var table = document.querySelector("#calendar_view_table"),
-      tbody = table.querySelector("tbody");
-
-  function paint(/* Context should have date, weekCount and monday fields */) {
-    if (!this.weekCount || !this.monday) return;
-
-    var trs = tbody.getElementsByTagName("tr");
-    while (trs.length > this.weekCount) {
-      tbody.removeChild (trs[this.weekCount]);
-    }
-    while (trs.length < this.weekCount) {
-      let tr = document.createElement("tr");
-      for (let i = 0; i < 7; i++)
-        tr.appendChild(document.createElement("td"));
-      tbody.appendChild(tr);
-    }
-
-    var dateCursor = this.monday;
-    for(let tr of trs)
-    for(let td of tr.getElementsByTagName("td"))
-    {
-        // clean td element 
-        td.innerHTML = "";
-        
-        // create cell child and reset styles
-        let cellChild = document.createElement("span");
-        cellChild.textContent = dateCursor.twoDigitsDay();
-        if (this.date.equals(dateCursor))
-          cellChild.classList.add("active-link");
-        if (! this.date.hasSameMonthThan(dateCursor))
-          cellChild.classList.add("out-of-month");
-        
-        // add behavior
-        cellChild.onclick = function(event) {
-          event.preventDefault();
-          new GuiMessage("ask-user-appointment-details",
-            {
-              date: {
-                placeholder: this.parentElement.getAttribute("data-for-date"),
-                isReadonly: true
-              }
-            }
-          ).send();
-          return false;
+    function Cell({ date }) {
+        this.date = date;
+        this.controlElement = document.createElement("span");
+    }; Cell.prototype = {
+        paint: function() {
+            var element = this.controlElement;
+            element.classList.add("fetchEvents-result"); // Make element aware of fetchEvents
+            
+            __utils_addOrRemoveStyles({ element,
+                directives: [{
+                    style: "active-link",
+                    test: this.isEqualToReferenceDate()
+                }, {
+                    style: "out-of-month",
+                    test: !this.isInMonthOfReferenceDate()
+                }]
+            });
+            
+            element.addEventListener(
+                "click",
+                this.handleCellClick.bind(this)
+            );
+            element.addEventListener(
+                "fetchEvents-result",
+                ({ detail }) => this.handleEventsFlow.bind(this)({ eventMap: detail })
+            );
+            element.textContent = this.date.twoDigitsDay();
+            return element;
+        },
+        isEqualToReferenceDate: function() { return false; },
+        isInMonthOfReferenceDate: function() { return false; },
+        handleCellClick: function() {
+            new GuiMessage("ask-user-appointment-details", {
+                date: {
+                    placeholder: this.date.asFormattedString(),
+                    isReadonly: true
+                }
+            }).send();
+        },
+        handleEventsFlow: function({ eventMap }) {
+            __utils_addOrRemoveStyle({
+                element: this.controlElement,
+                style: "cell-with-event",
+                test: !!eventMap[this.date.asFormattedString()]
+            });
         }
-        
-        // append cell child into td element
-        td.setAttribute("data-for-date", dateCursor.asFormattedString());
-        td.appendChild(cellChild);
-        dateCursor = dateCursor .nextDate();
-    }
-  }
-
-  table.addEventListener("view-update", function({ detail }) {
-    var { date, weekCount, monday, today } = detail,
-                                    struct = { date, weekCount, monday, paint };
-    struct.paint();
-
-    new GuiMessage("fetchEvents", undefined, "global").send();
-  });
-
-  table.addEventListener("fetchEvents-result", function ({ detail }) {
-    var eventMap = detail,
-          events = Array.asKeyValueStream(eventMap)
-                   .map(({ key, value }) => key)
-                   .toSet();
+    };
     
-    for(let element of table.querySelectorAll("td")){
-      var forDate = element.getAttribute("data-for-date");
-      if (events.has (forDate))
-        element.classList.add("cell-with-event");
-      else
-        element.classList.remove("cell-with-event")
+    function Row({ cells }) {
+        this.cells = cells;
+    }; Row.prototype = {
+        paint: function() {
+            var element = document.createElement("tr");
+            for(let cell of this.cells) {
+                var cellElement = document.createElement("td");
+                cellElement.appendChild(cell.paint());
+                element.appendChild(cellElement);
+            }
+            return element;
+        }
     }
-  });
+    
+    function Table({ referenceDate, rowCount, focusDate }) {
+        Cell.prototype.isEqualToReferenceDate = function() {
+            return focusDate.equals(this.date);
+        };
+        Cell.prototype.isInMonthOfReferenceDate = function() {
+            return focusDate.hasSameMonthThan(this.date);
+        };
+        
+        this.__generateRows({ referenceDate, rowCount });
+    }; Table.prototype = {
+        __generateRows: function({ referenceDate, rowCount }) {
+            var dateCursor = referenceDate;
+            var rows = [];
+            for(let i = 0; i < rowCount; i++) {
+                let cells = [];
+                for(let j = 0; j < 7; j++, dateCursor=dateCursor.nextDate())
+                    cells[j] = new Cell({ date: dateCursor });
+                
+                rows.push(new Row({ cells }));
+            }
+            
+            this.rows = rows;
+        },
+        paint: function(target) {
+            var tbody = target.querySelector("tbody");
+            tbody.innerHTML = "";
+            
+            for(let row of this.rows)
+                tbody.appendChild(row.paint());
+        }
+    };
+
+    document.querySelector("#calendar_view_table").addEventListener("view-update", function({ detail }) {
+        var { date, weekCount, monday, today } = detail;
+        if (!weekCount || !monday) return;
+        
+        window.requestAnimationFrame(() => {
+            new Table({
+                referenceDate: monday,
+                focusDate: date,
+                rowCount: weekCount
+            }).paint(this);
+
+            new GuiMessage("fetchEvents", undefined, "global").send();
+        });
+    });
 })();
 
 

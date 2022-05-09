@@ -142,7 +142,7 @@ Event.read = function (data) {
         const { userInitiator, kind, cursor } = record[0] /* = event */;
     
         if(kind == 'cursor_move' && userInitiator == userIdentifier) {
-            if (lastReadCursor === null || lastReadCursor <= cursor)
+            if (!lastReadCursor || lastReadCursor <= cursor)
                 lastReadCursor = cursor;
         }
     }
@@ -154,7 +154,7 @@ Event.read = function (data) {
     
     return {
         timestampedEvents,
-        checkUnreadForUser: lastReadCursor === null ? null : function() {
+        checkUnreadForUser: !lastReadCursor ? null : function() {
             const isNew = this.__history && this.__history.timetrack > lastReadCursor;
             const isFromSomeoneElse = this.userInitiator && this.userInitiator != userIdentifier;
             return isNew && isFromSomeoneElse;

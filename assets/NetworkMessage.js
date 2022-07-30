@@ -5,8 +5,12 @@ function NetworkMessage({ url, data }) {
 }
 
 async function getCsrfToken() {
+    /**
+    This is all synchronous, but written as if it could not be.
+    We keep it such because in case of error, the user is a hacker anyway.
+    */
   for(let i = 0; i < 5; i++) {
-    var element = window["hidden-csrf-token"];
+    var element = document.getElementById("hidden-csrf-token").value || undefined;
     if(!element) {
       await new Promise(r => setTimeout(() => r(), 200));
     } else {

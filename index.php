@@ -1,3 +1,30 @@
+<?php
+
+require('remote_configs.php');
+
+/* Print Secure headers */
+{
+    header("Content-Security-Policy: default-src 'none'; connect-src 'self'; font-src https://fonts.gstatic.com;img-src 'none'; object-src 'none'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'");
+    header("X-Frame-Options: none");
+    header("Referrer-Policy: no-referrer");
+    header("Feature-Policy: camera 'none'; fullscreen 'self'; geolocation 'none'; microphone 'none'");
+    header("X-Permitted-Cross-Domain-Policies: none");
+    header("X-XSS-Protection: 1; mode=block");
+    header("X-Content-Type-Options: nosniff");
+    
+    if(__SECURE) {
+        header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
+    }
+}
+
+/* Define CSRF token */
+{
+    $csrf_token = base64_encode(openssl_random_pseudo_bytes(32));
+    setcookie(CSRF_COOKIE_NAME, $csrf_token, time()+CSRF_VALIDITY_DELAY, '/', '', __SECURE, true);
+}
+
+?>
+
 <!DOCTYPE HTML>
 
 <html lang="fr-be">
@@ -5,7 +32,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="assets/style.css" rel="stylesheet">
 
-    <script src="/hiddenCsrfToken.js"></script>
     <script src="assets/ArrayPolyfill.js"></script>
     <script src="assets/MyDate.js"></script>
     <script src="assets/NetworkMessage.js"></script>
@@ -71,6 +97,7 @@
           <input type="checkbox" name="cancelAppointmentMode" id="cancelAppointmentMode">
           <label for="cancelAppointmentMode">Annuler le rendez-vous</label>
         </p>
+        <p class="out-of-flow"><input id="hidden-csrf-token" type="hidden" value="<?php echo $csrf_token;?>"></p>
       </form></dialog>
       <dialog class="ask-user-identification"><form method="dialog">
         <p>Identifiez-vous:</p>

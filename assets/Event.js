@@ -81,7 +81,7 @@ Event.read = function (data) {
         isFetching = true;
         return new NetworkMessage({
           method: "POST",
-          url: `send_event?from=${trackTime}`,
+          url: `send_event.php?from=${trackTime}`,
           data: eventToSend || null
         }).send()
         .then(({ content }) => contentHandler(content))
@@ -132,6 +132,7 @@ Event.read = function (data) {
 
   function contentHandler (content) {
     var records = JSON.parse (content)
+        .filter(_ => !!_)
         .filter(([_1, _2]) => !!_1 && !!_2);
     
     var lastFetchTime = records.isNotEmpty() ? records.last()[1] : undefined;

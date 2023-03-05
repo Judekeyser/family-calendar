@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr-be">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Calendrier de famille">
+    <meta name="author" content="Justin Dekeyser">
+    <title>Calendrier de famille</title>
+    <link rel="stylesheet" href="/app.css" type="text/css">
+    <script src="/send_event.php?init=1"></script>
+  </head>
+  <body>
+
+
+<template id="app-identification">
+    <form>
+        <fieldset>
+            <legend>Identifiant utilisateur</legend>
+            
+            <label>
+                <input type="radio" name="userId" value="caroline" required
+                    > Caroline
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="userId" value="justin" required
+                    > Justin
+            </label>
+        </fieldset>
+        <hr>
+        
+        <input type="submit" value="Ok">
+    </form>
+</template>
+
+
+<template id="app-authentication">
+    <form>
+        <fieldset>
+            <legend>Information d'authentification</legend>
+                <label>
+                    Mot de passe: <input name="passwordField" type="password" required>
+                </label>
+        </fieldset>
+        <hr>
+        
+        <span data-on="message"></span>
+        <input type="submit" value="Ok">
+    </form>
+</template>
+
+
+<template id="app-calendar">
+    <form>
+        <fieldset>
+            <legend>Configuration du calendrier</legend>
+            
+            <div class="multi-col">
+                <div class="col-2 center">
+                    <label>
+                        Nombre de semaines affichées<br>
+                        <input type="range" min="1" max="9" name="nbrWeeks">
+                    </label>
+                </div>
+                <div class="col-2 center">
+                    <label>
+                        Première semaine inclus<br>
+                        <input type="date" name="startDate">
+                    </label>
+                    <br><br>
+                    <input type="button" name="prevWeek" value="<">
+                    <input type="button" name="nextWeek" value=">">
+                </div>
+            </div>
+        </fieldset>
+        <hr>
+        
+        <fieldset>
+            <legend>Vue d'ensemble</legend>
+            <table>
+                <thead>
+                    <tr>
+                        <th><abbr>Lun.</abbr></th>
+                        <th><abbr>Mar.</abbr></th>
+                        <th><abbr>Mer.</abbr></th>
+                        <th><abbr>Jeu.</abbr></th>
+                        <th><abbr>Ven.</abbr></th>
+                        <th><abbr>Sam.</abbr></th>
+                        <th><abbr>Dim.</abbr></th>
+                    </tr>
+                </thead>
+                <template>
+                    <app-calendar-cell>
+                        <span><span class="content"></span><span class="month"></<span></span>
+                    </app-calendar-cell>
+                </template>
+                <tbody>
+                </tbody>
+            </table>
+        </fieldset>
+    </form>
+    <hr>
+
+    <p>
+        <input type="button" value="Voir tous les non lus*" data-id="all-unread">
+    </p>
+</template>
+
+
+<template id="app-appointments-list">
+    <header>
+        <h1>Détail du jour</h1>
+        <nav>
+            <app-close-button>
+                <input type='button' value="Fermer">
+            </app-close-button>
+        </nav>
+    </header>
+    
+    <template data-on="no-elements">
+        <article>
+            <p>Aucun élément prévu ce jour</p>
+        </article>
+    </template>
+    
+    <template data-on="some-element">
+        <article>
+            <h1>À <slot name="strTime"></slot><slot name="isUnread"></slot></h1>
+            <p><slot name="strDescription"></slot></p>
+        </article>
+    </template>
+    
+    <div class="grid"></div>
+    
+    <footer>
+        <input type='button' value="Nouveau">
+    </footer>
+</template>
+
+
+<template id="app-appointments-unread-list">
+    <header>
+        <h1>Rendez-vous non lus</h1>
+        <nav>
+            <app-close-button>
+                <input type='button' value="Fermer">
+            </app-close-button>
+        </nav>
+    </header>
+    
+    <template data-on="no-elements">
+        <article>
+            <p>Pas de nouvel événement à lire</p>
+        </article>
+    </template>
+    
+    <template data-on="some-element">
+        <article>
+            <h1>Le
+            <slot name="strDate-day"></slot>
+            <slot name="strDate-month"></slot>
+            <slot name="strDate-year"></slot>
+            à <slot name="strTime"></slot></h1>
+            <p><slot name="strDescription"></slot></p>
+        </article>
+    </template>
+    
+    <div class="grid"></div>
+    
+    <footer>
+        <input type='button' value="Tout marquer comme lus">
+    </footer>
+</template>
+
+
+<template id="app-appointments-create">
+    <header>
+        <h1>Nouveau rendez-vous</h1>
+        <nav>
+            <app-close-button>
+                <input type='button' value="Fermer">
+            </app-close-button>
+        </nav>
+    </header>
+    
+    <form>
+        <fieldset>
+            <legend>Date et heure</legend>
+            
+            <div class="multi-col">
+                <div class="col-2 center">
+                    <label>
+                        Date:
+                        <br>
+                        <input type="date" name="appointmentdate" disabled>
+                    </label>
+                </div>
+                <div class="col-2 center">
+                    <!--
+                    <label>
+                        Période:
+                        <br>
+                        <select name="appointmentrange">
+                            <option value="">Ponctuel</option>
+                            <option value="fullday">Toute la journée</option>
+                        </select>
+                    </label>
+                    <hr>
+                    -->
+                    <label>
+                        Heure:
+                        <br>
+                        <input type="time" name="appointmenttime" required>
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+        <hr>
+        <fieldset>
+            <legend>Description du rendez-vous</legend>
+            <textarea name="appointmentdescription" required></textarea>
+        </fieldset>
+        <hr>
+        
+        <span data-id="warning">
+            <em class="on-appointment-conflict">Conflit avec un autre événement&nbsp;!</em>
+        </span
+        >&nbsp;<input type="submit" value="Créer">
+    </form>
+</template>
+
+
+<template id="app-appointments-edit">
+    <header>
+        <h1>Modifier le rendez-vous</h1>
+        <nav>
+            <app-close-button>
+                <input type='button' value="Fermer">
+            </app-close-button>
+        </nav>
+    </header>
+    
+    <form>
+        <label>
+            Annuler le rendez-vous:
+            <input type="checkbox" name="cancelOnly">
+        </label>
+        <hr>
+        <fieldset>
+            <legend>Date et heure</legend>
+            
+            <div class="multi-col">
+                <div class="col-2 center">
+                    <label>
+                        Date:
+                        <br>
+                        <input type="date" name="appointmentdate" required>
+                    </label>
+                </div>
+                <div class="col-2 center">
+                    <label>
+                        Heure:
+                        <br>
+                        <input type="time" name="appointmenttime" required>
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+        <hr>
+        <fieldset>
+            <legend>Description du rendez-vous</legend>
+            <textarea name="appointmentdescription" required></textarea>
+        </fieldset>
+        <hr>
+        
+        <input type="submit" value="Modifier">
+    </form>
+</template>
+
+
+<app-main>
+    <aside></aside>
+</app-main>
+
+<!--
+    <aside>
+        
+        <div class="route hidden" id="unread-appointments">
+            <header>
+                <h1>Événements non lus</h1>
+                <nav>
+                    <input type='button' value="Fermer">
+                </nav>
+            </header>
+            
+            <div class="grid">
+                <p class="on-loading">Chargement du contenu&hellip;</p>
+                <p class="on-empty">Pas d'événement prévu à cette date</p>
+                
+                <div class="otherwise"></div>
+                <template class="otherwise-tpl">
+                    <article>
+                        <h1>Le <span class="date"></span> à <span class="time"></span></h1>
+                        <p></p>
+                    </article>
+                </template>
+            </div>
+            
+            <footer>
+                <input type='button' value="Tout marquer comme lu">
+            </footer>
+        </div>
+        
+        <div class="route hidden" id="modifier_calendrier">
+            <header>
+                <h1></h1>
+                <nav>
+                    <input type='button' value="">
+                </nav>
+            </header>
+            
+            <form>
+                <label>
+                    Annuler le rendez-vous:
+                    <input type="checkbox">
+                </label>
+                <hr>
+                <fieldset>
+                    <legend>Date et heure</legend>
+                    
+                    <div class="multi-col">
+                        <div class="col-2 center">
+                            <label>
+                                Date:
+                                <br>
+                                <input type="date">
+                            </label>
+                        </div>
+                        <div class="col-2 center">
+                            <label>
+                                Heure:
+                                <br>
+                                <input type="time">
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Description du rendez-vous</legend>
+                    <textarea></textarea>
+                </fieldset>
+                <hr>
+                
+                <span>Envoi&hellip;</span>
+                <input type="submit">
+            </form>
+        </div>
+        
+    </aside>
+-->
+    
+    <script src="/main.js"></script>
+  </body>
+</html>

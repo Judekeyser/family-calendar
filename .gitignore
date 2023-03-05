@@ -1,4 +1,4 @@
-build/frontend/v2/node_modules
-build/frontend/v2/build
-build/frontend/v2/package-lock.json
+build/frontend/**/node_modules
+build/frontend/**/build
+build/frontend/**/package-lock.json
 __*

@@ -1,0 +1,74 @@
+function dateTimeToString(dateTime) {
+    let date = new Date(dateTime);
+    let month = date.getMonth() + 1;
+    let day = date.getDate();
+    let year = date.getFullYear();
+
+    return year + '-' + (
+            month < 10 ? '0' : ''
+        ) + month + '-' + (
+            day < 10 ? '0' : ''
+        ) + day;
+}
+function nextDateTime(dateTime) {
+    let currentDay = new Date(dateTime).getDay();
+    while(new Date(dateTime).getDay() === currentDay)
+        dateTime += 1000 * 60 * 60 * 24;
+    return dateTime;
+}
+function previousDateTime(dateTime) {
+    let currentDay = new Date(dateTime).getDay();
+    while(new Date(dateTime).getDay() === currentDay)
+        dateTime -= 1000 * 60 * 60 * 24;
+    return dateTime;
+}
+function mondayOfDateTime(dateTime) {
+    while(new Date(dateTime).getDay() !== 1)
+        dateTime -= 1000 * 60 * 60 * 24;
+    return dateTime;
+}
+function stringToDateTime(strDate) {
+    return Date.parse(strDate);
+}
+
+function dayOfDate(strDate) {
+    return strDate.substring(8, 10)
+}
+function monthOfDate(strDate) {
+    return strDate.substring(5, 7)
+}
+function yearOfDate(strDate) {
+    return strDate.substring(0, 4)
+}
+
+function frenchMonthOfDate(strDate) {
+    let french;
+    switch(monthOfDate(strDate)) {
+        case "01": { french = "Janvier" } break;
+        case "02": { french = "Février" } break;
+        case "03": { french = "Mars" } break;
+        case "04": { french = "Avril" } break;
+        case "05": { french = "Main" } break;
+        case "06": { french = "Juin" } break;
+        case "07": { french = "Juillet" } break;
+        case "08": { french = "Août" } break;
+        case "09": { french = "Septembre" } break;
+        case "10": { french = "Octobre" } break;
+        case "11": { french = "Novembre" } break;
+        case "12": { french = "Décembre" } break;
+    }
+    return french; 
+}
+
+
+export {
+    dateTimeToString,
+    nextDateTime,
+    previousDateTime,
+    mondayOfDateTime,
+    stringToDateTime,
+    dayOfDate,
+    monthOfDate,
+    yearOfDate,
+    frenchMonthOfDate
+}

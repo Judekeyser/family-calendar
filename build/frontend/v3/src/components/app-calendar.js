@@ -1,9 +1,8 @@
 import { router } from '../routing'
 import { backend } from '../backend'
 import { dateTimeToString, mondayOfDateTime, nextDateTime, previousDateTime, stringToDateTime } from '../date-utils'
-import { HTMLComponent, define } from './poly-elements'
 
-define("app-calendar", class extends HTMLComponent {
+customElements.define("app-calendar", class extends HTMLElement {
     __currentState = {
         startDate: null,
         nbrWeek: null

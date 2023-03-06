@@ -17,14 +17,12 @@ customElements.define("app-main", class extends HTMLElement {
     handleRoute({ route }) {
         var displayedElement;
         if(route.length === 0) {
-            if(window.localStorage.getItem('userName')) {
-                displayedElement = document.createElement("app-calendar")
-            } else {
-                displayedElement = document.createElement("app-identification")
-            }
+            displayedElement = document.createElement("app-calendar")
         } else {
             var [firstSegment] = route;
-            if(firstSegment === "authentication") {
+            if(firstSegment === "identification") {
+                displayedElement = document.createElement("app-identification")
+            } else if(firstSegment === "authentication") {
                 displayedElement = document.createElement("app-authentication")
             } else if (firstSegment === "appointments") {
                 if(route.length === 2) {

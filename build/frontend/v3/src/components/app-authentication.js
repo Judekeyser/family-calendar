@@ -1,8 +1,7 @@
 import { router } from '../routing'
 import { backend } from '../backend'
-import { HTMLComponent, define } from './poly-elements'
 
-define("app-authentication", class extends HTMLComponent {
+customElements.define("app-authentication", class extends HTMLElement {
     constructor() { super(); }
     
     connectedCallback() {

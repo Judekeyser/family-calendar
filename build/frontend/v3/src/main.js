@@ -1,5 +1,3 @@
-import { BehaviorSubject } from 'rxjs'
-
 import './components/app-close-button'
 import './components/app-appointments-create'
 import './components/app-appointments-edit'

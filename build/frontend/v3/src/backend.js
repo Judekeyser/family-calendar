@@ -141,6 +141,26 @@ Backend._EventEmitter__Backend = {
 }
 Backend.prototype =
 {
+    _Backend__getState: function() {
+        return {
+            view: this._Backend__view,
+            newEvents: [... new Set(
+                [...this._Backend__newEvents]
+                .map(({ strTime, strDate }) => (`${strDate} ${strTime}`))
+            )].map(expression => {
+                let index = expression.indexOf(" ");
+                return {
+                    strDate: expression.substring(0, index),
+                    strTime: expression.substring(index+1)
+                }
+            }),
+            markRead: this.markRead,
+            createEvent: this.createEvent,
+            editEvent: this.editEvent,
+            cancelEvent: this.cancelEvent
+        }
+    },
+    
     _Backend__deleteEvent: function([strDate, strTime]) {
         let view = this._Backend__view;
         
@@ -199,38 +219,30 @@ Backend.prototype =
     /** Exposed getters */
     
     get state() {
-        if(!this._Backend__lastUpdateTimestamp) {
-            if(!this._Backend__lastInError) {
-                this.update({}, () => undefined).then(noError => {
+        if(!this._Backend__lastInError) {
+            let now = Date.now();
+            if(!this._Backend__lastUpdateTimestamp || this._Backend__lastUpdateTimestamp < now - 30*1000) {
+                this.update({}).then(noError => {
                     if(noError) {
-                        this._Backend__lastUpdateTimestamp = Date.now()
+                        this._Backend__lastUpdateTimestamp = now
                     }
                 })
             }
         }
-        return {
-            view: this._Backend__view,
-            newEvents: [... new Set(
-                [...this._Backend__newEvents]
-                .map(({ strTime, strDate }) => (`${strDate} ${strTime}`))
-            )].map(expression => {
-                let index = expression.indexOf(" ");
-                return {
-                    strDate: expression.substring(0, index),
-                    strTime: expression.substring(index+1)
-                }
-            }),
-            markRead: this.markRead,
-            createEvent: this.createEvent,
-            editEvent: this.editEvent,
-            cancelEvent: this.cancelEvent
-        }
+        if(!this._Backend__state)
+            this._Backend__state = this._Backend__getState()
+        return this._Backend__state
     },
     
     get update() {
         return (async function({ password, newEvent }, onFailure) {
             try {
                 if(this._Backend__isBusy) return false;
+                
+                if(! window.localStorage.getItem('userName')) {
+                    router.goTo(["identification"])
+                }
+                
                 this._Backend__isBusy = true;
                 try {                
                     try {
@@ -272,7 +284,8 @@ Backend.prototype =
                     return true;
                 } finally {
                     this._Backend__isBusy = false;
-                    this._emitEvents(this.view)
+                    this._Backend__state = this._Backend__getState()
+                    this._emitEvents()
                 }
             } catch(error) {
                 console.error(error)

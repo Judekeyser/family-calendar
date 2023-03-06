@@ -88,7 +88,7 @@ try {
   if(false === ($_stmt = $_con -> prepare("
         select _nbr_send_event, _data
         from EVENT where _nbr_send_event > ?
-        order by _nbr_send_event limit 50 "))
+        order by _nbr_send_event limit 150 "))
   ) return terminate_in_error(500, 'Impossible de préparer la requête de sélection de rendez-vous');
   else try {
     if(  !$_stmt -> bind_param('s', $from_time)

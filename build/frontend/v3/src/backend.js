@@ -1,6 +1,6 @@
 import { EventEmitter } from './event-emitter'
 import { router } from './routing'
-import { History } from './__dev_history'
+import { History } from './_dev_history'
 import { dateTimeToString } from './date-utils'
 
 

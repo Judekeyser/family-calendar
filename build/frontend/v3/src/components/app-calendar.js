@@ -38,12 +38,22 @@ customElements.define("app-calendar", class extends HTMLElement {
             return false;
         }
         
-        if(! formElement.startDate.value) {
-            formElement.startDate.value = dateTimeToString(Date.now());
+        /* initial startDate */ {
+            let candidate = window.localStorage.getItem('preference-calendar-startDate');
+            if(!candidate) {
+                candidate = dateTimeToString(Date.now());
+            }
+            formElement.startDate.value = candidate;
+            this.handleStartDateChange(candidate);
         }
-        
-        this.handleNbrWeekChange(formElement.nbrWeeks.value);
-        this.handleStartDateChange(formElement.startDate.value);
+        /* initial nbrWeek */ {
+            let candidate = window.localStorage.getItem('preference-calendar-nbrWeek');
+            if(!candidate) {
+                candidate = formElement.nbrWeeks.value;
+            }
+            formElement.nbrWeeks.value = candidate;
+            this.handleNbrWeekChange(candidate);
+        }
         
         this.querySelector("*[data-id=all-unread]").onclick = () => router.goTo(["appointments", "unread"])
     }
@@ -53,8 +63,7 @@ customElements.define("app-calendar", class extends HTMLElement {
             let cursor = stringToDateTime(this.__currentState.startDate)
             for(let i = 0; i < 7; i++)
                 cursor = nextDateTime(cursor);
-            this.__currentState.startDate = dateTimeToString(cursor)
-            this.handleStateChange();
+            this.handleStartDateChange(dateTimeToString(cursor))
         }
     }
     
@@ -63,12 +72,12 @@ customElements.define("app-calendar", class extends HTMLElement {
             let cursor = stringToDateTime(this.__currentState.startDate)
             for(let i = 0; i < 7; i++)
                 cursor = previousDateTime(cursor);
-            this.__currentState.startDate = dateTimeToString(cursor)
-            this.handleStateChange();
+            this.handleStartDateChange(dateTimeToString(cursor))
         }
     }
     
     handleNbrWeekChange(nbrWeek) {
+        window.localStorage.setItem('preference-calendar-nbrWeek', nbrWeek)
         if(this.__currentState.nbrWeek !== nbrWeek) {
             this.__currentState.nbrWeek = nbrWeek
             this.handleStateChange();
@@ -76,6 +85,7 @@ customElements.define("app-calendar", class extends HTMLElement {
     }
     
     handleStartDateChange(startDate) {
+        window.localStorage.setItem('preference-calendar-startDate', startDate)
         if(this.__currentState.startDate !== startDate) {
             this.__currentState.startDate = startDate
             this.handleStateChange();

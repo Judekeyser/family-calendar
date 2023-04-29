@@ -28,23 +28,27 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
             var { description } = forDateTime
         }
         
+        console.log(strDate, strTime, description);
+        
         if(strDate && strTime && description) {
             if(formElement) {
                 formElement.appointmentdate.value = strDate;
-                formElement.appointmenttime.value = strTime;
+                this.onPatchStrTime(formElement, strTime);
                 formElement.appointmentdescription.value = description;
                 
                 formElement.cancelOnly.onchange = event => {
                     if(event.target.checked) {
                         formElement.appointmentdate.value = strDate;
-                        formElement.appointmenttime.value = strTime;
+                        this.onPatchStrTime(formElement, strTime);
                         formElement.appointmentdescription.value = description;
                         formElement.appointmentdate.disabled = true;
                         formElement.appointmenttime.disabled = true;
+                        formElement.appointmentrange.disabled = true;
                         formElement.appointmentdescription.disabled = true;
                     } else {
                         formElement.appointmentdate.disabled = false;
                         formElement.appointmenttime.disabled = false;
+                        formElement.appointmentrange.disabled = false;
                         formElement.appointmentdescription.disabled = false;
                     }
                 }
@@ -60,7 +64,7 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
                             toCancel: { strDate, strTime },
                             toCreate: {
                                 strDate: formElement.appointmentdate.value,
-                                strTime: formElement.appointmenttime.value,
+                                strTime: formElement.appointmentrange.value || formElement.appointmenttime.value,
                                 strDescription: formElement.appointmentdescription.value
                             }
                         }, editEvent)
@@ -68,6 +72,18 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
                     return false;
                 }
             }
+        }
+    }
+    
+    onPatchStrTime(formElement, strTime) {
+        if(strTime === 'fullday' || strTime === 'afternoon' || strTime === 'morning') {
+            formElement.appointmenttime.disabled = true;
+            formElement.appointmenttime.value = undefined;
+            formElement.appointmentrange.value = strTime;
+        } else {
+            formElement.appointmenttime.disabled = false;
+            formElement.appointmenttime.value = strTime;
+            formElement.appointmentrange.value = "";
         }
     }
     

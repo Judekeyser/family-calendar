@@ -1,6 +1,6 @@
 import { router } from '../routing'
 import { backend } from '../backend'
-import { frenchMonthOfDate, dayOfDate, yearOfDate } from '../date-utils'
+import { frenchMonthOfDate, dayOfDate, yearOfDate, strTimeSorting } from '../date-utils'
 import DateConnectedElement from './date-connected-element'
 
 
@@ -23,7 +23,6 @@ customElements.define("app-appointments-unread-list", class extends DateConnecte
         if(divElement) {
             divElement.innerHTML = ""
             
-            console.log(newEvents)
             if(newEvents.length === 0) {
                 this.repaintWhenNoElements(divElement)
             } else {
@@ -49,15 +48,7 @@ customElements.define("app-appointments-unread-list", class extends DateConnecte
                 return -1;
             } else if(x.strDate > y.strDate) {
                 return 1;
-            } else {
-                if(x.strTime < y.strTime) {
-                    return -1;
-                } else if (x.strTime > y.strTime) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
+            } else return strTimeSorting(x.strTime, y.strTime);
         } 
         newEvents.sort(sortFn)
         
@@ -72,6 +63,19 @@ customElements.define("app-appointments-unread-list", class extends DateConnecte
             return null;
         }
         
+        function formatStrTime(strTime) {
+            switch(strTime) {
+                case "fullday":
+                    return "toute la journée";
+                case "afternoon":
+                    return "toute l'après-midi";
+                case "morning":
+                    return "toute la matinée";
+                default:
+                    return "à " + strTime;
+            }
+        }
+        
         for(let { strDate, strTime } of newEvents) {
             let appointment = appointmentOf(strDate, strTime)
             if(!appointment) continue;
@@ -80,8 +84,8 @@ customElements.define("app-appointments-unread-list", class extends DateConnecte
             let reformated = {
                 "strDate-day": dayOfDate(strDate),
                 "strDate-month": frenchMonthOfDate(strDate),
-                "strDate-year": todayYear && todayDate < strDate ? yearOfDate(strDate) : "",
-                strTime,
+                "strDate-year": todayYear && todayDate < strDate ? (" " + yearOfDate(strDate)) : "",
+                strTime: formatStrTime(strTime),
                 strDescription: appointment.description
             }
             for(let slotElement of lastElement.querySelectorAll("slot")) {

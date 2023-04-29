@@ -15,16 +15,21 @@ customElements.define("app-appointments-create", class extends DateConnectedElem
     
     _repaint({ strDate }, { view, createEvent }) {
         let formElement = this.querySelector("form");
-        let warningElement = this.querySelector("*[data-id=warning]")
+        let warningElement = this.querySelector("*[data-id=warning]");
         
         if(formElement) {
+            formElement.appointmentrange.onchange = () => {
+                this.handleAppointmentRangeChange(formElement);
+            };
+            
+            this.handleAppointmentRangeChange(formElement);
             formElement.appointmentdate.value = strDate;
             
             formElement.onsubmit = event => {
                 event.preventDefault();
                 this.handleCreateAppointment({
                     strDate,
-                    strTime: formElement.appointmenttime.value,
+                    strTime: formElement.appointmentrange.value || formElement.appointmenttime.value,
                     strDescription: formElement.appointmentdescription.value
                 }, createEvent)
                 return false;
@@ -42,6 +47,11 @@ customElements.define("app-appointments-create", class extends DateConnectedElem
                 }
             }
         }
+    }
+    
+    handleAppointmentRangeChange(formElement) {
+        let appointmentRange = formElement.appointmentrange.value;
+        formElement.appointmenttime.disabled = !!appointmentRange;
     }
     
     handleCreateAppointment(newEvent, createEvent) {

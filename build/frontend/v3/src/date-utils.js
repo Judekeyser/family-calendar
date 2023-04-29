@@ -48,7 +48,7 @@ function frenchMonthOfDate(strDate) {
         case "02": { french = "Février" } break;
         case "03": { french = "Mars" } break;
         case "04": { french = "Avril" } break;
-        case "05": { french = "Main" } break;
+        case "05": { french = "Mai" } break;
         case "06": { french = "Juin" } break;
         case "07": { french = "Juillet" } break;
         case "08": { french = "Août" } break;
@@ -58,6 +58,17 @@ function frenchMonthOfDate(strDate) {
         case "12": { french = "Décembre" } break;
     }
     return french; 
+}
+
+function strTimeSorting(a, b) {
+    if(a == b) return 0;
+    if(a == "fullday") return -1;
+    if(b == "fullday") return 1;
+    if(a == "morning") return -1;
+    if(b == "morning") return 1;
+    if(a == "afternoon") return b < "12:00" ? 1: -1;
+    if(b == "afternoon") return a < "12:00" ? -1: 1;
+    return a < b ? -1 : 1;
 }
 
 
@@ -70,5 +81,6 @@ export {
     dayOfDate,
     monthOfDate,
     yearOfDate,
-    frenchMonthOfDate
+    frenchMonthOfDate,
+    strTimeSorting
 }

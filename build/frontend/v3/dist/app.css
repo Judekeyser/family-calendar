@@ -147,6 +147,7 @@ span.nonempty {
     font-weight: bold;
 }
 
+
 td:nth-child(6) {
   border-left: 1px solid #EAEAEA;
 }
@@ -167,7 +168,12 @@ td:hover {
 .in-month span.month {
   display: none;
 }
-
+.on-new {
+    display: none;
+}
+.has-new .on-new {
+    display: initial;
+}
 
 h1 {
     font-weight: bold;

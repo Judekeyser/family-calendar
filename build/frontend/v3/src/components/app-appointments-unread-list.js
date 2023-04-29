@@ -23,7 +23,6 @@ customElements.define("app-appointments-unread-list", class extends DateConnecte
         if(divElement) {
             divElement.innerHTML = ""
             
-            console.log(newEvents)
             if(newEvents.length === 0) {
                 this.repaintWhenNoElements(divElement)
             } else {

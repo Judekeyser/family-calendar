@@ -1,5 +1,7 @@
 import { EventEmitter } from './event-emitter'
 import { router } from './routing'
+import { History } from './__dev_history'
+import { dateTimeToString } from './date-utils'
 
 
 function eventV1Handle(
@@ -252,11 +254,11 @@ Backend.prototype =
                                 newEvent,
                                 from: this._Backend__userCursor
                             },
-                            {
+                            new History({
                                 deleteEvent: this._Backend__deleteEvent.bind(this),
                                 createEvent: this._Backend__createEvent.bind(this),
                                 patchCursor: this._Backend__patchCursor.bind(this)
-                            }
+                            })
                         );
                         this._Backend__lastInError = false;
                     } catch(errorCode) {
@@ -274,12 +276,18 @@ Backend.prototype =
                     this._Backend__userCursor = nextCursor || this._Backend__userCursor
                     
                     // We clean here the newEvents array, to filter it only after the batch process
+                    const todayDate = dateTimeToString(Date.now());
                     for(let elem of this._Backend__newEvents) {
                         let { strDate, strTime } = elem
-                        let view = this._Backend__view
-                        if(view.has(strDate) && view.get(strDate).has(strTime))
-                            continue;
-                        else this._Backend__newEvents.delete(elem)
+                        let view = this._Backend__view;
+                        
+                        maybeFilterOut: {
+                            let isInFuture = strDate >= todayDate;
+                            let belongsToTheView = view.has(strDate) && view.get(strDate).has(strTime);
+                            if(isInFuture && belongsToTheView)
+                                break maybeFilterOut;
+                            this._Backend__newEvents.delete(elem)
+                        }
                     }
                     return true;
                 } finally {

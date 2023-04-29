@@ -91,7 +91,7 @@
                 </thead>
                 <template>
                     <app-calendar-cell>
-                        <span><span class="content"></span><span class="month"></<span></span>
+                        <span><span class="on-new">*</span><span class="content"></span><span class="month"></<span></span>
                     </app-calendar-cell>
                 </template>
                 <tbody>
@@ -281,83 +281,6 @@
 <app-main>
     <aside></aside>
 </app-main>
-
-<!--
-    <aside>
-        
-        <div class="route hidden" id="unread-appointments">
-            <header>
-                <h1>Événements non lus</h1>
-                <nav>
-                    <input type='button' value="Fermer">
-                </nav>
-            </header>
-            
-            <div class="grid">
-                <p class="on-loading">Chargement du contenu&hellip;</p>
-                <p class="on-empty">Pas d'événement prévu à cette date</p>
-                
-                <div class="otherwise"></div>
-                <template class="otherwise-tpl">
-                    <article>
-                        <h1>Le <span class="date"></span> à <span class="time"></span></h1>
-                        <p></p>
-                    </article>
-                </template>
-            </div>
-            
-            <footer>
-                <input type='button' value="Tout marquer comme lu">
-            </footer>
-        </div>
-        
-        <div class="route hidden" id="modifier_calendrier">
-            <header>
-                <h1></h1>
-                <nav>
-                    <input type='button' value="">
-                </nav>
-            </header>
-            
-            <form>
-                <label>
-                    Annuler le rendez-vous:
-                    <input type="checkbox">
-                </label>
-                <hr>
-                <fieldset>
-                    <legend>Date et heure</legend>
-                    
-                    <div class="multi-col">
-                        <div class="col-2 center">
-                            <label>
-                                Date:
-                                <br>
-                                <input type="date">
-                            </label>
-                        </div>
-                        <div class="col-2 center">
-                            <label>
-                                Heure:
-                                <br>
-                                <input type="time">
-                            </label>
-                        </div>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Description du rendez-vous</legend>
-                    <textarea></textarea>
-                </fieldset>
-                <hr>
-                
-                <span>Envoi&hellip;</span>
-                <input type="submit">
-            </form>
-        </div>
-        
-    </aside>
--->
     
     <script src="/main.js"></script>
   </body>

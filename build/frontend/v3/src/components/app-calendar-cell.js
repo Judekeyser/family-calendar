@@ -39,15 +39,18 @@ customElements.define("app-calendar-cell", class extends DateConnectedElement {
             contentElement.textContent = dayOfDate(strDate)
             monthMarkerElement.textContent = monthOfDate(strDate)
             
-            contentElement.classList.remove("nonempty")
+            spanElement.classList.remove("has-new")
             for(let newEvent of newEvents) {
                 if(strDate === newEvent.strDate) {
-                    contentElement.classList.add("nonempty")
+                    spanElement.classList.add("has-new")
                     break;
                 }
             }
+            
             if(view.get(strDate)) {
-                contentElement.textContent += "*";
+                contentElement.classList.add("nonempty")
+            } else {
+                contentElement.classList.remove("nonempty")
             }
             
             if(strDate === todayDate) {

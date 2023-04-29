@@ -302,9 +302,9 @@ Backend.prototype =
     },
     
     get createEvent() {
-        return (async function({ strTime, strDate, strDescription }) {
+        return (async function({ strTime, strDate, strDescription, strTimeRange }) {
             let newEvent = {
-                strTime, strDate, strDescription,
+                strTime, strDate, strDescription, strTimeRange,
                 userInitiator: window.localStorage.getItem('userName'),
                 kind: "create",
                 version: 1

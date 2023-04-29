@@ -1,5 +1,6 @@
 import { router } from '../routing'
 import DateConnectedElement from './date-connected-element'
+import { strTimeSorting } from '../date-utils'
 
 
 customElements.define("app-appointments-list", class extends DateConnectedElement {
@@ -48,9 +49,19 @@ customElements.define("app-appointments-list", class extends DateConnectedElemen
         let template = this.querySelector("template[data-on=some-element]")
         
         let times = [...appointments.keys()]
-        times.sort()
+        times.sort(strTimeSorting)
         
         function reformat(strTime, { description, unread }) {
+            switch(strTime) {
+                case "fullday":
+                    strTime = "Toute la journée"; break;
+                case "afternoon":
+                    strTime = "L'après-midi"; break;
+                case "morning":
+                    strTime = "Au matin"; break;
+                default:
+                    strTime = "À " + strTime; break;
+            }
             return {
                 strTime,
                 strDescription: description,

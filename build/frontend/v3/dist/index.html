@@ -125,7 +125,7 @@
     
     <template data-on="some-element">
         <article>
-            <h1>À <slot name="strTime"></slot><slot name="isUnread"></slot></h1>
+            <h1><slot name="strTime"></slot><slot name="isUnread"></slot></h1>
             <p><slot name="strDescription"></slot></p>
         </article>
     </template>
@@ -157,10 +157,10 @@
     <template data-on="some-element">
         <article>
             <h1>Le
-            <slot name="strDate-day"></slot>
-            <slot name="strDate-month"></slot>
-            <slot name="strDate-year"></slot>
-            à <slot name="strTime"></slot></h1>
+            <slot name="strDate-day"></slot
+            > <slot name="strDate-month"></slot
+            ><slot name="strDate-year"></slot
+            >, <slot name="strTime"></slot></h1>
             <p><slot name="strDescription"></slot></p>
         </article>
     </template>
@@ -196,17 +196,17 @@
                     </label>
                 </div>
                 <div class="col-2 center">
-                    <!--
                     <label>
                         Période:
                         <br>
                         <select name="appointmentrange">
                             <option value="">Ponctuel</option>
+                            <option value="morning">Matinée</option>
                             <option value="fullday">Toute la journée</option>
+                            <option value="afternoon">Après-midi</option>
                         </select>
                     </label>
                     <hr>
-                    -->
                     <label>
                         Heure:
                         <br>
@@ -258,6 +258,17 @@
                     </label>
                 </div>
                 <div class="col-2 center">
+                    <label>
+                        Période:
+                        <br>
+                        <select name="appointmentrange">
+                            <option value="">Ponctuel</option>
+                            <option value="morning">Matinée</option>
+                            <option value="fullday">Toute la journée</option>
+                            <option value="afternoon">Après-midi</option>
+                        </select>
+                    </label>
+                    <hr>
                     <label>
                         Heure:
                         <br>

@@ -241,10 +241,7 @@ Backend.prototype =
             try {
                 if(this._Backend__isBusy) return false;
                 
-                if(! window.localStorage.getItem('userName')) {
-                    router.goTo(["identification"])
-                }
-                
+
                 this._Backend__isBusy = true;
                 try {                
                     try {
@@ -262,9 +259,14 @@ Backend.prototype =
                         );
                         this._Backend__lastInError = false;
                     } catch(errorCode) {
-                        if(errorCode === 401) {
+                        if(errorCode === 401 || errorCode === 403) {
                             this._Backend__lastInError = true;
-                            router.goTo(["authentication"])
+                            let canRedirect = router.goTo(["authentication"])
+                            console.log("CII", canRedirect)
+                            if(!canRedirect) {
+                                if(onFailure)
+                                    onFailure(errorCode)
+                            }
                         } else {
                             if(onFailure)
                                 onFailure(errorCode);

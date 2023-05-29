@@ -15,8 +15,6 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
     }
     
     _repaint({ strDate, strTime }, { editEvent, cancelEvent, view }) {
-        let formElement = this.querySelector("form");
-        
         {
             if(!strDate || !strTime) return;
             if(!view) return;
@@ -28,17 +26,35 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
             var { description } = forDateTime
         }
         
-        console.log(strDate, strTime, description);
-        
         if(strDate && strTime && description) {
+            let formElement = this.querySelector("form");
             if(formElement) {
                 formElement.appointmentdate.value = strDate;
-                this.onPatchStrTime(formElement, strTime);
+                if(strTime === 'fullday' || strTime === 'afternoon' || strTime === 'morning') {
+                    formElement.appointmenttime.disabled = true;
+                    formElement.appointmenttime.value = "";
+                    formElement.appointmentrange.value = strTime;
+                } else {
+                    formElement.appointmenttime.value = strTime;
+                    formElement.appointmentrange.value = "";
+                    formElement.appointmenttime.disabled = false;
+                }
                 formElement.appointmentdescription.value = description;
+                
+                formElement.appointmentrange.onchange = event => {
+                    let value = formElement.appointmentrange.value;
+                    if(value === 'fullday' || value === 'afternoon' || value === 'morning') {
+                        formElement.appointmenttime.disabled = true;
+                        formElement.appointmenttime.value = "";
+                    } else {
+                        formElement.appointmenttime.disabled = false;
+                    }
+                }
                 
                 formElement.cancelOnly.onchange = event => {
                     if(event.target.checked) {
                         formElement.appointmentdate.value = strDate;
+                        
                         this.onPatchStrTime(formElement, strTime);
                         formElement.appointmentdescription.value = description;
                         formElement.appointmentdate.disabled = true;

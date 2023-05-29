@@ -14,6 +14,8 @@ Example:
 function Router() {
     EventEmitter.call(this, Router._EventEmitter__Router);
     
+    this._Router__state = undefined;
+    
     window.addEventListener("popstate", ev => void this._Router__handleHashChange(ev.state))
     setTimeout(() => void this._Router__handleHashChange())
 }
@@ -33,6 +35,7 @@ Router.prototype =
                 }
             } catch(e) { state = [] }
         }
+        this._Router__state = state
         return this._emitEvents({ route: state })
     },
     
@@ -40,9 +43,26 @@ Router.prototype =
     
     get goTo() {
         return (function(state) {
-            let hash = encodeURIComponent((state.join(";")))
-            window.history.pushState(state, '', '#'+hash)
-            this._Router__handleHashChange(state)
+            let currentState = this._Router__state;
+            redirect: {
+                guard: {
+                    if(currentState) {
+                        if(currentState.length === state.length) {
+                            for(let i = 0; i < state.length; i++) {
+                                if(currentState[i] !== state[i])
+                                    break guard;
+                            }
+                            break redirect;
+                        }
+                    }
+                }
+                
+                let hash = encodeURIComponent((state.join(";")))
+                window.history.pushState(state, '', '#'+hash)
+                this._Router__handleHashChange(state);
+                return true;
+            }
+            return false;
         }).bind(this)
     },
     get back() {

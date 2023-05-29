@@ -6,8 +6,12 @@ customElements.define("app-main", class extends HTMLElement {
     constructor() { super(); }
     
     connectedCallback() {
-        window.addEventListener("app-route", this.__listener)
-        router.resend();
+        window.addEventListener("app-route", this.__listener);
+        if(! window.localStorage.getItem('userName')) {
+            router.goTo(["identification"])
+        } else {
+            router.resend();
+        }
     }
     
     disconnectedCallback() {

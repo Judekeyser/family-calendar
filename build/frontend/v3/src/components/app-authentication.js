@@ -26,19 +26,29 @@ customElements.define("app-authentication", class extends HTMLElement {
                 var proceeds = await backend.update({
                     password: passwordCandidate
                 }, errorCode => {
-                    onMessageField.textContent = "Generic error message"
+                    if(errorCode === 401) {
+                        onMessageField.textContent = "Mot de passe incorrect"
+                    } else if(errorCode === 403) {
+                        onMessageField.textContent = "La page est périmée. Il faut la recharger"
+                    } else {
+                        onMessageField.textContent = "Je ne sais pas ce qu'il se passe, mais ce n'est pas bon"
+                        console.error(error);
+                    }
                     formElement.passwordField.focus()
                     formElement.passwordField.select()
                 });
-                
-                if(proceeds) {
-                    router.back();
-                }
             } catch(error) {
                 console.error(error);
                 var proceeds = false;
             } finally {
-                formElement.disabled = false
+                submitButton.disabled = false
+            }
+                
+            if(proceeds) {
+                console.log("MOVING")
+                router.goTo([])
+            } else {
+                console.log("STOPPED")
             }
         })()
     }

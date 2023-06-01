@@ -218,6 +218,12 @@ Backend.prototype =
         }
     },
     
+    _Backend__checkIfAppointmentBelongsToView: function({ strTime, strDate }) {
+        let view = this._Backend__view;
+        let belongsToTheView = view.has(strDate) && view.get(strDate).has(strTime);
+        return belongsToTheView;
+    },
+    
     /** Exposed getters */
     
     get state() {
@@ -262,7 +268,6 @@ Backend.prototype =
                         if(errorCode === 401 || errorCode === 403) {
                             this._Backend__lastInError = true;
                             let canRedirect = router.goTo(["authentication"])
-                            console.log("CII", canRedirect)
                             if(!canRedirect) {
                                 if(onFailure)
                                     onFailure(errorCode)
@@ -281,13 +286,17 @@ Backend.prototype =
                     const todayDate = dateTimeToString(Date.now());
                     for(let elem of this._Backend__newEvents) {
                         let { strDate, strTime } = elem
-                        let view = this._Backend__view;
                         
                         maybeFilterOut: {
                             let isInFuture = strDate >= todayDate;
-                            let belongsToTheView = view.has(strDate) && view.get(strDate).has(strTime);
-                            if(isInFuture && belongsToTheView)
-                                break maybeFilterOut;
+                            if(isInFuture) {
+                                let belongsToTheView = this._Backend__checkIfAppointmentBelongsToView({
+                                    strDate, strTime
+                                });
+                                if (belongsToTheView) {
+                                    break maybeFilterOut;
+                                }
+                            }
                             this._Backend__newEvents.delete(elem)
                         }
                     }

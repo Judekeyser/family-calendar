@@ -7,19 +7,27 @@ function terminate_in_error($error_code, $error_message) {
   return false;
 }
 
-# If request is an initialization request, crafts a JS script
+# If request is an initialization request, crafts a JS script. We are guaranteed to have a session containing the symbol
 if(isset($_GET['init'])) {
-  $_csrf_token = base64_encode(random_bytes(32));
+  if(!session_start())
+    return terminate_in_error(500, 'Impossible de démarrer une session sécurisée');
+  $_csrf_token_1 = base64_encode(random_bytes(32));
+  $_csrf_token_2 = base64_encode(random_bytes(32));
   header('Content-Type: text/javascript');
-  setcookie(CSRF_COOKIE_NAME, $_csrf_token, time()+CSRF_VALIDITY_DELAY, '/', '', __SECURE, true);
-  echo 'window["__csrfToken"] = "' . $_csrf_token . '";';
+  setcookie(CSRF_COOKIE_NAME, $_csrf_token_1, time()+CSRF_VALIDITY_DELAY, '/', '', __SECURE, true);
+  $_SESSION[CSRF_SESSION_NAME] = $_csrf_token_1 . $_csrf_token_2;
+  echo 'window["__csrfToken"] = "' . $_csrf_token_2 . '";'; // comes back in CSRF_HEADER_NAME
   return;
+} else {
+  if(!session_start())
+    return terminate_in_error(500, 'Impossible de démarrer une session sécurisée');
 }
 
 # Authentify request: CSRF symbol must be ok
 if(  !isset($_SERVER[CSRF_HEADER_NAME])
   || !isset($_COOKIE[CSRF_COOKIE_NAME])
-  || !hash_equals($_SERVER[CSRF_HEADER_NAME], $_COOKIE[CSRF_COOKIE_NAME])
+  || !isset($_SESSION[CSRF_SESSION_NAME])
+  || !hash_equals($_SESSION[CSRF_SESSION_NAME], $_COOKIE[CSRF_COOKIE_NAME].$_SERVER[CSRF_HEADER_NAME])
 ) return terminate_in_error(403, 'Requête non certifiée');
 
 $now = time() - mktime(
@@ -27,26 +35,45 @@ $now = time() - mktime(
 );
 
 # Authentify user
+function erase_auth_cookie() {
+  session_regenerate_id(true);
+  setcookie(TOKEN_COOKIE_NAME, '', time()-42000, '/', '', __SECURE, true);
+  return true;
+}
 if(isset($_SERVER[AUTH_HEADER])) {
-  if(!password_verify($_SERVER[AUTH_HEADER], GLOBAL_PASSWORD))
+  if($now - $_SESSION['last_trial_time'] < $_SESSION['password_trials'] * 2) {
+    return terminate_in_error(429, 'Trop de requête, veuillez réessayer plus tard.');
+  } else $_SESSION['last_trial_time'] = $now;
+  if(password_verify($_SERVER[AUTH_HEADER], GLOBAL_PASSWORD)) {
+    $_SESSION['password_trials'] = 0;
+  } else {
+    $_SESSION['password_trials'] += 1;
+    header(AUTH_DELAY_HEADER.': '.($_SESSION['password_trials'] * 3));
     return terminate_in_error(401, 'Mot de passe non correct');
+  }
 } else {
   if(!isset($_COOKIE[TOKEN_COOKIE_NAME]))
-    return terminate_in_error(401, 'Token d\'accès non fourni, utilisateur non authentifié');
+    return erase_auth_cookie()
+           && terminate_in_error(401, 'Token d\'accès non fourni, utilisateur non authentifié');
   if(substr_count($_COOKIE[TOKEN_COOKIE_NAME], '.') !== 2)
-    return terminate_in_error(403, 'Le token d\'accès est corrompu: trop de segments');
+    return erase_auth_cookie()
+           && terminate_in_error(403, 'Le token d\'accès est corrompu: trop de segments');
 
   [$_timestamp, $_rd, $_hash] = explode('.', $_COOKIE[TOKEN_COOKIE_NAME], 3);
   if(!is_numeric($_timestamp))
-    return terminate_in_error(403, 'Le token d\'accès est corrompu: timestamp n\'est pas numérique');
+    return erase_auth_cookie()
+           && terminate_in_error(403, 'Le token d\'accès est corrompu: timestamp n\'est pas numérique');
   if($_timestamp + TOKEN_LONG_VALIDITY_DELAY < $now)
-    return terminate_in_error(401, 'Le token d\'accès est expiré');
+    return erase_auth_cookie()
+           && terminate_in_error(401, 'Le token d\'accès est expiré');
   if(!hash_equals(base64_encode(hash_hmac('sha256', "$_timestamp.$_rd", TOKEN_INTERNAL_HASH_SALT, true)), $_hash))
-    return terminate_in_error(401, 'Le token d\'accès est corrompu: signature invalide');
+    return erase_auth_cookie()
+           && terminate_in_error(401, 'Le token d\'accès est corrompu: signature invalide');
    
   if($_timestamp + TOKEN_SHORT_VALIDITY_DELAY >= $now)
     $access_token = $_COOKIE[TOKEN_COOKIE_NAME];
-} if(!isset($access_token)) {
+}
+if(!isset($access_token)) {
   $_rd = base64_encode(random_bytes(32));
   $_hash = base64_encode(hash_hmac('sha256', "$now.$_rd", TOKEN_INTERNAL_HASH_SALT, true));
   $access_token = "$now.$_rd.$_hash";

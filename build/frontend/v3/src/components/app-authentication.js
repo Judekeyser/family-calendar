@@ -25,14 +25,12 @@ customElements.define("app-authentication", class extends HTMLElement {
                 submitButton.disabled = true
                 var proceeds = await backend.update({
                     password: passwordCandidate
-                }, errorCode => {
-                    if(errorCode === 401) {
-                        onMessageField.textContent = "Mot de passe incorrect"
-                    } else if(errorCode === 403) {
-                        onMessageField.textContent = "La page est périmée. Il faut la recharger"
+                }, ({ errorCode, errorMessage }) => {
+                    if(400 <= errorCode && errorCode < 500) {
+                        onMessageField.textContent = errorMessage
                     } else {
-                        onMessageField.textContent = "Je ne sais pas ce qu'il se passe, mais ce n'est pas bon"
-                        console.error(error);
+                        onMessageField.textContent = "Erreur interne (c'est pas bon)"
+                        console.error(errorCode, errorMessage);
                     }
                     formElement.passwordField.focus()
                     formElement.passwordField.select()
@@ -41,14 +39,17 @@ customElements.define("app-authentication", class extends HTMLElement {
                 console.error(error);
                 var proceeds = false;
             } finally {
+                if(proceeds) {
+                    router.goTo([])
+                } else {
+                    let authenticationDelay = backend.state.authenticationDelay;
+                    while(authenticationDelay) {
+                        submitButton.value = authenticationDelay + 's...';
+                        authenticationDelay -= 1
+                        await new Promise(r => setTimeout(r, 1000));
+                    } submitButton.value = "Ok"
+                }
                 submitButton.disabled = false
-            }
-                
-            if(proceeds) {
-                console.log("MOVING")
-                router.goTo([])
-            } else {
-                console.log("STOPPED")
             }
         })()
     }

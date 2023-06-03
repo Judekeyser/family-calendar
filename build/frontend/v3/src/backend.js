@@ -76,7 +76,11 @@ async function fetchRoutine({ from, password, newEvent }) {
     
     let response = await fetch(url, { method, headers, body });
     if(response.status !== 200) {
-        throw response.status
+        throw {
+            errorCode: response.status,
+            authenticationDelay: response.headers.get("X-Authentication-Delay"),
+            errorMessage: await response.json()
+        }
     } else return response;
 }
 
@@ -134,6 +138,7 @@ function Backend()
     this._Backend__newEvents = new Set()
     this._Backend__userCursor = 0
     this._Backend__isBusy = false
+    this._Backend__authenticationDelay = 0
     
     this._Backend__lastUpdateTimestamp = 0
     this._Backend__lastInError = false;
@@ -156,6 +161,7 @@ Backend.prototype =
                     strTime: expression.substring(index+1)
                 }
             }),
+            authenticationDelay: this._Backend__authenticationDelay,
             markRead: this.markRead,
             createEvent: this.createEvent,
             editEvent: this.editEvent,
@@ -247,7 +253,6 @@ Backend.prototype =
             try {
                 if(this._Backend__isBusy) return false;
                 
-
                 this._Backend__isBusy = true;
                 try {                
                     try {
@@ -264,17 +269,19 @@ Backend.prototype =
                             })
                         );
                         this._Backend__lastInError = false;
-                    } catch(errorCode) {
+                    } catch(error) {
+                        let { errorCode, errorMessage, authenticationDelay } = error;
+                        this._Backend__authenticationDelay = !authenticationDelay ? 0 : parseInt(authenticationDelay);
                         if(errorCode === 401 || errorCode === 403) {
                             this._Backend__lastInError = true;
                             let canRedirect = router.goTo(["authentication"])
                             if(!canRedirect) {
                                 if(onFailure)
-                                    onFailure(errorCode)
+                                    onFailure(error)
                             }
                         } else {
                             if(onFailure)
-                                onFailure(errorCode);
+                                onFailure(error);
                         }
                         return false;
                     }

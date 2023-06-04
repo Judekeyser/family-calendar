@@ -1,7 +1,7 @@
 <?php
 
 if(session_status() == PHP_SESSION_DISABLED)
-    return terminate_in_error(500, "Erreur de configuration: impossible de générer une session");
+    return terminate_in_error(500, "Erreur de configuration: sessions désactivées");
 
 define('DATABASE_HOST', 'localhost');
 define('DATABASE_USER', 'root');

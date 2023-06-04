@@ -8,6 +8,12 @@ function terminate_in_error($error_code, $error_message) {
 }
 
 # If request is an initialization request, crafts a JS script. We are guaranteed to have a session containing the symbol
+if(!session_set_cookie_params(
+    TOKEN_LONG_VALIDITY_DELAY,
+    '/', null,
+    __SECURE, true
+)) return terminate_in_error(500, 'Impossible de guarantir une session securisée');
+
 if(isset($_GET['init'])) {
   if(!session_start())
     return terminate_in_error(500, 'Impossible de démarrer une session sécurisée');
@@ -79,6 +85,7 @@ if(!isset($access_token)) {
   $_rd = base64_encode(random_bytes(32));
   $_hash = base64_encode(hash_hmac('sha256', "$now.$_rd", TOKEN_INTERNAL_HASH_SALT, true));
   $access_token = "$now.$_rd.$_hash";
+  session_regenerate_id(true);
 }
 setcookie(TOKEN_COOKIE_NAME, $access_token, time()+TOKEN_LONG_VALIDITY_DELAY, '/', '', __SECURE, true);
 

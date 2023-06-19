@@ -8,4 +8,3 @@ import './components/app-calendar'
 import './components/app-calendar-cell'
 import './components/app-identification'
 import './components/app-main'
-

@@ -2,6 +2,7 @@ import { EventEmitter } from './event-emitter'
 import { router } from './routing'
 import { History } from './_dev_history'
 import { dateTimeToString } from './date-utils'
+import { SearchEngine } from './modules/searchengine'
 
 
 function eventV1Handle(
@@ -142,6 +143,8 @@ function Backend()
     
     this._Backend__lastUpdateTimestamp = 0
     this._Backend__lastInError = false;
+    
+    this._Backend__companionSearchEngine = new SearchEngine();
 }
 Backend._EventEmitter__Backend = {
     channel: "app-calendar"
@@ -181,6 +184,8 @@ Backend.prototype =
                 view.delete(strDate)
             }
         }
+        
+        this._Backend__companionSearchEngine.cancelAppointment({ strDate, strTime })
     },
     
     _Backend__createEvent: function([strDate, strTime], {description, time}) {
@@ -201,6 +206,8 @@ Backend.prototype =
         if(entry.unread) {
             newEvents.add({ time, strDate, strTime })
         }
+        
+        this._Backend__companionSearchEngine.acceptAppointment({ strDate, strTime, strDescription: description })
     },
     
     _Backend__patchCursor: function(cursor) {
@@ -385,7 +392,6 @@ Backend.prototype =
     }
 }
 Object.setPrototypeOf(Backend.prototype, EventEmitter.prototype)
-
 
 const backend = new Backend();
 

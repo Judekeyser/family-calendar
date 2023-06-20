@@ -210,7 +210,7 @@ Backend.prototype =
             cursor = Math.max(this._Backend__userCursor, cursor)
             
             for(let elem of newEvents) {
-                if(elem.time < cursor) {
+                if(elem.time <= cursor) {
                     let { strDate, strTime } = elem
                     if(view.has(strDate)) {
                         let dateView = view.get(strDate)

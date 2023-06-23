@@ -60,6 +60,24 @@ function frenchMonthOfDate(strDate) {
     return french; 
 }
 
+function frenchDayOfDate(strDate) {
+    let french;
+    let day = dayOfDate(strDate);
+    switch(day) {
+        case "01": { french = "1er" } break;
+        case "02": { french = "2" } break;
+        case "03": { french = "3" } break;
+        case "04": { french = "4" } break;
+        case "05": { french = "5" } break;
+        case "06": { french = "6" } break;
+        case "07": { french = "7" } break;
+        case "08": { french = "8" } break;
+        case "09": { french = "9" } break;
+        default: { french = day } break;
+    }
+    return french; 
+}
+
 function strTimeSorting(a, b) {
     if(a == b) return 0;
     if(a == "fullday") return -1;
@@ -82,5 +100,6 @@ export {
     monthOfDate,
     yearOfDate,
     frenchMonthOfDate,
+    frenchDayOfDate,
     strTimeSorting
 }

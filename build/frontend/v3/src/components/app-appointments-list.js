@@ -1,6 +1,6 @@
 import { router } from '../routing'
 import DateConnectedElement from './date-connected-element'
-import { strTimeSorting } from '../date-utils'
+import { strTimeSorting, frenchMonthOfDate, frenchDayOfDate } from '../date-utils'
 
 
 customElements.define("app-appointments-list", class extends DateConnectedElement {
@@ -15,6 +15,13 @@ customElements.define("app-appointments-list", class extends DateConnectedElemen
     }
     
     _repaint({ strDate }, { view, newEvents }) {
+        {
+            let slotElement = this.querySelector("slot[name=strDate]");
+            if(slotElement) {
+                slotElement.textContent = this.__formatDate(strDate)
+            }
+        }
+        
         let newAppointmentButton = this.querySelector("footer input[type=button]");
         if(newAppointmentButton) {
             if(strDate) {
@@ -38,6 +45,13 @@ customElements.define("app-appointments-list", class extends DateConnectedElemen
                 this.repaintWhenElements(divElement, strDate, appointments);
             }
         }
+    }
+    
+    __formatDate(strDate) {
+        let formattedDay = frenchDayOfDate(strDate)
+        let formattedMonth = frenchMonthOfDate(strDate);
+        
+        return `${formattedDay} ${formattedMonth}`
     }
     
     repaintWhenNoElements(container) {

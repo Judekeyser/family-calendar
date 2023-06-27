@@ -203,24 +203,32 @@ Backend.prototype =
         }
     },
     
+    _Backend__markEventsAsRead: function(isReadPredicate) {
+        let newEvents = this._Backend__newEvents;
+        let view = this._Backend__view;
+        for(let elem of newEvents) {
+            if(isReadPredicate(elem)) {
+                let { strDate, strTime } = elem
+                let forDate = view.get(strDate)
+                let entry = forDate ? forDate.get(strTime) : undefined;
+                
+                if(entry) {
+                    entry.unread = false;
+                }
+                newEvents.delete(elem)
+            }
+        }
+    },
+    
     _Backend__patchCursor: function(cursor) {
         if(!isNaN(cursor)) {
-            let newEvents = this._Backend__newEvents;
+            //let newEvents = this._Backend__newEvents;
             let view = this._Backend__view;
             cursor = Math.max(this._Backend__userCursor, cursor)
             
-            for(let elem of newEvents) {
-                if(elem.time <= cursor) {
-                    let { strDate, strTime } = elem
-                    if(view.has(strDate)) {
-                        let dateView = view.get(strDate)
-                        if(dateView.has(strTime)) {
-                            dateView.get(strTime).unread = false
-                        }
-                    }
-                    newEvents.delete(elem)
-                }
-            }
+            this._Backend__markEventsAsRead(
+                elem => elem.time <= cursor
+            )
         }
     },
     
@@ -291,22 +299,9 @@ Backend.prototype =
                     
                     // We clean here the newEvents array, to filter it only after the batch process
                     const todayDate = dateTimeToString(Date.now());
-                    for(let elem of this._Backend__newEvents) {
-                        let { strDate, strTime } = elem
-                        
-                        maybeFilterOut: {
-                            let isInFuture = strDate >= todayDate;
-                            if(isInFuture) {
-                                let belongsToTheView = this._Backend__checkIfAppointmentBelongsToView({
-                                    strDate, strTime
-                                });
-                                if (belongsToTheView) {
-                                    break maybeFilterOut;
-                                }
-                            }
-                            this._Backend__newEvents.delete(elem)
-                        }
-                    }
+                    this._Backend__markEventsAsRead(
+                        elem => elem.strDate < todayDate
+                    )                    
                     return true;
                 } finally {
                     this._Backend__isBusy = false;

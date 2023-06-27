@@ -14,44 +14,52 @@ customElements.define("app-appointments-create", class extends DateConnectedElem
     }
     
     _repaint({ strDate }, { view, createEvent }) {
+        let dayView = view.get(strDate)
         let formElement = this.querySelector("form");
-        let warningElement = this.querySelector("*[data-id=warning]");
         
         if(formElement) {
-            formElement.appointmentrange.onchange = () => {
-                this.handleAppointmentRangeChange(formElement);
-            };
-            
-            this.handleAppointmentRangeChange(formElement);
             formElement.appointmentdate.value = strDate;
+            
+            const sentinelle = ({ strDate, strTime }) => {
+                var forDate = view.get(strDate)
+                return forDate && forDate.has(strTime)
+            }
+            formElement.appointmentrange.onchange = () => this.handleFormChange(formElement, sentinelle);
+            formElement.appointmenttime.onchange = () => this.handleFormChange(formElement, sentinelle);
+            formElement.appointmentdate.onchange = () => this.handleFormChange(formElement, sentinelle);
+            
+            this.handleFormChange(formElement, sentinelle);
             
             formElement.onsubmit = event => {
                 event.preventDefault();
                 this.handleCreateAppointment({
-                    strDate,
+                    strDate: formElement.appointmentdate.value,
                     strTime: formElement.appointmentrange.value || formElement.appointmenttime.value,
                     strDescription: formElement.appointmentdescription.value
                 }, createEvent)
                 return false;
             }
-            
-            warningElement.classList.remove("appointment-conflict")
-            let dayView = view.get(strDate)
-            if(dayView) {
-                formElement.appointmenttime.onchange = event => {
-                    if(dayView.has(event.target.value)) {
-                        warningElement.classList.add("appointment-conflict")
-                    } else {
-                        warningElement.classList.remove("appointment-conflict")
-                    }
-                }
-            }
         }
     }
     
-    handleAppointmentRangeChange(formElement) {
+    handleFormChange(formElement, sentinelle) {
         let appointmentRange = formElement.appointmentrange.value;
         formElement.appointmenttime.disabled = !!appointmentRange;
+        
+        let warningElement = this.querySelector("*[data-id=warning]");
+        warningElement.classList.remove("appointment-conflict")
+        var strTime = formElement.appointmentrange.value;
+        switch(strTime) {
+            case "fullday":
+            case "afternoon":
+            case "morning":
+                break;
+            default:
+                strTime = formElement.appointmenttime.value;
+        }
+        if(sentinelle({ strTime, strDate: formElement.appointmentdate.value })) {
+            warningElement.classList.add("appointment-conflict")
+        }
     }
     
     handleCreateAppointment(newEvent, createEvent) {

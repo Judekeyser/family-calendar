@@ -28,45 +28,33 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
         
         if(strDate && strTime && description) {
             let formElement = this.querySelector("form");
-            if(formElement) {
-                formElement.appointmentdate.value = strDate;
-                if(strTime === 'fullday' || strTime === 'afternoon' || strTime === 'morning') {
-                    formElement.appointmenttime.disabled = true;
-                    formElement.appointmenttime.value = "";
-                    formElement.appointmentrange.value = strTime;
-                } else {
-                    formElement.appointmenttime.value = strTime;
-                    formElement.appointmentrange.value = "";
-                    formElement.appointmenttime.disabled = false;
-                }
-                formElement.appointmentdescription.value = description;
+            
+            const sentinelle = _ => {
+                const initialDate = strDate;
+                const initialTime = strTime;
                 
-                formElement.appointmentrange.onchange = event => {
-                    let value = formElement.appointmentrange.value;
-                    if(value === 'fullday' || value === 'afternoon' || value === 'morning') {
-                        formElement.appointmenttime.disabled = true;
-                        formElement.appointmenttime.value = "";
-                    } else {
-                        formElement.appointmenttime.disabled = false;
-                    }
+                let candidateDate = _.strDate;
+                let candidateTime = _.strTime;
+                
+                if(initialDate === candidateDate && initialTime === candidateTime) {
+                    return false; // No warning
+                } else {
+                    let forDate = view.get(candidateDate)
+                    return forDate && forDate.has(strTime)
                 }
+            }
+            
+            if(formElement) {
+                this.setValues(formElement, {strDate, strTime, description })
+                this.handleFormChange(formElement, sentinelle);
+               
+                formElement.appointmentrange.onchange = () => this.handleFormChange(formElement, sentinelle);
+                formElement.appointmenttime.onchange = () => this.handleFormChange(formElement, sentinelle);
+                formElement.appointmentdate.onchange = () => this.handleFormChange(formElement, sentinelle);
                 
                 formElement.cancelOnly.onchange = event => {
-                    if(event.target.checked) {
-                        formElement.appointmentdate.value = strDate;
-                        
-                        this.onPatchStrTime(formElement, strTime);
-                        formElement.appointmentdescription.value = description;
-                        formElement.appointmentdate.disabled = true;
-                        formElement.appointmenttime.disabled = true;
-                        formElement.appointmentrange.disabled = true;
-                        formElement.appointmentdescription.disabled = true;
-                    } else {
-                        formElement.appointmentdate.disabled = false;
-                        formElement.appointmenttime.disabled = false;
-                        formElement.appointmentrange.disabled = false;
-                        formElement.appointmentdescription.disabled = false;
-                    }
+                    this.setValues(formElement, { description, strTime, strDate });
+                    this.handleFormChange(formElement, sentinelle)
                 }
                 
                 formElement.onsubmit = event => {
@@ -91,15 +79,40 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
         }
     }
     
-    onPatchStrTime(formElement, strTime) {
+    setValues(formElement, { description, strDate, strTime }) {
+        formElement.appointmentdate.value = strDate;
+        formElement.appointmentdescription.value = description;
+        
         if(strTime === 'fullday' || strTime === 'afternoon' || strTime === 'morning') {
-            formElement.appointmenttime.disabled = true;
-            formElement.appointmenttime.value = undefined;
+            formElement.appointmenttime.value = "";
             formElement.appointmentrange.value = strTime;
         } else {
-            formElement.appointmenttime.disabled = false;
             formElement.appointmenttime.value = strTime;
             formElement.appointmentrange.value = "";
+        }
+    }
+    
+    handleFormChange(formElement, sentinelle) {
+        let strTime = formElement.appointmentrange.value;
+        switch(strTime) {
+            case "fullday":
+            case "afternoon":
+            case "morning":
+                break;
+            default:
+                strTime = formElement.appointmenttime.value;
+        }
+        
+        var freeze = formElement.cancelOnly.checked;
+        formElement.appointmentdate.disabled = freeze;
+        formElement.appointmenttime.disabled = freeze || !!strTime;
+        formElement.appointmentrange.disabled = freeze;
+        formElement.appointmentdescription.disabled = freeze;
+        
+        let warningElement = this.querySelector("*[data-id=warning]");
+        warningElement.classList.remove("appointment-conflict")
+        if(sentinelle({ strTime, strDate: formElement.appointmentdate.value })) {
+            warningElement.classList.add("appointment-conflict")
         }
     }
     

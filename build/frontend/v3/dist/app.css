@@ -172,6 +172,10 @@ td:hover {
     display: initial;
 }
 
+footer {
+    margin-top: 1.5em;
+}
+
 h1 {
     font-weight: bold;
     font-size: 1.5em;
@@ -194,8 +198,11 @@ aside .grid {
     position: relative;
 }
 
-article {
+section {
     margin-bottom: 1.5em;
+}
+
+article {
     padding: 8px;
 }
 article, article * {

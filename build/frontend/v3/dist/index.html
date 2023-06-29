@@ -108,33 +108,35 @@
 
 
 <template id="app-appointments-list">
-    <header>
-        <h1>Détail du <slot name="strDate"></slot></h1>
-        <nav>
-            <app-close-button>
-                <input type='button' value="Fermer">
-            </app-close-button>
-        </nav>
-    </header>
-    
-    <template data-on="no-elements">
-        <article>
-            <p>Aucun élément prévu ce jour</p>
-        </article>
-    </template>
-    
-    <template data-on="some-element">
-        <article>
-            <h1><slot name="strTime"></slot><slot name="isUnread"></slot></h1>
-            <p><slot name="strDescription"></slot></p>
-        </article>
-    </template>
-    
-    <div class="grid"></div>
-    
-    <footer>
-        <input type='button' value="Nouveau">
-    </footer>
+    <section>
+        <header>
+            <h1>Détail du <slot name="strDate"></slot></h1>
+            <nav>
+                <app-close-button>
+                    <input type='button' value="Fermer">
+                </app-close-button>
+            </nav>
+        </header>
+        
+        <template data-on="no-elements">
+            <article>
+                <p>Aucun élément prévu ce jour</p>
+            </article>
+        </template>
+        
+        <template data-on="some-element">
+            <article>
+                <h1><slot name="strTime"></slot><slot name="isUnread"></slot></h1>
+                <p><slot name="strDescription"></slot></p>
+            </article>
+        </template>
+        
+        <div class="grid"></div>
+        
+        <footer>
+            <input type='button' value="Nouveau">
+        </footer>
+    </section>
 </template>
 
 

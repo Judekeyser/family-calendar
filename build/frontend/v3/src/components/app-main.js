@@ -32,7 +32,7 @@ customElements.define("app-main", class extends HTMLElement {
                 if(route.length === 2) {
                     let [_, secondSegment] = route;
                     if(secondSegment === "unread") {
-                        displayedElement = document.createElement("app-appointments-unread-list")
+                        displayedElement = document.createElement("app-unread-page")
                     } else {
                         let strDate = secondSegment
                         displayedElement = document.createElement("app-appointments-list")

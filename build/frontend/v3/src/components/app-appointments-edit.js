@@ -40,7 +40,7 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
                     return false; // No warning
                 } else {
                     let forDate = view.get(candidateDate)
-                    return forDate && forDate.has(strTime)
+                    return forDate && forDate.has(candidateTime)
                 }
             }
             
@@ -94,6 +94,12 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
     
     handleFormChange(formElement, sentinelle) {
         let strTime = formElement.appointmentrange.value;
+        var freeze = formElement.cancelOnly.checked;
+        formElement.appointmentdate.disabled = freeze;
+        formElement.appointmenttime.disabled = freeze || !!strTime;
+        formElement.appointmentrange.disabled = freeze;
+        formElement.appointmentdescription.disabled = freeze;
+        
         switch(strTime) {
             case "fullday":
             case "afternoon":
@@ -102,12 +108,6 @@ customElements.define("app-appointments-edit", class extends DateConnectedElemen
             default:
                 strTime = formElement.appointmenttime.value;
         }
-        
-        var freeze = formElement.cancelOnly.checked;
-        formElement.appointmentdate.disabled = freeze;
-        formElement.appointmenttime.disabled = freeze || !!strTime;
-        formElement.appointmentrange.disabled = freeze;
-        formElement.appointmentdescription.disabled = freeze;
         
         let warningElement = this.querySelector("*[data-id=warning]");
         warningElement.classList.remove("appointment-conflict")

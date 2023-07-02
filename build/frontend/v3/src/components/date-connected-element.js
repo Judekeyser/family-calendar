@@ -2,7 +2,7 @@ import { backend } from '../backend'
 
 
 export default class DateConnectedElement extends HTMLElement {
-    /*
+    /* for example
     static get observedAttributes() { return [
         'data-strdate',
         'data-todaydate',

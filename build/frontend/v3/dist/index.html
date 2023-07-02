@@ -140,7 +140,7 @@
 </template>
 
 
-<template id="app-appointments-unread-list">
+<template id="app-unread-page">
     <header>
         <h1>Rendez-vous non lus</h1>
         <nav>
@@ -150,28 +150,33 @@
         </nav>
     </header>
     
-    <template data-on="no-elements">
-        <article>
-            <p>Pas de nouvel événement à lire</p>
-        </article>
-    </template>
-    
-    <template data-on="some-element">
-        <article>
-            <h1>Le
-            <slot name="strDate-day"></slot
-            > <slot name="strDate-month"></slot
-            ><slot name="strDate-year"></slot
-            >, <slot name="strTime"></slot></h1>
-            <p><slot name="strDescription"></slot></p>
-        </article>
-    </template>
-    
-    <div class="grid"></div>
-    
-    <footer>
-        <input type='button' value="Tout marquer comme lus">
-    </footer>
+    <app-unread-appointments-list>
+        <div data-for="root"></div>
+        
+        <template data-for="no-elements">
+            <article>
+                <p>Pas de nouvel événement à lire</p>
+            </article>
+        </template>
+        
+        <template data-for="foreach-element">
+            <article>
+                <h1>Le
+                <slot name="strDate-day"></slot
+                > <slot name="strDate-month"></slot
+                ><slot name="strDate-year"></slot
+                >, <slot name="strTime"></slot></h1>
+                <p><slot name="strDescription"></slot></p>
+            </article>
+        </template>
+        
+        <template data-for="some-element">
+            <div data-for="element-list"></div>
+            <footer>
+                <input type='button' value="Tout marquer comme lus">
+            </footer>
+        </template>
+    </app-unread-appointment-list>
 </template>
 
 

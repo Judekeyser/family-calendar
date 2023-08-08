@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr-be">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Calendrier de famille">
+    <meta name="author" content="Justin Dekeyser">
+    <title>Calendrier de famille</title>
+    <link rel="stylesheet" href="/app.css" type="text/css">
+    <script src="/send_event.php?init=1"></script>
+  </head>
+  <body>
+    <script src="/main.js"></script>
+
+    <div id="anchor-content"></div>
+
+    <script type="text/plain" id="calendar-grid_main">
+        <search>
+            <form>
+                <label>Nombre de semaines:
+                    <input type="range" min="1" max="7"
+                        {#}
+                            {# numberOfWeeksController}
+                                {% change}
+                                { value | value }
+                            {/}
+                            {: numberOfWeeksController}
+                                { "disabled | disabled }
+                            {/}
+                        {/}
+                    >
+                </label>
+                <br>
+                <label>Première semaine inclu:
+                    <input type="date"
+                        {#}
+                            {# firstDateIncludesController}
+                                {% change}
+                                { value | value }
+                            {/}
+                            {: firstDateIncludesController}
+                                { "disabled | disabled }
+                            {/}
+                        {/}
+                    >
+                </label>
+                <br>
+                <input type="button" value="Semaine précédente"
+                    {#}
+                        {# previousWeekController}
+                            {% click}
+                        {/}
+                        {: previousWeekController}
+                            { "disabled | disabled }
+                        {/}
+                    {/}
+                >
+                <input type="button" value="Semaine suivante"
+                    {#}
+                        {# nextWeekController}
+                            {% click}
+                        {/}
+                        {: nextWeekController}
+                            { "disabled | disabled }
+                        {/}
+                    {/}
+                >
+            </form>
+        </search>
+
+        <table>
+            <thead>
+                <tr>
+                    <th><abbr>Lun.</abbr></th>
+                    <th><abbr>Mar.</abbr></th>
+                    <th><abbr>Mer.</abbr></th>
+                    <th><abbr>Jeu.</abbr></th>
+                    <th><abbr>Ven.</abbr></th>
+                    <th><abbr>Sam.</abbr></th>
+                    <th><abbr>Dim.</abbr></th>
+                </tr>
+            </thead>
+            <tbody data-id="calendar-grid_rows"></tbody>
+        </table>
+    </script>
+
+    <script type="text/plain" id="calendar-grid_rows">
+        {# rows}
+            <tr>
+                {# cols}
+                    <td 
+                        {#}
+                            {% click}
+                            {? hasAppointments}
+                                { "hasAppointments | class }
+                            {/}
+                            {? hasNoUnread} 
+                                { "hasNoUnread | class } 
+                            {/}
+                            {? inTodayMonth} 
+                                { "inTodayMonth | class}
+                            {/}
+                            {? isToday}
+                                { "isToday | class }
+                            {/}
+                            {? isFocus}
+                                { "isFocus | class }
+                            {/}
+                        {/}
+                    ><app-day-two-digits {#}{strDate|strDate}{/}></app-day-two-digits
+                    ><span class="hide-when-inTodayMonth">/<app-month-two-digits {#}{strDate|strDate}{/}></app-month-two-digits></span
+                    ><span class="hide-when-hasNoUnread">*</span
+                    ></td>
+                {/}
+            </tr>
+        {/}
+    </script>
+
+    <script type="text/plain" id="day-appointments_main">
+        <h1>Rendez-vous du
+            <app-long-french-date
+                {#}{ strDate | strDate }{/}
+            ></app-long-french-date>
+        </h1>
+
+        <dl data-id="day-appointments_list"></dl>
+
+        <hr>
+        <button {#}{% click}{/}>Nouveau rendez-vous</button>
+    </script>
+
+    <script type="text/plain" id="day-appointments_list">
+        {# appointments}
+            <dt {#}{% click}{/}><app-long-french-time
+                {#}
+                    { strTime | strTime }
+                {/}
+            ></app-long-french-time></dt>
+            <dd {#}{$ strDescription}{/}></dd>
+        {/}
+        {: appointments} 
+            <p>Aucun rendez-vous prévu à cette date</p>
+        {/}
+    </script>
+
+    <script type="text/plain" id="calendar-mutation-form">
+        <h1 
+            {#}
+                {$ pageTitle} 
+            {/}
+        ></h1>
+
+        <form data-id="calendar-mutation-form"
+            {#}
+                {% submit}
+            {/}
+        >
+            {? allowCancel}
+                <label><input type="checkbox" name="cancel"
+                    {#}
+                        {% change} 
+                    {/}
+                >Annuler le rendez-vous</label>
+
+                <hr>
+            {/}
+
+            <label>Jour du rendez-vous:
+                <input type="date" name="strDate"
+                    {#}
+                        { preferredDate | value }
+                        {% change}
+                    {/}
+                required>
+            </label>
+            <label>Plage horaire:
+                <select name="strTimeRange"
+                    {#}
+                        {% change}
+                    {/}
+                >
+                    <option value="">Ponctuel</option>
+                    <option value="fullday">Toute la journée</option>
+                    <option value="morning">La matinée</option>
+                    <option value="afternoon">L'après-midi</option>
+                </select>
+            </label>
+            <label>Heure du rendez-vous:
+                <input type="time" name="strTimeNumeric"
+                    {#}
+                        { preferredTime | value }
+                        {% change}
+                    {/}
+                >
+            </label>
+
+            <hr>
+
+            <textarea name="strDescription"
+                {#}
+                    {$ preferredDescription}
+                {/}
+            required></textarea>
+
+
+            <hr>
+
+            <button {#}{$ submitText}{/}></button>
+        </form>
+
+        <div data-id="calendar-mutation-form_conflicts"></div>
+    </script>
+
+    <script type="text/plain" id="calendar-mutation-form_conflicts">
+        <div {#}
+            {: anyConflict} 
+                { "hidden | class }
+            {/}
+        {/}>
+            <hr>
+
+            <p>Il existe un conflit avec le rendez-vous:</p>
+            <p {#}
+                {$ conflictingAppointment}
+            {/}></p>
+        </div>
+    </script>
+
+    <app-route-listener></app-route-listener>
+
+
+  </body>
+</html>

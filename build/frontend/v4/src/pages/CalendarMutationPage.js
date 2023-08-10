@@ -1,11 +1,94 @@
 import { compile } from '../template-engine.js'
+import { strTimeOverlap } from '../date-utils.js'
+
+import { AppointmentList } from './AppointmentList.js'
 
 
-function submitForm(formElement, createEvent) {
+function timeRangeOf(strTime) {
+    switch(strTime) {
+        case "fullday":
+        case "morning":
+        case "afternoon":
+            return strTime
+        default:
+            return ''
+    }
+}
+
+function timeNumericOf(strTime) {
+    switch(strTime) {
+        case "fullday":
+        case "morning":
+        case "afternoon":
+            return ''
+        default:
+            return strTime
+    }
+}
+
+
+function rectifyAfterChange(formElement, { preferredDate, preferredTime, preferredDescription }) {
+    let cancel = formElement.cancel ? formElement.cancel.checked : false
+    if(cancel) {
+        formElement.strDate.value = preferredDate
+        formElement.strDescription.value = preferredDescription
+        formElement.strTimeNumeric.value = timeNumericOf(preferredTime)
+        formElement.strTimeRange.value = timeRangeOf(preferredTime)
+
+        formElement.strTimeRange.disabled = true
+        formElement.strDescription.disabled = true
+        formElement.strDate.disabled = true
+        formElement.strTimeNumeric.disabled = true
+
+        return { cancel }
+    }
+    else {
+        let strTimeRange = formElement.strTimeRange.value || undefined
+
+        formElement.strTimeRange.disabled = false
+        formElement.strDescription.disabled = false
+        formElement.strDate.disabled = false
+        if(!strTimeRange) {
+            formElement.strTimeNumeric.required = true
+            formElement.strTimeNumeric.disabled = false
+        } else {
+            formElement.strTimeNumeric.disabled = true
+            formElement.strTimeNumeric.required = false
+        }
+    
+        let strTime = strTimeRange || formElement.strTimeNumeric.value
+        let strDate = formElement.strDate.value
+    
+        return { strTime, strDate, cancel }
+    }
+}
+
+
+function setAfterLoad(formElement, { preferredDate, preferredTime, preferredDescription }) {
+    formElement.strDate.value = preferredDate
+    formElement.strDescription.value = preferredDescription
+    formElement.strTimeNumeric.value = timeNumericOf(preferredTime)
+    formElement.strTimeRange.value = timeRangeOf(preferredTime)
+
+    formElement.strTimeRange.disabled = false
+    formElement.strDescription.disabled = false
+    formElement.strDate.disabled = false
+    if(!formElement.strTimeRange.value) {
+        formElement.strTimeNumeric.required = true
+        formElement.strTimeNumeric.disabled = false
+    } else {
+        formElement.strTimeNumeric.disabled = true
+        formElement.strTimeNumeric.required = false
+    }
+}
+
+
+function submitForm(formElement, doSubmit) {
     let strDate = formElement.strDate.value || undefined
     let strTimeNumeric = formElement.strTimeNumeric.value || undefined
     let strTimeRange = formElement.strTimeRange.value || undefined
     let strDescription = formElement.strDescription.value || ''
+    let isCancelling = formElement.cancel ? formElement.cancel.checked : false
 
     let strTime = strTimeRange || strTimeNumeric
 
@@ -15,95 +98,148 @@ function submitForm(formElement, createEvent) {
             formElement.strTimeNumeric,
             formElement.strTimeRange,
             formElement.strDescription,
+            formElement.cancel,
             formElement.querySelector("button")
         ]
-        let disabbleStates = controllers.map(_ => _.disabled)
+        let disabbleStates = controllers.map(_ => _ && _.disabled)
 
         try {
             for(let ctrl of controllers) {
-                ctrl.disabled = true
+                if(ctrl) ctrl.disabled = true
             }
-            await createEvent({ strDate, strTime, strDescription })
+            await doSubmit({ strDate, strTime, strDescription, isCancelling })
         } finally {
             for(let i = 0; i < controllers.length; i++) {
-                controllers[i].disabled = disabbleStates[i]
+                if(controllers[i]) controllers[i].disabled = disabbleStates[i]
             }
         }
     })()
 }
 
 function CalendarMutationPage() {
-    this.__templates = {
-        main: compile(document.getElementById("calendar-mutation-form").innerText),
-        list: compile(document.getElementById("calendar-mutation-form_conflicts").innerText)
-    }
+    this.__template = compile(document.getElementById("calendar-mutation-form").innerText)
+    this.__listHandler = new AppointmentList()
 }
 CalendarMutationPage.prototype = {
-    paint: async function({ preferredDate, allowCancel }) {
+    paint: async function({ preferredDate, preferredTime }) {
         let { view } = await this.state
 
-        this.__templates.main(
+        preferredTime = preferredTime || ''
+        preferredDate = preferredDate || ''
+
+        if(preferredDate && preferredTime) {
+            var preferredDescription = (new Map(view.get(preferredDate)).get(preferredTime) || {}).description || ''
+        } else {
+            var preferredDescription = ''
+        }
+
+        this.__template(
             this.anchorElement,
             {
                 handleSubmit: e => {
                     e.preventDefault()
-                    submitForm(e.target, this.createEvent)
+                    submitForm(e.target, async ({ strTime, strDate, strDescription, isCancelling }) => {
+                        if(isCancelling) {
+                            await this.cancelEvent({ strDate, strTime })
+                        } else {
+                            if(preferredTime && preferredDate && (strTime !== preferredTime || strDate !== preferredDate)) {
+                                await this.editEvent({
+                                    toCancel: {
+                                        strTime: preferredTime,
+                                        strDate: preferredDate
+                                    }, toCreate: {
+                                        strTime,
+                                        strDate,
+                                        strDescription
+                                    }
+                                })
+                            } else {
+                                await this.createEvent({
+                                    strTime, strDate,
+                                    strDescription
+                                })
+                            }
+                        }
+                        history.back()
+                    })
                 },
-                preferredDate,
-                allowCancel,
-                handleChange: e => this.handleChange(e.target.form, { preferredDate, allowCancel }, view),
-                pageTitle: "Créer un rendez-vous",
-                submitText: "Créer"
+                handleChange: e => {
+                    let { strDate, strTime } = rectifyAfterChange(e.target.form, { preferredDate, preferredDescription, preferredTime })
+                    this.showConflicts({ strTime, strDate }, { preferredDate, preferredTime }, view)
+                },
+                ...this.templateParameters
             }
         ).next()
 
-        this.__rehydrateConflicts = this.__templates.list(
-            this.anchorElement.querySelector("*[data-id=calendar-mutation-form_conflicts]"),
-            {
-                anyConflict: false
-            }
-        ); this.__rehydrateConflicts.next()
-
-        this.handleChange(
+        setAfterLoad(
             this.anchorElement.querySelector("form[data-id=calendar-mutation-form]"),
-            { preferredDate, allowCancel },
-            view
+            {
+                preferredDate,
+                preferredTime,
+                preferredDescription
+            }
         )
-    },
-    
-    handleChange: function(formElement, { preferredDate, allowCancel }, view) {
-        let strTimeRange = formElement.strTimeRange.value || undefined
-
-        if(!strTimeRange) {
-            formElement.strTimeNumeric.required = true
-            formElement.strTimeNumeric.disabled = false
-        } else {
-            formElement.strTimeNumeric.disabled = true
-            formElement.strTimeNumeric.required = false
-        }
-
-        let strTime = strTimeRange || formElement.strTimeNumeric.value
-        let strDate = formElement.strDate.value
-        this.showConflicts({ strTime, strDate }, view)
+        
+        this.showConflicts({ preferredTime, preferredDate}, {preferredDate, preferredTime}, view)
     },
 
-    showConflicts: function({ strTime, strDate }, view) {
+    showConflicts: function({ strTime, strDate }, { preferredDate, preferredTime }, view) {
         if(strDate && strTime) {
-            let conflict = (new Map(view.get(strDate))).get(strTime)
-            if(conflict) {
-                this.__rehydrateConflicts.next({
-                    anyConflict: true,
-                    conflictingAppointment: conflict.description
-                })
-                return
+            if(preferredDate != strDate || preferredTime != strTime) {
+                var conflicts = [...new Map(view.get(strDate)).entries()]
+                    .filter(([_strTime]) => strTimeOverlap(strTime, _strTime))
             }
         }
-        this.__rehydrateConflicts.next({
-            anyConflict: false
-        })
+
+        let maskContainer = this.anchorElement.querySelector("*[data-id=conflicts_container]")
+        if(conflicts && conflicts.length) {
+            function* entriesGenerator() {
+                for(let [strTime, record] of conflicts) {
+                    yield {
+                        strTime,
+                        strDescription: record.description,
+                        strDate
+                    }
+                }
+            }
+
+            this.__listHandler.hydrate(this, entriesGenerator())
+            maskContainer.classList.remove("hidden")
+        } else {
+            maskContainer.classList.add("hidden")
+            this.__listHandler.clear(this)
+        }
     }
 
 }
 
+/** CREATION PAGE */
 
-export { CalendarMutationPage }
+function CalendarMutationCreatePage() {
+    CalendarMutationPage.call(this)
+}
+CalendarMutationCreatePage.prototype = {
+    templateParameters: {
+        allowCancel: false,
+        pageTitle: "Créer un rendez-vous",
+        submitText: "Créer"
+    }
+};
+Object.setPrototypeOf(CalendarMutationCreatePage.prototype, CalendarMutationPage.prototype)
+
+/** EDITION PAGE  */
+
+function CalendarMutationModifyPage() {
+    CalendarMutationPage.call(this)
+}
+CalendarMutationModifyPage.prototype = {
+    templateParameters: {
+        allowCancel: true,
+        pageTitle: "Modifier le rendez-vous",
+        submitText: "Modifier"
+    }
+};
+Object.setPrototypeOf(CalendarMutationModifyPage.prototype, CalendarMutationPage.prototype)
+
+
+export { CalendarMutationCreatePage, CalendarMutationModifyPage }

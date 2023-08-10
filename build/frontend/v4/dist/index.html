@@ -24,9 +24,6 @@
                                 {% change}
                                 { value | value }
                             {/}
-                            {: numberOfWeeksController}
-                                { "disabled | disabled }
-                            {/}
                         {/}
                     >
                 </label>
@@ -38,9 +35,6 @@
                                 {% change}
                                 { value | value }
                             {/}
-                            {: firstDateIncludesController}
-                                { "disabled | disabled }
-                            {/}
                         {/}
                     >
                 </label>
@@ -50,18 +44,12 @@
                         {# previousWeekController}
                             {% click}
                         {/}
-                        {: previousWeekController}
-                            { "disabled | disabled }
-                        {/}
                     {/}
                 >
                 <input type="button" value="Semaine suivante"
                     {#}
                         {# nextWeekController}
                             {% click}
-                        {/}
-                        {: nextWeekController}
-                            { "disabled | disabled }
                         {/}
                     {/}
                 >
@@ -82,6 +70,13 @@
             </thead>
             <tbody data-id="calendar-grid_rows"></tbody>
         </table>
+
+        {# unreadNavigation}
+            <hr>
+            <p>
+                <button {#}{% click}{/}>Voir les non lus (<span {#}{$ size}{/}></span>)</button>
+            </p>
+        {/}
     </script>
 
     <script type="text/plain" id="calendar-grid_rows">
@@ -91,21 +86,11 @@
                     <td 
                         {#}
                             {% click}
-                            {? hasAppointments}
-                                { "hasAppointments | class }
-                            {/}
-                            {? hasNoUnread} 
-                                { "hasNoUnread | class } 
-                            {/}
-                            {? inTodayMonth} 
-                                { "inTodayMonth | class}
-                            {/}
-                            {? isToday}
-                                { "isToday | class }
-                            {/}
-                            {? isFocus}
-                                { "isFocus | class }
-                            {/}
+                            {? hasAppointments} { "hasAppointments | class }{/}
+                                {? hasNoUnread} {     "hasNoUnread | class }{/}
+                               {? inTodayMonth} {    "inTodayMonth | class }{/}
+                                    {? isToday} {         "isToday | class }{/}
+                                    {? isFocus} {         "isFocus | class }{/}
                         {/}
                     ><app-day-two-digits {#}{strDate|strDate}{/}></app-day-two-digits
                     ><span class="hide-when-inTodayMonth">/<app-month-two-digits {#}{strDate|strDate}{/}></app-month-two-digits></span
@@ -123,24 +108,52 @@
             ></app-long-french-date>
         </h1>
 
-        <dl data-id="day-appointments_list"></dl>
+        {? hasAppointments}
+            <div data-id="appointments_list"></div>
+        {/}
+        {: hasAppointments} 
+            <p>Aucun rendez-vous prévu à cette date.</p>
+        {/}
 
         <hr>
         <button {#}{% click}{/}>Nouveau rendez-vous</button>
     </script>
 
-    <script type="text/plain" id="day-appointments_list">
-        {# appointments}
-            <dt {#}{% click}{/}><app-long-french-time
-                {#}
-                    { strTime | strTime }
-                {/}
-            ></app-long-french-time></dt>
-            <dd {#}{$ strDescription}{/}></dd>
+    <script type="text/plain" id="unread-appointments_main">
+        <h1>Rendez-vous non lus</h1>
+
+        {? hasAppointments}
+            <div data-id="appointments_list"></div>
+
+            <hr>
+            <button {#}{% click}{/}>Tout marquer comme lu</button>
         {/}
-        {: appointments} 
-            <p>Aucun rendez-vous prévu à cette date</p>
+        {: hasAppointments} 
+            <p>Aucun rendez-vous non lus.</p>
         {/}
+    </script>
+
+    <script type="text/plain" id="appointments_list">
+        <dl>
+            {# appointments}
+                <dt {#}
+                        {% click}
+                    {/}
+                ><app-long-french-time {#}
+                        { strTime | strTime }
+                    {/}
+                ></app-long-french-time><span {#}
+                        {? markUnread } 
+                            { "hidden | class } 
+                        {/}
+                    {/}
+                ></span></dt>
+                <dd {#}
+                        {$ strDescription}
+                    {/}
+                ></dd>
+            {/}
+        </dl>
     </script>
 
     <script type="text/plain" id="calendar-mutation-form">
@@ -168,13 +181,13 @@
             <label>Jour du rendez-vous:
                 <input type="date" name="strDate"
                     {#}
-                        { preferredDate | value }
                         {% change}
                     {/}
                 required>
             </label>
             <label>Plage horaire:
                 <select name="strTimeRange"
+                    value="fullday"
                     {#}
                         {% change}
                     {/}
@@ -188,7 +201,6 @@
             <label>Heure du rendez-vous:
                 <input type="time" name="strTimeNumeric"
                     {#}
-                        { preferredTime | value }
                         {% change}
                     {/}
                 >
@@ -196,34 +208,74 @@
 
             <hr>
 
-            <textarea name="strDescription"
-                {#}
-                    {$ preferredDescription}
-                {/}
-            required></textarea>
-
+            <textarea name="strDescription" required></textarea>
 
             <hr>
 
-            <button {#}{$ submitText}{/}></button>
+            <button {#}
+                {$ submitText}
+            {/}></button>
         </form>
 
-        <div data-id="calendar-mutation-form_conflicts"></div>
+        <div data-id="conflicts_container" class="hidden">
+            <p>Les rendez-vous suivants sont en conflit:</p>
+
+            <div data-id="appointments_list"></div>
+        </div>
     </script>
 
     <script type="text/plain" id="calendar-mutation-form_conflicts">
         <div {#}
-            {: anyConflict} 
-                { "hidden | class }
+                {: appointments}
+                    { "hidden | class }
+                {/} 
             {/}
-        {/}>
+        >
             <hr>
 
-            <p>Il existe un conflit avec le rendez-vous:</p>
-            <p {#}
-                {$ conflictingAppointment}
-            {/}></p>
+            <p>Les rendez-vous suivants sont en conflit horaire:</p>
+
+            <dl>
+                {# appointments}
+                    <dt
+                        ><app-long-french-time
+                            {#}
+                                { strTime | strTime }
+                            {/}
+                        ></app-long-french-time
+                    ></dt>
+                    <dd {#}
+                            {$ strDescription}
+                        {/}
+                    ></dd>
+                {/}
+            </dl>
         </div>
+    </script>
+
+    <script type="text/plain" id="authentication-pane">
+        <form {#}
+                {% submit}
+            {/}
+        >
+            <input type="text" class="hidden" name="username" autocomplete="username" value="appv1" readonly disabled>
+            <label>Mot de passe:
+                <input type="password" name="password" autocomplete="new-password" required>
+            </label>
+            <br>
+            <label>Identité:
+                <select data-id="user-identity" name="identity" required>
+                    <option value="" disabled>Identité utilisateur</option>
+                    <option value="caroline">Caroline</option>
+                    <option value="justin">Justin</option>
+                </select>
+            </label>
+        
+            <hr>
+
+            <p data-id="error-feedback-container" class="hidden"><small data-id="error-feedback"></small></p>
+            <button>Se connecter</button>
+        </form>
     </script>
 
     <app-route-listener></app-route-listener>

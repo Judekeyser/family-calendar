@@ -24,12 +24,8 @@ if(isset($_GET['init'])) {
   $_SESSION[CSRF_SESSION_NAME] = $_csrf_token_1 . $_csrf_token_2;
   echo 'window["__csrfToken"] = "' . $_csrf_token_2 . '";'; // comes back in CSRF_HEADER_NAME
   return;
-} else {
-  if(!session_start())
-    return terminate_in_error(500, 'Impossible de démarrer une session sécurisée');
-}
-if(!isset($_SESSION['password_trials'])) $_SESSION['password_trials'] = 0;
-if(!isset($_SESSION['last_trial_time'])) $_SESSION['last_trial_time'] = 0;
+} else if(!session_start())
+  return terminate_in_error(500, 'Impossible de démarrer une session sécurisée');
 
 # Authentify request: CSRF symbol must be ok
 if(  !isset($_SERVER[CSRF_HEADER_NAME])
@@ -49,14 +45,7 @@ function erase_auth_cookie() {
   return true;
 }
 if(isset($_SERVER[AUTH_HEADER])) {
-  if($now - $_SESSION['last_trial_time'] < $_SESSION['password_trials'] * 2) {
-    return terminate_in_error(429, 'Trop de requête, veuillez réessayer plus tard.');
-  } else $_SESSION['last_trial_time'] = $now;
-  if(password_verify($_SERVER[AUTH_HEADER], GLOBAL_PASSWORD)) {
-    $_SESSION['password_trials'] = 0;
-  } else {
-    $_SESSION['password_trials'] += 1;
-    header(AUTH_DELAY_HEADER.': '.($_SESSION['password_trials'] * 3));
+  if(!password_verify($_SERVER[AUTH_HEADER], GLOBAL_PASSWORD)) {
     return terminate_in_error(401, 'Mot de passe non correct');
   }
 } else {

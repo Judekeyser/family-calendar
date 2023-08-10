@@ -127,6 +127,20 @@ function makePreviousWeekController({ dateTime, numberOfWeeks }, navigateTo) {
     }
 }
 
+function makeUnreadNavigation({ newEvents }, navigateTo) {
+    if(newEvents.length) {
+        return {
+            size: newEvents.length,
+            handleClick: () => {
+                navigateTo({
+                    url: '/appointments/unread/',
+                    parameters: {}
+                })
+            }
+        } 
+    }
+}
+
 
 function CalendarGridStartegy() {
     this.__templates = {
@@ -147,7 +161,7 @@ CalendarGridStartegy.prototype = {
             todayStrDate = dateTimeToString(Date.now())
         }
 
-        let { view } = await this.state
+        let { view, newEvents } = await this.state
 
         this.__templates.main(
             this.anchorElement,
@@ -167,7 +181,8 @@ CalendarGridStartegy.prototype = {
                 nextWeekController: makeNextWeekController({
                     dateTime: firstWeekIncludes_dateTime,
                     numberOfWeeks
-                }, this.navigateTo)
+                }, this.navigateTo),
+                unreadNavigation: makeUnreadNavigation({ newEvents }, this.navigateTo)
             }
         ).next()
 

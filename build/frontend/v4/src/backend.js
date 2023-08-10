@@ -134,13 +134,18 @@ function Backend()
     this._Backend__newEvents = new Set()
     this._Backend__userCursor = 0
     this._Backend__isBusy = false
-    this._Backend__authenticationDelay = 0
     
     this._Backend__lastUpdateTimestamp = 0
 }
 Backend.prototype =
 {
     _Backend__getState: function() {
+        if(!this.authentifiedUser.userName) {
+            throw {
+                errorMessage: "Utilisateur non identifié",
+                errorCode: 403
+            }
+        }
         return {
             view: this._Backend__view,
             newEvents: [... new Set(
@@ -253,11 +258,11 @@ Backend.prototype =
                 )                    
                 return true;
             } finally {
-                this._Backend__isBusy = false;
-                this._Backend__state = this._Backend__getState()
+                this._Backend__isBusy = false
             }
         } catch(error) {
             console.error(error)
+            throw error
         }
     },
     
@@ -274,12 +279,27 @@ Backend.prototype =
                     rej(error)
                 }
             }
-            res(this._Backend__getState())
+            try {
+                res(this._Backend__getState())
+            } catch(error) {
+                rej(error)
+            }
         })
+    },
+    
+    get authentifiedUser() {
+        return {
+            userName: localStorage.getItem('userName') || undefined
+        }
     },
 
     get authentify() {
-        return (async function({ password }) {
+        return (async function({ password, userName }) {
+            if(!userName) {
+                localStorage.removeItem('userName')
+            } else {
+                localStorage.setItem('userName', userName)
+            }
             return this._Backend__update({ password })
         }).bind(this);
     },

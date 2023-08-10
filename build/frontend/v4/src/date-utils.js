@@ -58,7 +58,30 @@ function strTimeSorting(a, b) {
     if(b == "morning") return 1;
     if(a == "afternoon") return b < "12:00" ? 1: -1;
     if(b == "afternoon") return a < "12:00" ? -1: 1;
-    return a < b ? -1 : 1;
+    return a <= b ? -1 : 1;
+}
+
+function recordSorting(a, b) {
+    if(a.strDate === b.strDate)
+        return strTimeSorting(a.strTime, b.strTime)
+    return a.strDate <= b.strDate ? -1 : 1;
+}
+
+function strTimeOverlap(a, b) {
+    if(a == b) return true
+    if(a == "fullday") return true
+    if(b == "fullday") return true
+    if(a == "morning") {
+        if(b == "afternoon") return false
+        else return b < "12:00"
+    }
+    if(b == "morning") {
+        if(a == "afternoon") return false
+        else return a < "12:00"
+    }
+    if(a == "afternoon") return b >= "12:00"
+    if(b == "afternoon") return a >= "12:00"
+    return false
 }
 
 
@@ -72,5 +95,7 @@ export {
     dayOfDate,
     monthOfDate,
     yearOfDate,
-    strTimeSorting
+    strTimeSorting,
+    strTimeOverlap,
+    recordSorting
 }

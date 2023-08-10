@@ -7,8 +7,9 @@ import './components/DayTwoDigits.js'
 import './components/MonthTwoDigits.js'
 
 import { CalendarGridStartegy } from './pages/CalendarGridStrategy.js';
-import { AppointmentDayList } from './pages/AppointmentDayList.js';
-import { CalendarMutationPage } from './pages/CalendarMutationPage.js';
+import { AppointmentDayList, UnreadAppointmentList } from './pages/AppointmentList.js';
+import { CalendarMutationCreatePage, CalendarMutationModifyPage } from './pages/CalendarMutationPage.js';
+import { AuthenticationPage } from './pages/AuthenticationPage.js';
 
 
 customElements.define("app-route-listener", class extends HTMLElement {
@@ -26,7 +27,10 @@ customElements.define("app-route-listener", class extends HTMLElement {
             this.__URLS = new Map([
                 ['/calendar-grid/', new CalendarGridStartegy()],
                 ['/appointments/day/', new AppointmentDayList()],
-                ['/calendar/mutate/', new CalendarMutationPage()]
+                ['/appointments/unread/', new UnreadAppointmentList()],
+                ['/calendar/mutate/create', new CalendarMutationCreatePage()],
+                ['/calendar/mutate/modify', new CalendarMutationModifyPage()],
+                ['/authentication/', new AuthenticationPage()]
             ])
 
             this.handleHistoryChange({})
@@ -63,7 +67,13 @@ customElements.define("app-route-listener", class extends HTMLElement {
                     if(!strategy) {
                         break resolvedUrl
                     } else {
-                        this.patchPrototype(strategy).paint(parameters)
+                        if(url === '/authentication/') {
+                            var patched = this.patchAuthenticationPrototype(strategy)
+                        } else {
+                            var patched = this.patchPrototype(strategy)
+                        }
+                        patched.paint(parameters)
+                            .catch(console.error /* We silent the error here, because likely it is a auth error and the recovery is performed by routing */)
                         break navigate
                     }
                 }
@@ -92,14 +102,14 @@ customElements.define("app-route-listener", class extends HTMLElement {
             } catch(error) {
                 let { errorCode, errorMessage } = error
                 if(errorCode === 401 || errorCode === 403 || errorCode === 429) {
-                    self.emitNavigation({
+                    this.emitNavigation({
                         url: '/authentication/',
                         parameters: {
                             errorMessage
                         }
                     })
-                    return {}
-                } else throw error
+                }
+                throw error
             }
         }).bind(this)
     }
@@ -141,6 +151,62 @@ customElements.define("app-route-listener", class extends HTMLElement {
                 return self.handleAuthenticationError(
                     backend.markRead
                 )
+            },
+
+            get navigateTo() {
+                return function({ url, parameters }) {
+                    {
+                        let sp = new URLSearchParams()
+                        for(let [key, value] of Object.entries(parameters)) {
+                            sp.append(key, value)
+                        }
+                        let queryString = `${url}?${sp.toString()}`
+                        history.pushState(
+                            { url, parameters },
+                            '', `#${btoa(queryString)}`
+                        )
+                    }
+                    return self.emitNavigation({url, parameters })
+                }
+            },
+
+            get anchorElement() {
+                return document.getElementById("anchor-content")
+            }
+        }
+        Object.setPrototypeOf(_backendAdapter, strategy)
+        return _backendAdapter
+    }
+
+    patchAuthenticationPrototype(strategy) {
+        let self = this
+        let _backendAdapter = {
+            get state() {
+                throw "Property not available in Authentication process"
+            },
+        
+            get authentify() {
+                return backend.authentify
+            },
+
+            get authentifiedUser() {
+                return backend.authentifiedUser
+            },
+        
+            get createEvent() {
+                throw "Property not available in Authentication process"
+            },
+            
+            get cancelEvent() {
+                throw "Property not available in Authentication process"
+            },
+            
+            get editEvent() {
+                throw "Property not available in Authentication process"
+            },
+            
+            get markRead() {
+                throw "Property not available in Authentication process"
             },
 
             get navigateTo() {

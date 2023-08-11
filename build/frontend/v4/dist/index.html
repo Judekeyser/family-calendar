@@ -77,6 +77,13 @@
                 <button {#}{% click}{/}>Voir les non lus (<span {#}{$ size}{/}></span>)</button>
             </p>
         {/}
+
+        {# searchNavigation}
+            <hr>
+            <p>
+                <button {#}{% click}{/}>Rechercher un rendez-vous</button>
+            </p>
+        {/}
     </script>
 
     <script type="text/plain" id="calendar-grid_rows">
@@ -133,13 +140,32 @@
         {/}
     </script>
 
+    <script type="text/plain" id="appointments-search_main">
+        <h1>Rechercher un rendez-vous</h1>
+
+        <form>
+            <input type="text" name="search" value="caroline">
+
+            <input type="button"
+                {#}
+                    {% click}
+                {/}
+            value="Rechercher">
+        </form>
+
+        <div data-id="appointments_list"></div>
+    </script>
+
     <script type="text/plain" id="appointments_list">
         <dl>
             {# appointments}
                 <dt {#}
                         {% click}
                     {/}
-                ><app-long-french-time {#}
+                ><app-long-french-date {#}
+                        { strDate | strDate }
+                    {/}
+                ></app-long-french-date>, <app-long-french-time {#}
                         { strTime | strTime }
                     {/}
                 ></app-long-french-time><span {#}

@@ -7,7 +7,7 @@ import './components/DayTwoDigits.js'
 import './components/MonthTwoDigits.js'
 
 import { CalendarGridStartegy } from './pages/CalendarGridStrategy.js';
-import { AppointmentDayList, UnreadAppointmentList } from './pages/AppointmentList.js';
+import { AppointmentDayList, UnreadAppointmentList, AppointmentSearchList } from './pages/AppointmentList.js';
 import { CalendarMutationCreatePage, CalendarMutationModifyPage } from './pages/CalendarMutationPage.js';
 import { AuthenticationPage } from './pages/AuthenticationPage.js';
 
@@ -28,6 +28,7 @@ customElements.define("app-route-listener", class extends HTMLElement {
                 ['/calendar-grid/', new CalendarGridStartegy()],
                 ['/appointments/day/', new AppointmentDayList()],
                 ['/appointments/unread/', new UnreadAppointmentList()],
+                ['/appointments/search/', new AppointmentSearchList()],
                 ['/calendar/mutate/create', new CalendarMutationCreatePage()],
                 ['/calendar/mutate/modify', new CalendarMutationModifyPage()],
                 ['/authentication/', new AuthenticationPage()]
@@ -59,13 +60,13 @@ customElements.define("app-route-listener", class extends HTMLElement {
     handleNavigation({ url, parameters }) {
         console.log("NAVIGATION", url, parameters)
         navigate: {
-            resolvedUrl: {
+            onResolvedUrl: {
                 if(!url) {
-                    break resolvedUrl
+                    break onResolvedUrl
                 } else {
                     let strategy = this.__URLS.get(url)
                     if(!strategy) {
-                        break resolvedUrl
+                        break onResolvedUrl
                     } else {
                         if(url === '/authentication/') {
                             var patched = this.patchAuthenticationPrototype(strategy)
@@ -73,11 +74,12 @@ customElements.define("app-route-listener", class extends HTMLElement {
                             var patched = this.patchPrototype(strategy)
                         }
                         patched.paint(parameters)
-                            .catch(console.error /* We silent the error here, because likely it is a auth error and the recovery is performed by routing */)
+                            .catch(console.error /* We silent the error here, because likely it is a auth error and the recovery is performed by a decorator */)
                         break navigate
                     }
                 }
             }
+            // If we are here, resolution failed. fallback
             this.emitNavigation({
                 url: '/calendar-grid/',
                 parameters: {

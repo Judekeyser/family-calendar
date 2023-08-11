@@ -141,6 +141,17 @@ function makeUnreadNavigation({ newEvents }, navigateTo) {
     }
 }
 
+function makeSearchNavigation(navigateTo) {
+    return {
+        handleClick: () => {
+            navigateTo({
+                url: '/appointments/search/',
+                parameters: {}
+            })
+        }
+    } 
+}
+
 
 function CalendarGridStartegy() {
     this.__templates = {
@@ -182,7 +193,8 @@ CalendarGridStartegy.prototype = {
                     dateTime: firstWeekIncludes_dateTime,
                     numberOfWeeks
                 }, this.navigateTo),
-                unreadNavigation: makeUnreadNavigation({ newEvents }, this.navigateTo)
+                unreadNavigation: makeUnreadNavigation({ newEvents }, this.navigateTo),
+                searchNavigation: makeSearchNavigation(this.navigateTo)
             }
         ).next()
 

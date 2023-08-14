@@ -108,7 +108,7 @@ function generateTreeFromExpression(template, reservedUuids) {
                     tree.children.push(nextTree)
                     ancestorChain.push(tree)
                     ancestorChain.push(nextTree)
-                }; break;
+                } break;
                 case IF_BLOCK_MARKER: {
                     let nextTree = {
                         positiveConditional: true,
@@ -118,7 +118,7 @@ function generateTreeFromExpression(template, reservedUuids) {
                     tree.children.push(nextTree)
                     ancestorChain.push(tree)
                     ancestorChain.push(nextTree)
-                }; break;
+                } break;
                 case ELSE_BLOCK_MARKER: {
                     let nextTree = {
                         negativeConditional: true,
@@ -128,21 +128,21 @@ function generateTreeFromExpression(template, reservedUuids) {
                     tree.children.push(nextTree)
                     ancestorChain.push(tree)
                     ancestorChain.push(nextTree)
-                }; break;
+                } break;
                 case EVENT_MARKER: {
                     tree.children.push({
                         event: true,
                         variable
                     })
                     ancestorChain.push(tree)
-                }; break;
+                } break;
                 case TEXT_CONTENT_MARKER: {
                     tree.children.push({
                         textContent: true,
                         variable
                     })
                     ancestorChain.push(tree)
-                }; break;
+                } break;
                 case END_OF_BLOCK:
                     break;
                 default: {
@@ -167,7 +167,7 @@ function generateTreeFromExpression(template, reservedUuids) {
 
                     tree.children.push(leaf)
                     ancestorChain.push(tree)
-                }; break;
+                } break;
             }
             
             cursor = closingIndex + CLOSING_TOKEN.length
@@ -232,7 +232,7 @@ function* iterativeMake(treeNode, scope, elementUuid, childSequence) {
         }
     } else if(treeNode.positiveConditional) {
         if(variable && Object.hasOwn(scope, variable)) {
-            if(!!scope[variable]) {
+            if(scope[variable]) {
                 if(!elementUuid) {
                     childSequence.push('t')
                 }
@@ -372,14 +372,14 @@ function compile(template, reservedUuids) {
             // STEP 3: perform clean
             for(let [identifier, effects] of sideEffects) {
                 let element = domRoot.querySelector(`*[${IDENTIFICATION_ATTRIBUTE}=${identifier}]`)
-                do {
+                for(;;) {
                     let effect = effects.pop()
                     if(effect) {
                         effect.cancelEffect(element)
                     } else {
                         break
                     }
-                } while(true)
+                }
             }
             
             if(!scope) {

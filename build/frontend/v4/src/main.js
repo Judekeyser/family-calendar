@@ -7,7 +7,9 @@ import './components/DayTwoDigits.js'
 import './components/MonthTwoDigits.js'
 
 import { CalendarGridStartegy } from './pages/CalendarGridStrategy.js';
-import { AppointmentDayList, UnreadAppointmentList, AppointmentSearchList } from './pages/AppointmentList.js';
+import { AppointmentDayList } from './pages/appointment-list/AppointmentDayList.js'
+import { UnreadAppointmentList } from './pages/appointment-list/UnreadAppointmentList.js'
+import { AppointmentSearchList } from './pages/appointment-list/UnreadAppointmentList.js'
 import { CalendarMutationCreatePage, CalendarMutationModifyPage } from './pages/CalendarMutationPage.js';
 import { AuthenticationPage } from './pages/AuthenticationPage.js';
 
@@ -22,8 +24,7 @@ customElements.define("app-route-listener", class extends HTMLElement {
         window.addEventListener("app-navigate", ({ detail }) => this.handleNavigation(detail))
 
         ;(async () => {
-            await __READY__
-
+            await READY
             this.__URLS = new Map([
                 ['/calendar-grid/', new CalendarGridStartegy()],
                 ['/appointments/day/', new AppointmentDayList()],
@@ -68,12 +69,11 @@ customElements.define("app-route-listener", class extends HTMLElement {
                     if(!strategy) {
                         break onResolvedUrl
                     } else {
-                        if(url === '/authentication/') {
-                            var patched = this.patchAuthenticationPrototype(strategy)
-                        } else {
-                            var patched = this.patchPrototype(strategy)
-                        }
-                        patched.paint(parameters)
+                        (
+                            url == '/authentication/'
+                                ? this.patchAuthenticationPrototype(strategy)
+                                : this.patchPrototype(strategy)
+                        ).paint(parameters)
                             .catch(console.error /* We silent the error here, because likely it is a auth error and the recovery is performed by a decorator */)
                         break navigate
                     }
@@ -238,6 +238,6 @@ customElements.define("app-route-listener", class extends HTMLElement {
     
 })
 
-window['__READY__'] = new Promise(res => {
+const READY = new Promise(res => {
     window.addEventListener("load", res)
 })

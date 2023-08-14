@@ -116,6 +116,8 @@ function submitForm(formElement, doSubmit) {
     })()
 }
 
+
+
 function CalendarMutationPage() {
     this.__template = compile(document.getElementById("calendar-mutation-form").innerText)
     this.__listHandler = new AppointmentList()
@@ -127,11 +129,17 @@ CalendarMutationPage.prototype = {
         preferredTime = preferredTime || ''
         preferredDate = preferredDate || ''
 
-        if(preferredDate && preferredTime) {
-            var preferredDescription = (new Map(view.get(preferredDate)).get(preferredTime) || {}).description || ''
-        } else {
-            var preferredDescription = ''
+        let preferredDescription;
+        {
+            preferredDescription = ''
+            if(preferredDate && preferredTime) {
+                let entriesforDate = view.get(preferredDate)
+                let entriesforDateTime = (new Map(entriesforDate)).get(preferredTime)
+                let description = entriesforDateTime.description
+                preferredDescription = description || preferredDescription
+            }
         }
+
 
         this.__template(
             this.anchorElement,
@@ -184,26 +192,23 @@ CalendarMutationPage.prototype = {
     },
 
     showConflicts: function({ strTime, strDate }, { preferredDate, preferredTime }, view) {
+        let conflicts = []
         if(strDate && strTime) {
             if(preferredDate != strDate || preferredTime != strTime) {
-                var conflicts = [...new Map(view.get(strDate)).entries()]
+                conflicts = [...new Map(view.get(strDate)).entries()]
                     .filter(([_strTime]) => strTimeOverlap(strTime, _strTime))
+                    .map(([_strTime, record]) => ({
+                        strTime: _strTime,
+                        strDate,
+                        strDescription: record.description,
+                        markUnread: record.unread,
+                    }))
             }
         }
 
         let maskContainer = this.anchorElement.querySelector("*[data-id=conflicts_container]")
-        if(conflicts && conflicts.length) {
-            function* entriesGenerator() {
-                for(let [strTime, record] of conflicts) {
-                    yield {
-                        strTime,
-                        strDescription: record.description,
-                        strDate
-                    }
-                }
-            }
-
-            this.__listHandler.hydrate(this, entriesGenerator())
+        if(conflicts.length) {
+            this.__listHandler.hydrate(this, conflicts)
             maskContainer.classList.remove("hidden")
         } else {
             maskContainer.classList.add("hidden")

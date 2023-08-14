@@ -1,38 +1,35 @@
+function __dayOfWeek(datetime) {
+    return new Date(datetime).getUTCDay()
+}
 function dateTimeToString(dateTime) {
     let date = new Date(dateTime);
-    let month = date.getMonth() + 1;
-    let day = date.getDate();
-    let year = date.getFullYear();
+    let isoString = date.toISOString()
 
-    return year + '-' + (
-            month < 10 ? '0' : ''
-        ) + month + '-' + (
-            day < 10 ? '0' : ''
-        ) + day;
+    return isoString.substring(0, "YYYY-MM-DD".length)
 }
 function nextDateTime(dateTime) {
-    let currentDay = new Date(dateTime).getDay();
-    while(new Date(dateTime).getDay() === currentDay)
+    let currentDay = __dayOfWeek(dateTime)
+    while(__dayOfWeek(dateTime) === currentDay)
         dateTime += 1000 * 60 * 60 * 12;
     return dateTime;
 }
 function nextWeekDateTime(dateTime) {
-    let currentDay = new Date(dateTime).getDay();
+    let currentDay = __dayOfWeek(dateTime)
     dateTime += 1000 * 60 * 60 * 24 * 6;
-    while(new Date(dateTime).getDay() !== currentDay) {
+    while(__dayOfWeek(dateTime) !== currentDay) {
         dateTime += 1000 * 60 * 60 * 12;
     }
     return dateTime;
 }
 function previousWeekDateTime(dateTime) {
-    let currentDay = new Date(dateTime).getDay();
+    let currentDay = __dayOfWeek(dateTime)
     dateTime -= 1000 * 60 * 60 * 24 * 6;
-    while(new Date(dateTime).getDay() !== currentDay)
+    while(__dayOfWeek(dateTime) !== currentDay)
         dateTime -= 1000 * 60 * 60 * 12;
     return dateTime;
 }
 function mondayOfDateTime(dateTime) {
-    while(new Date(dateTime).getDay() !== 1)
+    while(__dayOfWeek(dateTime) !== 1)
         dateTime -= 1000 * 60 * 60 * 24;
     return dateTime;
 }

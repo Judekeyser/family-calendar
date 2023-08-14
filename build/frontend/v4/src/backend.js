@@ -29,7 +29,7 @@ function eventV1Handle(
 }
 
 function eventV2Handle(
-    { toCancel, toCreate, userInitiator },
+    { toCancel, toCreate },
     time, currentUser
 ) {
     {// Check date of toCancel
@@ -269,21 +269,23 @@ Backend.prototype =
     /** Exposed getters */
     
     get state() {
-        return new Promise(async (res, rej) => {
-            let now = Date.now();
-            if(!this._Backend__lastUpdateTimestamp || this._Backend__lastUpdateTimestamp < now - 30*1000) {
+        return new Promise((res, rej) => {
+            let now = Date.now()
+            ;(async() => {
+                if(!this._Backend__lastUpdateTimestamp || this._Backend__lastUpdateTimestamp < now - 30*1000) {
+                    try {
+                        await this._Backend__update({})
+                        this._Backend__lastUpdateTimestamp = now
+                    } catch(error) {
+                        rej(error)
+                    }
+                }
                 try {
-                    await this._Backend__update({})
-                    this._Backend__lastUpdateTimestamp = now
+                    res(this._Backend__getState())
                 } catch(error) {
                     rej(error)
                 }
-            }
-            try {
-                res(this._Backend__getState())
-            } catch(error) {
-                rej(error)
-            }
+            })()
         })
     },
     

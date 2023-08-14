@@ -1,3 +1,23 @@
+function* batchRecords(records) {
+
+    emitBatch: for(;;) {
+        let batch = []
+        try {
+            for(let i = 0; i < 30; i++) {
+                let { value, done } = records.next()
+                if(!done) {
+                    batch.push(value)
+                } else break emitBatch
+            }
+        } finally {
+            if(batch.length)
+                yield batch
+        }
+    }
+}
+
+
+
 function extractTokens(strDescription) {
     return new Set([
         ... strDescription.matchAll(/\b\w+\b/ig)
@@ -138,7 +158,7 @@ function uniformizeDiphtongues(word) {
     word = word.replaceAll("ö", "ho")
     word = word.replaceAll("ä", "ha")
     word = word.normalize('NFKD')
-    word = word.replace(/[^\x00-\x7F]/g,"");
+    word = word.replace(/[^\x20-\x7F]/g,"");
     
     if(word.length <= 1) return null;
     
@@ -393,7 +413,7 @@ function SearchEngine() {
     this._SearchEngine__Calendar = new Map(/* strDate => strTime => words */);
     this._SearchEngine__WordFrequencies = new Map(/* word => frequency */);
     this._SearchEngine__DocumentCount = 0;
-};
+}
 SearchEngine.prototype = {
     _SearchEngine__createKey: function({ strDate, strTime }) {
         return `${strDate} ${strTime}`
@@ -413,6 +433,15 @@ SearchEngine.prototype = {
     _SearchEngine__removeFromVirtualCalendar: function({ strDate, strTime }) {
         let key = this._SearchEngine__createKey({ strDate, strTime })
         this._SearchEngine__Calendar.delete(key);
+    },
+
+    _SearchEngine__distanceToDocument(expansion, words) {
+        let L = this._SearchEngine__DocumentCount
+        let product = 0.
+        for(let word of words) {
+            product += (expansion.get(word) || 0.) * (1. - this._SearchEngine__WordFrequencies.get(word) / L)
+        }
+        return product
     },
     
     /* Exposed getters */
@@ -435,25 +464,20 @@ SearchEngine.prototype = {
             let expansion; /* define */ {
                 const TOC = Date.now()
                 let tokens = extractTokens(searchQuery);
-                function* candidates(token) {
-                    for(let word of self._SearchEngine__WordFrequencies.keys()) {
-                        let distance = levenshteinDistance(token, word)
-                        if (distance <= Math.min(4, Math.max(token.length / 2, word.length))) {
-                            yield [distance, word]
-                        }
-                    }
-                }
 
                 expansion = new Map()
                 let upperBound = -Infinity
                 for(let token of tokens) {
-                    for(let [distance, candidate] of candidates(token)) {
-                        let value = expansion.get(candidate)
-                        value = value == null || !isFinite(value) ? Infinity : value
-                        value = Math.min(distance, value)
-                        
-                        upperBound = value > upperBound ? value : upperBound
-                        expansion.set(candidate, value)
+                    for(let candidate of self._SearchEngine__WordFrequencies.keys()) {
+                        let distance = levenshteinDistance(token, candidate)
+                        if (distance <= Math.min(4, Math.max(token.length / 2, candidate.length))) {
+                            let value = expansion.get(candidate)
+                            value = value == null || !isFinite(value) ? Infinity : value
+                            value = Math.min(distance, value)
+                            
+                            upperBound = value > upperBound ? value : upperBound
+                            expansion.set(candidate, value)
+                        }
                     }
                 }
                 for(let key of [...expansion.keys()]) {
@@ -464,39 +488,11 @@ SearchEngine.prototype = {
             console.log("** EXPENSION COMPUTED", expansion)
             }
 
-            function distanceToDocument(expansion, words) {
-                let L = self._SearchEngine__DocumentCount
-                let product = 0.
-                for(let word of words) {
-                    product += (expansion.get(word) || 0.) * (1. - self._SearchEngine__WordFrequencies.get(word) / L)
-                }
-                return product
-            }
-
-            let queue = []; let threshold = 0.
-            function* allDocuments() {
-                yield* self._SearchEngine__Calendar
-            }
-            function* batchDocuments() {
-                let base = allDocuments()
-                emitBatch: for(;;) {
-                    let batch = []
-                    try {
-                        for(let i = 0; i < 30; i++) {
-                            let { value, done } = base.next()
-                            if(!done) {
-                                batch.push(value)
-                            } else break emitBatch
-                        }
-                    } finally {
-                        if(batch.length)
-                            yield batch
-                    }
-                }
-            }
-            for(let entries of batchDocuments()) {
+            let threshold = 0.
+            let queue = [];
+            for(let entries of batchRecords(self._SearchEngine__Calendar.entries())) {
                 for(let [key, words] of entries) {
-                    let distance = distanceToDocument(expansion, words)
+                    let distance = self._SearchEngine__distanceToDocument(expansion, words)
                     if(distance > threshold) {
                         queue.push({ distance, key })
                     }

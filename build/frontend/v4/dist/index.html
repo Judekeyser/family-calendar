@@ -7,6 +7,7 @@
     <meta name="author" content="Justin Dekeyser">
     <title>Calendrier de famille</title>
     <link rel="stylesheet" href="/app.css" type="text/css">
+    <script src="/DOMPurify.js"></script>
     <script src="/send_event.php?init=1"></script>
   </head>
   <body>
@@ -15,46 +16,44 @@
     <div id="anchor-content"></div>
 
     <script type="text/plain" id="calendar-grid_main">
-        <search>
-            <form>
-                <label>Nombre de semaines:
-                    <input type="range" min="1" max="7"
-                        {#}
-                            {# numberOfWeeksController}
-                                {% change}
-                                { value | value }
-                            {/}
-                        {/}
-                    >
-                </label>
-                <br>
-                <label>Première semaine inclu:
-                    <input type="date"
-                        {#}
-                            {# firstDateIncludesController}
-                                {% change}
-                                { value | value }
-                            {/}
-                        {/}
-                    >
-                </label>
-                <br>
-                <input type="button" value="Semaine précédente"
+        <form>
+            <label>Nombre de semaines:
+                <input type="range" min="1" max="7"
                     {#}
-                        {# previousWeekController}
-                            {% click}
+                        {# numberOfWeeksController}
+                            {% change}
+                            { value | value }
                         {/}
                     {/}
                 >
-                <input type="button" value="Semaine suivante"
+            </label>
+            <br>
+            <label>Première semaine inclu:
+                <input type="date"
                     {#}
-                        {# nextWeekController}
-                            {% click}
+                        {# firstDateIncludesController}
+                            {% change}
+                            { value | value }
                         {/}
                     {/}
                 >
-            </form>
-        </search>
+            </label>
+            <br>
+            <input type="button" value="Semaine précédente"
+                {#}
+                    {# previousWeekController}
+                        {% click}
+                    {/}
+                {/}
+            >
+            <input type="button" value="Semaine suivante"
+                {#}
+                    {# nextWeekController}
+                        {% click}
+                    {/}
+                {/}
+            >
+        </form>
 
         <table>
             <thead>
@@ -143,14 +142,17 @@
     <script type="text/plain" id="appointments-search_main">
         <h1>Rechercher un rendez-vous</h1>
 
-        <form>
-            <input type="text" name="search" value="caroline">
-
-            <input type="button"
+        <form {#}
+                {% submit }
+            {/}
+        >
+            <input type="text" name="search"
                 {#}
-                    {% click}
+                    { defaultSearchQuery | value }
                 {/}
-            value="Rechercher">
+            >
+
+            <button>Rechercher</button>
         </form>
 
         <div data-id="appointments_list"></div>

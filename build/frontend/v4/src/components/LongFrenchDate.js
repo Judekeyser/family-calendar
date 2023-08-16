@@ -1,61 +1,91 @@
-import { monthOfDate, dayOfDate } from "../date-utils"
+import { monthOfDate, dayOfDate } from "../date-utils";
+
+
+/**
+ * Compute a French word that represents the month, from a given month,
+ * as a string from '01' to '12'.
+ * 
+ * @param {(
+*  '01'|'02'|'03'|'04'|'05'|'06'|'07'|'08'|'09'|'10'|'11'|'12'
+* )} month - The month
+* @returns {string} - The French name of the month
+*/
+function computeFrenchMonth(month)
+{
+    switch(month) {
+        case "01": return "Janvier";
+        case "02": return "Février";
+        case "03": return "Mars";
+        case "04": return "Avril";
+        case "05": return "Mai";
+        case "06": return "Juin";
+        case "07": return "Juillet";
+        case "08": return "Août";
+        case "09": return "Septembre";
+        case "10": return "Octobre";
+        case "11": return "Novembre";
+        case "12": return "Décembre";
+          default: return "";
+    }
+}
+
+
+/**
+ * Compute a French number from a day in month. This is done by turning
+ * removing leading zeros, and in the case of '01', replacing with '1er'.
+ * 
+ * @param {(
+ *  '01'|'02'|'03'|'04'|'05'|'06'|'07'|'08'|'09'|'10'|
+*   '11'|'12'|'13'|'14'|'15'|'16'|'17'|'18'|'19'|'20'|
+*   '21'|'22'|'23'|'24'|'25'|'26'|'27'|'28'|'29'|'30'|'31'
+ * )} day - The day
+ * @returns {string} - The French representation of the day
+ */
+function computeFrenchDay(day)
+{
+    switch(day) {
+        case "01": return "1er";
+        case "02": return "2";
+        case "03": return "3";
+        case "04": return "4";
+        case "05": return "5";
+        case "06": return "6";
+        case "07": return "7";
+        case "08": return "8";
+        case "09": return "9";
+          default: return day;
+    }
+}
 
 
 customElements.define("app-long-french-date", class extends HTMLElement {
-    constructor() { super() }
+    constructor() { super(); }
 
     static get observedAttributes() {
         return [
             "strdate"
-        ]
+        ];
     }
 
-    attributeChangedCallback(name, oldValue, newValue) {
+    /**
+     * 
+     * @param {string} name - The name of the attribute that changes
+     * @param {string=} _oldValue - The previous value
+     * @param {string=} newValue - The new value
+     */
+    attributeChangedCallback(name, _oldValue, newValue) {
         if(name === 'strdate' && newValue) {
+            const frenchMonth = computeFrenchMonth(monthOfDate(newValue));
 
-            let frenchMonth;
-            switch(monthOfDate(newValue)) {
-                case "01": { frenchMonth = "Janvier" } break;
-                case "02": { frenchMonth = "Février" } break;
-                case "03": { frenchMonth = "Mars" } break;
-                case "04": { frenchMonth = "Avril" } break;
-                case "05": { frenchMonth = "Mai" } break;
-                case "06": { frenchMonth = "Juin" } break;
-                case "07": { frenchMonth = "Juillet" } break;
-                case "08": { frenchMonth = "Août" } break;
-                case "09": { frenchMonth = "Septembre" } break;
-                case "10": { frenchMonth = "Octobre" } break;
-                case "11": { frenchMonth = "Novembre" } break;
-                case "12": { frenchMonth = "Décembre" } break;
-            }
-
-            let frenchDay = dayOfDate(newValue);
-            if(frenchDay == 1) {
-                let firstSegment = document.createTextNode('1')
-                let exponent = document.createElement('sup')
-                exponent.textContent = 'er'
-                let secondSegment = document.createTextNode(' ' + frenchMonth)
-
-                this.appendChild(firstSegment)
-                this.appendChild(exponent)
-                this.appendChild(secondSegment)
+            const frenchDay = computeFrenchDay(dayOfDate(newValue));
+            if(frenchDay == '1er') {
+                this.innerHTML = `Le 1<sup>er</sup> `;
+                this.appendChild(document.createTextNode(frenchMonth));
             } else {
-                switch(frenchDay) {
-                    case "01": { frenchDay = "1er" } break;
-                    case "02": { frenchDay = "2" } break;
-                    case "03": { frenchDay = "3" } break;
-                    case "04": { frenchDay = "4" } break;
-                    case "05": { frenchDay = "5" } break;
-                    case "06": { frenchDay = "6" } break;
-                    case "07": { frenchDay = "7" } break;
-                    case "08": { frenchDay = "8" } break;
-                    case "09": { frenchDay = "9" } break;
-                }
-                
-                this.textContent = `Le ${frenchDay} ${frenchMonth}`
+                this.textContent = `Le ${frenchDay} ${frenchMonth}`;
             }
         } else {
-            this.innerHTML = ""
+            this.innerHTML = "";
         }
     }
-})
+});

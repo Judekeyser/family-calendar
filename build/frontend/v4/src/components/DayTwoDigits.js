@@ -1,24 +1,26 @@
-import { dayOfDate } from "../date-utils"
+import { dayOfDate } from "../date-utils";
 
 
 customElements.define("app-day-two-digits", class extends HTMLElement {
-    constructor() { super() }
+    constructor() { super(); }
 
     static get observedAttributes() {
         return [
             "strdate"
-        ]
+        ];
     }
 
-    connectedCallack() {
-        console.log("OK")
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
+    /**
+     * 
+     * @param {string} name - The name of the attribute that changes
+     * @param {string=} _oldValue - The previous value
+     * @param {string=} newValue - The new value
+     */
+    attributeChangedCallback(name, _oldValue, newValue) {
         if(name === "strdate" && newValue) {
-            this.textContent = dayOfDate(newValue)
+            this.textContent = dayOfDate(newValue);
         } else {
-            this.innerHTML = ""
+            this.innerHTML = "";
         }
     }
-})
+});

@@ -1,10 +1,10 @@
 function* batchRecords(records) {
 
     emitBatch: for(;;) {
-        let batch = []
+        const batch = []
         try {
-            for(let i = 0; i < 30; i++) {
-                let { value, done } = records.next()
+            for(const i = 0; i < 30; i++) {
+                const { value, done } = records.next()
                 if(!done) {
                     batch.push(value)
                 } else break emitBatch
@@ -17,24 +17,46 @@ function* batchRecords(records) {
 }
 
 
-
+/**
+ * Extracts words from a text and uniformizes them.
+ * 
+ * Words are detected by finding consecutive sequences of alpha-numeric
+ * characters. The uniformization goes through a diphtongue normalization
+ * process, described above. A word will never be blank.
+ * 
+ * @param {string} strDescription - The text to extract words from
+ * @returns {Set<string>} - The word-tokens
+ * ----------------------------------------------------------------------------
+ */
 function extractTokens(strDescription) {
     return new Set([
         ... strDescription.matchAll(/\b\w+\b/ig)
     ].map(([first]) => first).map(uniformizeDiphtongues).filter(_ => !!_));
 }
 
+/**
+ * Apply transformers onto the source. This auxiliary method is used through the
+ * uniformization process.
+ * 
+ * @param {string} source - The text source to apply the transformers onto
+ * @param {*} transformers - The transformers to be applied
+ * @returns {string} - A text that is the transformed source
+ * ----------------------------------------------------------------------------
+ */
 function applyTransformers(source, transformers) {
-    let target = [];
-    let _target;
+    const target = [];
+    const _target;
     
     while(source.length) {
         applicative: {
-            for(let transformer of transformers) {
-                let transformed = transformer(source)
+            for(const transformer of transformers) {
+                const transformed = transformer(source)
                 if(transformed) {
-                    [source, _target] = transformed;
-                    target = target.concat(_target);
+                    const [nextSource, newElements] = transformed;
+                    for(const newElement in newElements) {
+                        target.push(newElement)
+                    }
+                    source = nextSource
                     break applicative;
                 }
             }
@@ -53,8 +75,8 @@ function substitute(source, diphtongue, replacement) {
 
 const Vowels = new Set("aeiouyh")
 function substitute_termination(source, diphtongue, replacement) {
-    let length = diphtongue.length;
-    let termination = diphtongue[length - 1];
+    const length = diphtongue.length;
+    const termination = diphtongue[length - 1];
     if (source.startsWith(diphtongue)) {
         if(source.length == length || (
             source[length] != termination && !Vowels.has(source[length])
@@ -137,7 +159,7 @@ const phonem_simplification_transformers = [
 const post_clean_transformers = [
     source => { /* Handle doubled letters */
         if(source.length > 1) {
-            let firstLetter = source[0];
+            const firstLetter = source[0];
             if(firstLetter === source[1]) {
                 return [source.slice(1), '']
             }
@@ -162,7 +184,7 @@ function uniformizeDiphtongues(word) {
     
     if(word.length <= 1) return null;
     
-    let source = word;
+    const source = word;
     source = applyTransformers(source, clean_diphtongues_transformers);
     source = applyTransformers(source, phonem_simplification_transformers);
     source = applyTransformers(source, post_clean_transformers);
@@ -358,8 +380,8 @@ function _letterDistance(a, b) {
     if(a == b)
         return 0;
     else {
-        for(let weight in _relatedLetters) {
-            for(let cluster of _relatedLetters[weight]) {
+        for(const weight in _relatedLetters) {
+            for(const cluster of _relatedLetters[weight]) {
                 if(cluster.has(a) && cluster.has(b)) {
                     return weight
                 }
@@ -370,7 +392,7 @@ function _letterDistance(a, b) {
 }
 
 function _recursiveLevenshtein(a, b, distanceSoFar, penalization, config) {
-    let { x, y, upperBound } = config
+    const { x, y, upperBound } = config
     if(distanceSoFar > upperBound)
         return Infinity
     else if(penalization >= 3)
@@ -390,7 +412,7 @@ function _recursiveLevenshtein(a, b, distanceSoFar, penalization, config) {
             config
         )
     } else {
-        let distanceBetweenLetters = _letterDistance(a[0], b[0]);
+        const distanceBetweenLetters = _letterDistance(a[0], b[0]);
         distanceSoFar += distanceBetweenLetters
         penalization += distanceBetweenLetters >= 0.5 ? 1 : 0;
         return Math.min(
@@ -420,25 +442,25 @@ SearchEngine.prototype = {
     },
 
     _SearchEngine__insertInVirtualCalendar: function({ strDate, strTime, words }) {
-        let key = this._SearchEngine__createKey({ strDate, strTime })
+        const key = this._SearchEngine__createKey({ strDate, strTime })
         this._SearchEngine__Calendar.set(key, words);
 
-        for(let word of words) {
-            let value = this._SearchEngine__WordFrequencies.get(word) || 0
+        for(const word of words) {
+            const value = this._SearchEngine__WordFrequencies.get(word) || 0
             this._SearchEngine__WordFrequencies.set(word, value + 1)
         }
         this._SearchEngine__DocumentCount += 1;
     },
     
     _SearchEngine__removeFromVirtualCalendar: function({ strDate, strTime }) {
-        let key = this._SearchEngine__createKey({ strDate, strTime })
+        const key = this._SearchEngine__createKey({ strDate, strTime })
         this._SearchEngine__Calendar.delete(key);
     },
 
     _SearchEngine__distanceToDocument(expansion, words) {
-        let L = this._SearchEngine__DocumentCount
-        let product = 0.
-        for(let word of words) {
+        const L = this._SearchEngine__DocumentCount
+        const product = 0.
+        for(const word of words) {
             product += (expansion.get(word) || 0.) * (1. - this._SearchEngine__WordFrequencies.get(word) / L)
         }
         return product
@@ -447,7 +469,7 @@ SearchEngine.prototype = {
     /* Exposed getters */
     get acceptAppointment() {
         return (function({ strDate, strTime, strDescription }) {
-            let words = extractTokens(strDescription)
+            const words = extractTokens(strDescription)
             this._SearchEngine__insertInVirtualCalendar({
                 strDate, strTime, words
             })
@@ -460,18 +482,18 @@ SearchEngine.prototype = {
     },
     get search() {
         return (function({ maximalCount, searchQuery }) {
-            let self = this
-            let expansion; /* define */ {
+            const self = this
+            const expansion; /* define */ {
                 const TOC = Date.now()
-                let tokens = extractTokens(searchQuery);
+                const tokens = extractTokens(searchQuery);
 
                 expansion = new Map()
-                let upperBound = -Infinity
-                for(let token of tokens) {
-                    for(let candidate of self._SearchEngine__WordFrequencies.keys()) {
-                        let distance = levenshteinDistance(token, candidate)
+                const upperBound = -Infinity
+                for(const token of tokens) {
+                    for(const candidate of self._SearchEngine__WordFrequencies.keys()) {
+                        const distance = levenshteinDistance(token, candidate)
                         if (distance <= Math.min(4, Math.max(token.length / 2, candidate.length))) {
-                            let value = expansion.get(candidate)
+                            const value = expansion.get(candidate)
                             value = value == null || !isFinite(value) ? Infinity : value
                             value = Math.min(distance, value)
                             
@@ -480,7 +502,7 @@ SearchEngine.prototype = {
                         }
                     }
                 }
-                for(let key of [...expansion.keys()]) {
+                for(const key of [...expansion.keys()]) {
                     expansion.set(key, 1 + upperBound - expansion.get(key))
                 }
 
@@ -488,11 +510,11 @@ SearchEngine.prototype = {
             console.log("** EXPENSION COMPUTED", expansion)
             }
 
-            let threshold = 0.
-            let queue = [];
-            for(let entries of batchRecords(self._SearchEngine__Calendar.entries())) {
-                for(let [key, words] of entries) {
-                    let distance = self._SearchEngine__distanceToDocument(expansion, words)
+            const threshold = 0.
+            const queue = [];
+            for(const entries of batchRecords(self._SearchEngine__Calendar.entries())) {
+                for(const [key, words] of entries) {
+                    const distance = self._SearchEngine__distanceToDocument(expansion, words)
                     if(distance > threshold) {
                         queue.push({ distance, key })
                     }

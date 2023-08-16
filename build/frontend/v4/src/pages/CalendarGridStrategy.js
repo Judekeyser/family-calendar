@@ -1,8 +1,6 @@
 import { compile } from '../template-engine.js'
 import {
-    nextDateTime,
-    nextWeekDateTime,
-    previousWeekDateTime,
+    nextDatetime,
     mondayOfDateTime,
     dateTimeToString,
     monthOfDate,
@@ -47,7 +45,7 @@ function* generateCols({ startDateTime, todayStrDate, focusStrDate }, view, navi
             focusStrDate
         }, view, navigateTo)
 
-        cursorDateTime = nextDateTime(cursorDateTime)
+        cursorDateTime = nextDatetime(cursorDateTime)
     }
 }
 
@@ -62,7 +60,7 @@ function* generateRows({ numberOfWeeks, todayStrDate, focusStrDate }, view, navi
             }, view, navigateTo)
         }
 
-        cursorDateTime = nextWeekDateTime(cursorDateTime)
+        cursorDateTime = nextDatetime(cursorDateTime, { weekShift: 1 })
     }
 }
 
@@ -105,7 +103,7 @@ function makeNextWeekController({ dateTime, numberOfWeeks }, navigateTo) {
             navigateTo({
                 url: '/calendar-grid/',
                 parameters: {
-                    firstWeekIncludes: dateTimeToString(nextWeekDateTime(dateTime)),
+                    firstWeekIncludes: dateTimeToString(nextDatetime(dateTime, { weekShift: 1 })),
                     numberOfWeeks
                 }
             })
@@ -119,7 +117,7 @@ function makePreviousWeekController({ dateTime, numberOfWeeks }, navigateTo) {
             navigateTo({
                 url: '/calendar-grid/',
                 parameters: {
-                    firstWeekIncludes: dateTimeToString(previousWeekDateTime(dateTime)),
+                    firstWeekIncludes: dateTimeToString(nextDatetime(dateTime, { weekShift: -1 })),
                     numberOfWeeks
                 }
             })

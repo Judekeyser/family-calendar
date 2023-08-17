@@ -1,19 +1,48 @@
-function* batchRecords(records) {
-
-    emitBatch: for(;;) {
-        const batch = []
-        try {
-            for(const i = 0; i < 30; i++) {
-                const { value, done } = records.next()
-                if(!done) {
-                    batch.push(value)
-                } else break emitBatch
-            }
-        } finally {
-            if(batch.length)
-                yield batch
-        }
+/**
+ * @template T - The `yield` type of the base iterator
+ */
+class BatchedIterator
+{
+    /**
+     * @param {Iterator<T, *>} baseIterator 
+     */
+    constructor(baseIterator) {
+        this.iterator = baseIterator;
+        this.done = false;
     }
+
+    /**
+     * @returns {IteratorResult<Array<T>, null>} - An array of elements
+     */
+    next = () => {
+        /**
+         * @type {Array<T>}
+         */
+        const batch = [];
+        if(!this.done) {
+            for(let i = 0; i < 30; i++) {
+                const { done, value } = this.iterator.next();
+                if(!done) {
+                    batch.push(value);
+                } else {
+                    break;
+                }
+            }
+        }
+        if(batch.length) {
+            this.done = true;
+            return {
+                done: true,
+                value: null
+            };
+        } else {
+            return {
+                value: batch
+            };
+        }
+    };
+
+    [Symbol.iterator] = () => this;
 }
 
 
@@ -29,9 +58,91 @@ function* batchRecords(records) {
  * ----------------------------------------------------------------------------
  */
 function extractTokens(strDescription) {
-    return new Set([
-        ... strDescription.matchAll(/\b\w+\b/ig)
-    ].map(([first]) => first).map(uniformizeDiphtongues).filter(_ => !!_));
+    /**
+     * @type{Set<string>}
+     */
+    const tokens = new Set();
+    for(const [match] of strDescription.matchAll(/\b\w+\b/ig)) {
+        const uniformized = uniformizeDiphtongues(match);
+        if(uniformized) {
+            tokens.add(uniformized);
+        }
+    }
+    return tokens;
+}
+
+/**
+ * This type defines a substitution result. The first part of the tuple is the
+ * text, that will be a suffix. The second part is the prefix.
+ * 
+ * @typedef {[string, string]} Extraction
+ * ----------------------------------------------------------------------------
+ * 
+ * Elements of type `Extractor` are expected to return extractions, or nothing
+ * if nothing might be extracted. The implementation is specific to each
+ * extraction process, yet the common signature is described as:
+ * 
+ * @callback Extractor
+ * @param {string} source - The source to extractor from
+ * @returns {Extraction=} - The extraction result, or nothing.
+ * ----------------------------------------------------------------------------
+ */
+
+/**
+ * Extract the diphtongue out of the source, if the source starts with the
+ * diphtongue. When it is not the case, the method returns undefined.
+ * 
+ * The method does not apply the replacement token, but happens it on the
+ * result. This allows an easy pattern-matching with the `undefined` case.
+ * 
+ * @param {string} source - The source text to replace diphtongues in
+ * @param {string} diphtongue - The diphtongue to target
+ * @param {string} replacement - The replacement string
+ * @returns {Extraction=} - A pair of strings
+ * ----------------------------------------------------------------------------
+ */
+function substitute(source, diphtongue, replacement) {
+    if(source.startsWith(diphtongue)) {
+        return [source.slice(diphtongue.length), replacement];
+    } else {
+        return undefined;
+    }
+}
+
+
+/**
+ * Extracts the first diphtongue in the source, if found. This method follows
+ * the same policy as @link {substitute}, except it applies the additional
+ * condition that the next token after the diphtongue, is a vowel or the end
+ * of the word.
+ * 
+ * @param {string} source - The source string to replace in
+ * @param {string} diphtongue - The diphtongue to target
+ * @param {string} replacement - The replacement token for the diphtongue
+ * @returns {Extraction=}
+ * ----------------------------------------------------------------------------
+ */
+function substitute_termination(source, diphtongue, replacement) {
+    const length = diphtongue.length;
+    const termination = diphtongue[length - 1];
+    if (source.startsWith(diphtongue)) {
+        substitute: {
+            if(source.length > length) {
+                const charAfterDiphtongue = (
+                    /**
+                     * @type {string} Not null by design
+                     */ (source[length])
+                );
+                if(charAfterDiphtongue == termination
+                    || "aeiouyh".includes(charAfterDiphtongue)
+                ) {
+                    break substitute;
+                }
+            }
+            return [source.slice(length), replacement];
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -39,85 +150,85 @@ function extractTokens(strDescription) {
  * uniformization process.
  * 
  * @param {string} source - The text source to apply the transformers onto
- * @param {*} transformers - The transformers to be applied
+ * @param {Iterable<Extractor>} transformers - The transformers to be applied
  * @returns {string} - A text that is the transformed source
  * ----------------------------------------------------------------------------
  */
 function applyTransformers(source, transformers) {
+    /**
+     * @type {Array<string>}
+     */
     const target = [];
-    const _target;
     
-    while(source.length) {
+    let sourceCursor = source;
+    while(sourceCursor.length) {
         applicative: {
             for(const transformer of transformers) {
-                const transformed = transformer(source)
+                const transformed = transformer(sourceCursor);
                 if(transformed) {
                     const [nextSource, newElements] = transformed;
-                    for(const newElement in newElements) {
-                        target.push(newElement)
+                    for(const newElement of newElements) {
+                        target.push(newElement);
                     }
-                    source = nextSource
+                    sourceCursor = nextSource;
                     break applicative;
                 }
             }
-            target.push(source[0])
-            source = source.slice(1)
+            const unprocessedLetter = (
+                /**
+                 * @type {string} Not null by design
+                 */ (sourceCursor[0])
+            );
+            target.push(unprocessedLetter);
+            sourceCursor = sourceCursor.slice(1);
         }
     }
     
     return target.join("");
 }
 
-function substitute(source, diphtongue, replacement) {
-    if(source.startsWith(diphtongue))
-        return [source.slice(diphtongue.length), replacement]
-}
-
-const Vowels = new Set("aeiouyh")
-function substitute_termination(source, diphtongue, replacement) {
-    const length = diphtongue.length;
-    const termination = diphtongue[length - 1];
-    if (source.startsWith(diphtongue)) {
-        if(source.length == length || (
-            source[length] != termination && !Vowels.has(source[length])
-        ))
-            return [source.slice(length), replacement]
-    }
-}
-
+/**
+ * @type {Array<Extractor>}
+ */
 const clean_diphtongues_transformers = [
     source => { /* Handle C */
-        if(source.startsWith('ch'))
-            return [source.slice(2), 'C']
-        else if(source.startsWith('cc'))
-            return [source.slice(2), 'x']
-        else if(source.startsWith('cq'))
-            return [source.slice(1), '']
-        else if(source.startsWith('ci'))
-            return [source.slice(1), 's']
-        else if(source.startsWith('ce'))
-            return [source.slice(1), 's']
-        else if(source.startsWith('c'))
-            return [source.slice(1), 'k']
+        if(source.startsWith('ch')) {
+            return [source.slice(2), 'C'];
+        } else if(source.startsWith('cc')) {
+            return [source.slice(2), 'x'];
+        } else if(source.startsWith('cq')) {
+            return [source.slice(1), ''];
+        } else if(source.startsWith('ci')) {
+            return [source.slice(1), 's'];
+        } else if(source.startsWith('ce')) {
+            return [source.slice(1), 's'];
+        } else if(source.startsWith('c')) {
+            return [source.slice(1), 'k'];
+        } else {
+            return undefined;
+        }
     },
     
     source => { /* Handle G */
-        if(source.startsWith('gea'))
-            return [source.slice(2), 'j']
-        else if(source.startsWith('geo'))
-            return [source.slice(2), 'j']
-        else if(source.startsWith('gi'))
-            return [source.slice(1), 'j']
-        else if(source.startsWith('gy'))
-            return [source.slice(1), 'j']
-        else if(source.startsWith('ge'))
-            return [source.slice(1), 'j']
-        else if(source.startsWith('gui'))
-            return [source.slice(2), 'g']
-        else if(source.startsWith('guy'))
-            return [source.slice(2), 'g']
-        else if(source.startsWith('gue'))
-            return [source.slice(2), 'g']
+        if(source.startsWith('gea')) {
+            return [source.slice(2), 'j'];
+        } else if(source.startsWith('geo')) {
+            return [source.slice(2), 'j'];
+        } else if(source.startsWith('gi')) {
+            return [source.slice(1), 'j'];
+        } else if(source.startsWith('gy')) {
+            return [source.slice(1), 'j'];
+        } else if(source.startsWith('ge')) {
+            return [source.slice(1), 'j'];
+        } else if(source.startsWith('gui')) {
+            return [source.slice(2), 'g'];
+        } else if(source.startsWith('guy')) {
+            return [source.slice(2), 'g'];
+        } else if(source.startsWith('gue')) {
+            return [source.slice(2), 'g'];
+        } else {
+            return undefined;
+        }
     },
     
     source => substitute(source, 'qu', 'k'),
@@ -151,48 +262,36 @@ const clean_diphtongues_transformers = [
     source => substitute_termination(source, 'um', 'I'),
     
     source => substitute(source, 'y', 'i'),
-]
+];
+
+/**
+ * @type {Array<Extractor>}
+ */
 const phonem_simplification_transformers = [
     source => substitute(source, 'tiO', 'siO'),
     source => substitute(source, 'tiA', 'siA')
-]
+];
+
+/**
+ * @type {Array<Extractor>}
+ */
 const post_clean_transformers = [
     source => { /* Handle doubled letters */
         if(source.length > 1) {
             const firstLetter = source[0];
             if(firstLetter === source[1]) {
-                return [source.slice(1), '']
+                return [source.slice(1), ''];
             }
         }
+        return undefined;
     },
     
     source => substitute(source, 'h', '')
-]
+];
 
-function uniformizeDiphtongues(word) {
-    if(StopWords.has(word)) return null;
-    if(word == "eau") return word;
-
-    word = word.replaceAll("ç", "ss")
-    word = word.replaceAll("ï", "hi")
-    word = word.replaceAll("ë", "he")
-    word = word.replaceAll("ü", "hu")
-    word = word.replaceAll("ö", "ho")
-    word = word.replaceAll("ä", "ha")
-    word = word.normalize('NFKD')
-    word = word.replace(/[^\x20-\x7F]/g,"");
-    
-    if(word.length <= 1) return null;
-    
-    const source = word;
-    source = applyTransformers(source, clean_diphtongues_transformers);
-    source = applyTransformers(source, phonem_simplification_transformers);
-    source = applyTransformers(source, post_clean_transformers);
-    
-    if(source.length <= 1) return null;
-    return source
-}
-
+/**
+ * List of stop words in French
+ */
 const StopWords = new Set([
     "au",
     "aux",
@@ -357,178 +456,331 @@ const StopWords = new Set([
     "quelles",
     "sans",
     "soi"
-])
+]);
 
-
-
-const _relatedLetters = {
-    0.3: [
-        new Set('oO'),
-        new Set('aA'),
-        new Set('eE'),
-        new Set('iI'),
-        new Set('yiI')
-    ],
-    0.7: [
-        new Set('vf'),
-        new Set('bp'),
-        new Set('td'),
-        new Set('sz')
-    ],
-}
-function _letterDistance(a, b) {
-    if(a == b)
-        return 0;
-    else {
-        for(const weight in _relatedLetters) {
-            for(const cluster of _relatedLetters[weight]) {
-                if(cluster.has(a) && cluster.has(b)) {
-                    return weight
-                }
-            }
+/**
+ * Uniformizes the word in input.
+ * 
+ * Uniformization means that diphtongues will be replaces with an equivalent
+ * that makes more sense for comparing words. For examples, "Constantin"
+ * will be uniformized as "KOstAtI", so that it will become closer to
+ * phonetically close segments, like "Kostas".
+ * 
+ * When a word cannot be uniformizes (because it is too short, or is a
+ * stop-word), nothing is returned.
+ * 
+ * @param {string} word - The word to uniformize
+ * @returns {string=} A uniformized version of the word, or null.
+ * ----------------------------------------------------------------------------
+ */
+function uniformizeDiphtongues(word) {
+    if(StopWords.has(word)) {
+        return undefined;
+    } else if(word == "eau") {
+        return word;
+    } else {
+        const wordWithoutSpecialChars = (
+            word.replaceAll("ç", "ss")
+                .replaceAll("ï", "hi")
+                .replaceAll("ë", "he")
+                .replaceAll("ü", "hu")
+                .replaceAll("ö", "ho")
+                .replaceAll("ä", "ha")
+                .normalize('NFKD')
+                .replace(/[^\x20-\x7F]/g,"")
+        );
+        
+        if(wordWithoutSpecialChars.length <= 1) {
+            return undefined;
+        } else {
+            const transformedWord = applyTransformers(
+                applyTransformers(
+                    applyTransformers(wordWithoutSpecialChars,
+                        clean_diphtongues_transformers
+                    ),
+                    phonem_simplification_transformers
+                ),
+                post_clean_transformers
+            );
+            return transformedWord.length <= 1 ? undefined: transformedWord;
         }
-        return 1;
     }
 }
 
-function _recursiveLevenshtein(a, b, distanceSoFar, penalization, config) {
-    const { x, y, upperBound } = config
-    if(distanceSoFar > upperBound)
-        return Infinity
-    else if(penalization >= 3)
-        return Infinity
-    
-    if(!a.length) {
-        if(x.length >= 4 && distanceSoFar <= 1 && x[0] == y[0])
-            return distanceSoFar
-        else
-            return distanceSoFar + b.length
+/**
+ * Computes the distance between two letters supposed to represent a
+ * diphtongue. In the usual edition-distance algorithm (Levenshtein distance),
+ * two letters distinct are always far by 1. We modify this policy, as some
+ * letters might be closest to each others than one would expect.
+ * 
+ * The encoding of specific distance associations is done in `RELATED_LETTERS`.
+ * 
+ * Example:
+ *  - The distance between "a" and "p" is 1
+ *  - The distance between "a" and "A" is 0.3
+ * 
+ * @param {string} a - A letter, that represents a diphtongue
+ * @param {string} b - A letter, that represents a diphtongue
+ * @returns {number} The distance between the letters
+ * ----------------------------------------------------------------------------
+ */
+function letterDistance(a, b) {
+    if(a == b) {
+        return 0;
+    } else {
+        switch(a+b) {
+            case "oO": case "Oo":
+            case "aA": case "Aa":
+            case "eE": case "Ee":
+            case "iI": case "Ii":
+            case "iy": case "yi":
+            case "yI": case "Iy":
+                return 0.3;
+            case "vf": case "fv":
+            case "bp": case "pb":
+            case "td": case "dt":
+            case "sz": case "zs":
+                return 0.7;
+            default:
+                return 1;
+        }
+    }
+}
+
+/**
+ * Recursive variation of the Levenshtein distance between two words.
+ * 
+ * Compared to the usual method, this implementation takes into account
+ * specific distances between letters, to reflect more closely the idea of
+ * diphtongues. The method also introduces a penalization factor, to short-
+ * circuit faster in case the distances are too high.
+ * 
+ * The configuration does not change from one call to another.
+ * It is used to allow a short-circuit by upper bound on the distance.
+ * It also allows to consider the smallest word being a standard French
+ * abbreviation of the longest. As such, the method is not symmetric.
+ * We still call it "distance", for semantic reasons.
+ * 
+ * @param {string} a - The first word
+ * @param {string} b - The second word
+ * @param {{distance: number, penalization: number}} stack - Stack
+ * @param {{x: string, y:string, upperBound: number}} config - Configuration
+ * @returns {number}
+ * ----------------------------------------------------------------------------
+ */
+function _recursiveLevenshtein(a, b, stack, config) {
+    const { distance, penalization } = stack;
+    const { x, y, upperBound } = config;
+
+    if(distance > upperBound || penalization >= 3) {
+        return Infinity;
+    } else if(!a.length) {
+        if(x.length >= 4 && distance <= 1 && x[0] == y[0]) {
+            return distance; // Heuristic: French abbreviation
+        } else {
+            return distance + b.length;
+        }
     } else if(!b.length) {
-        return distanceSoFar + a.length
+        return distance + a.length;
     } else if (a[0] === b[0]) {
+        const nextStack=  {
+            distance,
+            penalization: penalization - 1
+        };
         return _recursiveLevenshtein(
             a.slice(1), b.slice(1),
-            distanceSoFar, penalization-1,
-            config
-        )
+            nextStack, config
+        );
     } else {
-        const distanceBetweenLetters = _letterDistance(a[0], b[0]);
-        distanceSoFar += distanceBetweenLetters
-        penalization += distanceBetweenLetters >= 0.5 ? 1 : 0;
+        const headA = (
+            /**
+             * @type {string}
+             */ (a[0])
+        );
+        const headB = (
+            /**
+             * @type {string}
+             */ (b[0])
+        );
+        const distanceBetweenLetters = letterDistance(headA, headB);
+        const nextStack = {
+            distance: distance + distanceBetweenLetters,
+            penalization: penalization + distanceBetweenLetters >= 0.5 ? 1 : 0
+        };
         return Math.min(
-            _recursiveLevenshtein(a.slice(1), b.slice(1), distanceSoFar, penalization, config),
-            _recursiveLevenshtein(a, b.slice(1), distanceSoFar, penalization, config),
-            _recursiveLevenshtein(a.slice(1), b, distanceSoFar, penalization, config),
-        )
+            _recursiveLevenshtein(a.slice(1), b.slice(1), nextStack, config),
+            _recursiveLevenshtein(a, b.slice(1), nextStack, config),
+            _recursiveLevenshtein(a.slice(1), b, nextStack, config),
+        );
     }
 }
 
+/**
+ * This is a public guard to Levenshtein distance. It ensures the first
+ * parameter always has smaller length.
+ * 
+ * @param {string} x - First word
+ * @param {string} y - Second word
+ * @param {number} upperBound - Distance upper bound
+ * @returns {number} - The distance between the words
+ */
 function levenshteinDistance(x, y, upperBound) {
-    if (x.length > y.length)
-        return levenshteinDistance(y, x, upperBound)
-    
-    return _recursiveLevenshtein(x, y, 0, 0, { x, y, upperBound })
-}
+    if (x.length > y.length) {
+        return levenshteinDistance(y, x, upperBound);
+    } else {
+        const stack = {
+            distance: 0,
+            penalization: 0
+        };
+        const config = { x, y, upperBound };
 
-
-function SearchEngine() {
-    this._SearchEngine__Calendar = new Map(/* strDate => strTime => words */);
-    this._SearchEngine__WordFrequencies = new Map(/* word => frequency */);
-    this._SearchEngine__DocumentCount = 0;
-}
-SearchEngine.prototype = {
-    _SearchEngine__createKey: function({ strDate, strTime }) {
-        return `${strDate} ${strTime}`
-    },
-
-    _SearchEngine__insertInVirtualCalendar: function({ strDate, strTime, words }) {
-        const key = this._SearchEngine__createKey({ strDate, strTime })
-        this._SearchEngine__Calendar.set(key, words);
-
-        for(const word of words) {
-            const value = this._SearchEngine__WordFrequencies.get(word) || 0
-            this._SearchEngine__WordFrequencies.set(word, value + 1)
-        }
-        this._SearchEngine__DocumentCount += 1;
-    },
-    
-    _SearchEngine__removeFromVirtualCalendar: function({ strDate, strTime }) {
-        const key = this._SearchEngine__createKey({ strDate, strTime })
-        this._SearchEngine__Calendar.delete(key);
-    },
-
-    _SearchEngine__distanceToDocument(expansion, words) {
-        const L = this._SearchEngine__DocumentCount
-        const product = 0.
-        for(const word of words) {
-            product += (expansion.get(word) || 0.) * (1. - this._SearchEngine__WordFrequencies.get(word) / L)
-        }
-        return product
-    },
-    
-    /* Exposed getters */
-    get acceptAppointment() {
-        return (function({ strDate, strTime, strDescription }) {
-            const words = extractTokens(strDescription)
-            this._SearchEngine__insertInVirtualCalendar({
-                strDate, strTime, words
-            })
-        }).bind(this);
-    },
-    get cancelAppointment() {
-        return (function({ strDate, strTime }) {
-            this._SearchEngine__removeFromVirtualCalendar({ strDate, strTime })
-        }).bind(this);
-    },
-    get search() {
-        return (function({ maximalCount, searchQuery }) {
-            const self = this
-            const expansion; /* define */ {
-                const TOC = Date.now()
-                const tokens = extractTokens(searchQuery);
-
-                expansion = new Map()
-                const upperBound = -Infinity
-                for(const token of tokens) {
-                    for(const candidate of self._SearchEngine__WordFrequencies.keys()) {
-                        const distance = levenshteinDistance(token, candidate)
-                        if (distance <= Math.min(4, Math.max(token.length / 2, candidate.length))) {
-                            const value = expansion.get(candidate)
-                            value = value == null || !isFinite(value) ? Infinity : value
-                            value = Math.min(distance, value)
-                            
-                            upperBound = value > upperBound ? value : upperBound
-                            expansion.set(candidate, value)
-                        }
-                    }
-                }
-                for(const key of [...expansion.keys()]) {
-                    expansion.set(key, 1 + upperBound - expansion.get(key))
-                }
-
-            console.log("** Took", Date.now() - TOC)
-            console.log("** EXPENSION COMPUTED", expansion)
-            }
-
-            const threshold = 0.
-            const queue = [];
-            for(const entries of batchRecords(self._SearchEngine__Calendar.entries())) {
-                for(const [key, words] of entries) {
-                    const distance = self._SearchEngine__distanceToDocument(expansion, words)
-                    if(distance > threshold) {
-                        queue.push({ distance, key })
-                    }
-                }
-                if(queue.length > maximalCount) {
-                    queue.sort((a,b) => b.distance - a.distance)
-                    queue = queue.slice(0, maximalCount)
-                    threshold = queue[0]
-                }
-            }
-
-            return queue
-        }).bind(this);
+        return _recursiveLevenshtein(x, y, stack, config);
     }
 }
 
-export { SearchEngine }
+
+class SearchEngine {
+    constructor() {
+        /**
+         * @type {Map<string, Set<string>>}
+         */
+        this.documents = new Map();
+        /**
+         * @type {Map<string, number>}
+         */
+        this.frequencies = new Map();
+        this.documentCount = 0;
+    }
+
+    /**
+     * @param {{strDate: string, strTime: string }} _1
+     * @returns {string} - The data, as a key
+     */
+    #createKey(_1) {
+        const { strDate, strTime } = _1;
+        return `${strDate} ${strTime}`;
+    }
+    
+    /**
+     * @param {Map<string, number>} expansion 
+     * @param {Set<string>} words 
+     * @returns - The distance between the expansion and the words
+     */
+    #distanceToDocument(expansion, words) {
+        let product = 0.;
+        for(const word of words) {
+            const expansionWeight = expansion.get(word) || 0.;
+            const idf = (this.frequencies.get(word) || 0) / this.documentCount;
+            product += expansionWeight * (1. - idf);
+        }
+        return product;
+    }
+
+    /**
+     * @param {Set<string>} tokens
+     * @returns {Map<string, number>} 
+     */
+    #expansionOfWords(tokens) {
+        /**
+         * @type {Map<string, number>}
+         */
+        const expansion = new Map();
+
+        let upperBound = -Infinity;
+        for(const token of tokens) {
+            for(const candidate of this.frequencies.keys()) {
+                const distance = levenshteinDistance(
+                    token, candidate, upperBound
+                );
+                if (
+                    distance <= Math.min(
+                        4, Math.max(token.length / 2, candidate.length)
+                    )
+                ) {
+                    const weightSoFar = expansion.get(candidate) || null;
+                    const weight = weightSoFar == null || !isFinite(weightSoFar)
+                        ? distance
+                        : Math.min(distance, weightSoFar);
+                    
+                    upperBound = weight > upperBound ? weight : upperBound;
+                    expansion.set(candidate, weight);
+                }
+            }
+        }
+        for(const [key, weight] of expansion.entries()) {
+            expansion.set(key, 1 + upperBound - weight);
+        }
+
+        return expansion;
+    }
+    
+    /**
+     * Accepts a calendar entry and process it in the engine internal state.
+     * 
+     * @param {{
+     *  strDate: string,
+     *  strTime: string,
+     *  strDescription: string
+     * }} _1 
+     * ------------------------------------------------------------------------
+     */
+    acceptAppointment = (_1) => {
+        const { strDate, strTime, strDescription } = _1;
+        const words = extractTokens(strDescription);
+        const key = this.#createKey({ strDate, strTime });
+
+        this.documents.set(key, words);
+        for(const word of words) {
+            const value = this.frequencies.get(word) || 0;
+            this.frequencies.set(word, value + 1);
+        }
+        this.documentCount += 1;
+    };
+
+    /**
+     * Cancels an appointment from the calendar. This means the deletion of
+     * the corresponding entry in the engine internal state.
+     * 
+     * @param {{strDate: string, strTime: string}} _1
+     * ------------------------------------------------------------------------
+     */
+    cancelAppointment = (_1) => {
+        const key = this.#createKey(_1);
+        this.documents.delete(key);
+    };
+
+    /**
+     * @param {{maximalCount: number, searchQuery: string}} _1
+     * @returns
+     * ------------------------------------------------------------------------
+     */
+    search = (_1) => {
+        const { maximalCount, searchQuery } = _1;
+        const self = this;
+        const expansion = this.#expansionOfWords(extractTokens(searchQuery));
+
+        /**
+         * @type {Array<{distance: number, key: string}>}
+         */
+        let queue = [];
+        let threshold = 0.;
+
+        for(const entries of new BatchedIterator(self.documents.entries())) {
+            for(const [key, words] of entries) {
+                const distance = self.#distanceToDocument(expansion, words);
+                if(distance > threshold) {
+                    queue.push({ distance, key });
+                }
+            }
+            if(queue.length > maximalCount) {
+                queue.sort((a,b) => b.distance - a.distance);
+                queue = queue.slice(0, maximalCount);
+                threshold = /** @type{{distance: number}} */(queue[0]).distance;
+            }
+        }
+
+        return queue;
+    };
+}
+
+export { SearchEngine };

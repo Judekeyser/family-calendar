@@ -174,7 +174,12 @@ function generateTreeFromExpression(template, reservedUuids)
                             break emitSlice;
                         } else {
                             for(let N = ancestorChain.length; --N >= 0;) {
-                                if(ancestorChain[N].symbol == 'uuid') {
+                                const ancestor = (
+                                    /**
+                                     * @type {WithSymbol} Not null by design
+                                     */ (ancestorChain[N])
+                                );
+                                if(ancestor.symbol == 'uuid') {
                                     break emitSlice;
                                 }
                             }
@@ -557,10 +562,13 @@ class BranchProcessor
             }
             else {
                 if(this.readCursor < this.children.length) {
-                    this.delegation = plantToProcessor(
-                        this.children[this.readCursor++],
-                        this.scope
+                    const child = (
+                        /**
+                         * @type {Plant} Not null by design
+                         */ (this.children[this.readCursor])
                     );
+                    this.readCursor += 1;
+                    this.delegation = plantToProcessor(child, this.scope);
                 } else {
                     break;
                 }

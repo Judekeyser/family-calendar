@@ -1,378 +1,637 @@
-import { dateTimeToString } from './date-utils'
+import { dateTimeToString } from './date-utils';
+
+/**
+ * @typedef {{
+ *  kind: 'cursor_move',
+ *  userInitiator: string?,
+ *  cursor: number,
+ *  version: 1
+ * }} EventV1_CursorMove
+* ----------------------------------------------------------------------------
+ * 
+ * @typedef {{
+ *  kind: 'create',
+ *  strDate: string,
+ *  strTime: string,
+ *  strDescription: string,
+ *  userInitiator: string?,
+ *  version: 1
+ * }} EventV1_Create
+* ----------------------------------------------------------------------------
+ * 
+ * @typedef {{
+ *  kind: 'cancel',
+ *  strDate: string,
+ *  strTime: string,
+ *  userInitiator: string?,
+ *  version: 1
+ * }} EventV1_Cancel
+ * ----------------------------------------------------------------------------
+ * 
+ * @typedef {{
+ *  toCancel: EventV1_Cancel,
+ *  toCreate: EventV1_Create,
+ *  version: 2
+ * }} EventV2_Modify
+ * ----------------------------------------------------------------------------
+ * 
+ * @typedef {EventV1_CursorMove |
+ *               EventV1_Create |
+ *               EventV2_Modify |
+ *               EventV1_Cancel } CalendarEvent
+ * ----------------------------------------------------------------------------
+ */
 
 
-function eventV1Handle(
-    { kind, strDate, strDescription, strTime, userInitiator, cursor },
-    time, currentUser
-) {
-    if(kind === 'cursor_move') {
-        if(userInitiator && userInitiator === currentUser) {
-            return ({ patchCursor }) => patchCursor(parseInt(cursor));
+/**
+ * @callback PatchCursorEffect
+ * @param {number} cursorCandidate
+ * ----------------------------------------------------------------------------
+ * 
+ * @callback CreateEventEffect
+ * @param {[strDate: string, strTime: string]} temporalKey - [strDate, strTime]
+ * @param {{ description: string, time: number }} details - event details
+ * ----------------------------------------------------------------------------
+ * 
+ * @callback DeleteEventEffect
+ * @param {[string, string]} temporalKey - [strDate, strTime]
+ * ----------------------------------------------------------------------------
+ * 
+ * @typedef {{
+ *  patchCursor: PatchCursorEffect,
+ *  createEvent: CreateEventEffect,
+ *  deleteEvent: DeleteEventEffect
+ * }} Calendar
+ * 
+ * @callback CalendarEffect
+ * @param {Calendar} calendar
+ * ----------------------------------------------------------------------------
+ */
+
+
+/**
+ * @param {EventV1_CursorMove | EventV1_Cancel | EventV1_Create} event
+ * @param {number} time
+ * @param {string=} currentUser
+ * @returns {CalendarEffect=} - A side effect on the calendar
+ * ----------------------------------------------------------------------------
+ */
+function eventV1Handle(event, time, currentUser) {
+    const { kind, userInitiator } = event;
+    if (kind === 'cursor_move') {
+        const { cursor } = event;
+
+        if (userInitiator && userInitiator === currentUser) {
+            return ({ patchCursor }) => patchCursor(parseInt(String(cursor)));
+        } else {
+            return undefined;
         }
     } else {
-        let jsDayDate = Date.parse(strDate);
-        if(isNaN(jsDayDate) || !strTime) return;
-        if(kind === 'create') {
-            let reportTime = undefined;
-            if(userInitiator && userInitiator !== currentUser) {
-                reportTime = time;
+        const { strDate, strTime } = event;
+        const jsDayDate = Date.parse(strDate);
+        if (isNaN(jsDayDate) || !strTime) {
+            return undefined;
+        } else {
+            if (kind === 'create') {
+                const { strDescription } = event;
+                if (!strDescription) {
+                    return undefined;
+                } else {
+                    const reportTime = (
+                        userInitiator && userInitiator !== currentUser
+                    ) ? time : 0;
+
+                    return ({ createEvent }) => createEvent(
+                        [strDate, strTime],
+                        { description: strDescription, time: reportTime }
+                    );
+                }
+            } else if (kind === 'cancel') {
+                return ({ deleteEvent }) => deleteEvent([strDate, strTime]);
+            } else {
+                return undefined;
             }
-            
-            return ({ createEvent }) => createEvent(
-                [strDate, strTime],
-                { description: strDescription, time: reportTime }
-            );
-        } else if (kind === 'cancel') {
-            return ({ deleteEvent }) => deleteEvent([strDate, strTime]);
         }
     }
 }
 
-function eventV2Handle(
-    { toCancel, toCreate },
-    time, currentUser
-) {
-    {// Check date of toCancel
-        if(! toCancel) return;
-        let { strDate, strTime } = toCancel;
-        let jsDayDate = Date.parse(strDate);
-        if(isNaN(jsDayDate) || !strTime) return;
-    }
-    {// Check date of toCreate
-        if(! toCreate) return;
-        let { strDate, strTime } = toCreate;
-        let jsDayDate = Date.parse(strDate);
-        if(isNaN(jsDayDate) || !strTime) return;
-    }
-    
-    let h1 = eventV1Handle(toCancel, time, currentUser);
-    let h2 = eventV1Handle(toCreate, time, currentUser);
-    
-    return x => {
-        h1(x);
-        h2(x);
+/**
+ * 
+ * @param {EventV2_Modify} event 
+ * @param {number} time 
+ * @param {string=} currentUser 
+ * @returns {CalendarEffect=} - A side effect on the calendar
+ *-----------------------------------------------------------------------------
+ */
+function eventV2Handle(event, time, currentUser) {
+    const { toCancel, toCreate } = event;
+
+    const h1 = eventV1Handle(toCancel, time, currentUser);
+    const h2 = eventV1Handle(toCreate, time, currentUser);
+
+    if (h1 && h2) {
+        return x => { h1(x); h2(x); };
+    } else {
+        return undefined;
     }
 }
 
-async function fetchRoutine({ from, password, newEvent }) {
-    let headers = {
-        'Accept': 'application/json',
-        'X-Csrf-Token': window['__csrfToken']
+/**
+ * @param {CalendarEvent?} event 
+ * @param {number} time 
+ * @param {string=} currentUser 
+ * @returns {CalendarEffect=}
+ */
+function eventHandler(event, time, currentUser) {
+    if (event) {
+        const { version } = event;
+        switch (version) {
+            case 1:
+                return eventV1Handle(event, time, currentUser);
+            case 2:
+                return eventV2Handle(event, time, currentUser);
+        }
     }
-    if(password) {
-        headers['Authentication'] = btoa(password)
-    }
-    let method = 'GET';
-    let body = undefined;
-    if(newEvent) {
-        method = "POST";
-        body = JSON.stringify(newEvent);
+    return undefined;
+}
+
+/**
+ * Sends messages and fetches information from the remote backend.
+ * The policy here is agnostic of everything that relates to the business,
+ * but is concerned with correct headers definition and token retrieve.
+ * 
+ * @typedef {{
+ *  from: number,
+ *  password: string | undefined,
+ *  newEvent: CalendarEvent | undefined
+ * }} FetchRoutineArgument
+ * 
+ * @param {FetchRoutineArgument} _1 
+ * @returns {Promise<Response>}
+ * ----------------------------------------------------------------------------
+ */
+async function fetchRoutine(_1) {
+    const { from, password, newEvent } = _1;
+    const url = '/send_event.php?from=' + String(from);
+
+    /**
+     * @type {string=}
+     */
+    const csrfToken = (
+        /**
+         * @type{Object.<string,string>}
+         */ (
+            /**
+             * @type{Object}
+             */ (window)
+        )['__csrfToken']
+    );
+
+    /**
+     * @type {HeadersInit}
+     */
+    const headers = { 'Accept': 'application/json' };
+    if (csrfToken) { headers['X-Csrf-Token'] = csrfToken; }
+    if (password) { headers['Authentication'] = btoa(password); }
+
+    /**
+     * @type {Response}
+     */
+    let response;
+    if (newEvent) {
         headers['Content-Type'] = 'application/json';
+        response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(newEvent)
+        });
+    } else {
+        response = await fetch(url, {
+            method: 'GET',
+            headers
+        });
     }
-    let url = '/send_event.php?from=' + parseInt(from);
-    
-    let response = await fetch(url, { method, headers, body });
-    if(response.status !== 200) {
+
+    if (response.status !== 200) {
+        const authDelay = response.headers.get("X-Authentication-Delay");
         throw {
             errorCode: response.status,
-            authenticationDelay: response.headers.get("X-Authentication-Delay"),
+            authenticationDelay: authDelay,
             errorMessage: await response.json()
-        }
-    } else return response;
+        };
+    } else {
+        return response;
+    }
 }
 
-function sendEvent(x, calendar) {
+/**
+ * Sends messages and fetches information from the remote backend.
+ * Compared to `fetchRoutine`, this method is aware of the business and
+ * performs a paginated fetch. It also decrypts events as effects on the
+ * calendar, using the `eventHandler` routine.
+ * 
+ * @callback Continuation
+ * @returns {Promise<number | undefined>}
+ * 
+ * @param {FetchRoutineArgument} x 
+ * @param {Calendar} calendar 
+ * @returns {Promise<Continuation>}
+ * ----------------------------------------------------------------------------
+ */
+async function sendEvent(x, calendar) {
+    /**
+     * @param {Iterable<[CalendarEvent | null, number]?>} content
+     */
     function consumeContent(content) {
-        if(!content) return;
-        let currentUser = window.localStorage.getItem('userName');
-        
-        let effects = []
-        for(let record of content) if(record) {
-            let [eventData, time] = record;
-            if(time) {
-                let effect = undefined;
-                if(eventData.version === 1) {
-                    effect = eventV1Handle(eventData, time, currentUser);
-                } else if(eventData.version === 2) {
-                    effect = eventV2Handle(eventData, time, currentUser);
-                }
-                if(effect) {
-                    effects.push(effect)
+        if (!content) {
+            return undefined;
+        } else {
+            const currentUser = window.localStorage.getItem('userName') ||
+                undefined;
+
+            /**
+             * @type {Array<CalendarEffect>}
+             */
+            const effects = [];
+            for (const record of content) {
+                if (record) {
+                    const [eventData, time] = record;
+                    if (time) {
+                        const effect = eventHandler(
+                            eventData, time, currentUser
+                        );
+                        if (effect) {
+                            effects.push(effect);
+                        }
+                    }
                 }
             }
+            for (const effect of effects) {
+                effect(calendar);
+            }
         }
-        for(let effect of effects) effect(calendar)
     }
-    
+
+    /**
+     * @param {Response} response 
+     * @returns {Promise<number | undefined>}
+     */
     async function continuationOf(response) {
-        let from, nextTime;
-        for(;;) {
-            nextTime = response.headers.get('x-next-page-time') || 0;
-            if(! nextTime) {
-                consumeContent(await response.json());
-                return from;
+        let from;
+        for (let responseCursor = response; ;) {
+            const nextTime = parseInt(
+                responseCursor.headers.get('x-next-page-time') || '0'
+            );
+            if (!nextTime || !isFinite(nextTime)) {
+                consumeContent(await responseCursor.json());
+                break;
             } else {
                 from = nextTime;
-                [response] = await Promise.all([
-                    fetchRoutine({ from }),
-                    response.json().then(consumeContent)
-                ])
+                [responseCursor] = await Promise.all([
+                    fetchRoutine({
+                        from: nextTime,
+                        password: undefined, newEvent: undefined
+                    }),
+                    responseCursor.json().then(consumeContent)
+                ]);
             }
         }
+        return from;
     }
-    
-    return fetchRoutine(x).then(_ => () => continuationOf(_))
+
+    const firstResponse = await fetchRoutine(x);
+    return () => continuationOf(firstResponse);
 }
 
-function Backend() 
-{
-    /**
-    The invariance of this type is to maintain
-    a comprehensive state about the calendar.
-    */
-    this._Backend__view = new Map()
-    this._Backend__newEvents = new Set()
-    this._Backend__userCursor = 0
-    this._Backend__isBusy = false
-    
-    this._Backend__lastUpdateTimestamp = 0
-}
-Backend.prototype =
-{
-    _Backend__getState: function() {
-        if(!this.authentifiedUser.userName) {
+
+/** The invariance of this type is to maintain a comprehensive state about the
+ * calendar.
+ * 
+ * @typedef {{
+ *  strDate: string,
+ *  strTime: string
+ * }} TemporalKey
+ * 
+ * @typedef {{
+ *  description: string,
+ *  unread?: boolean | undefined
+ * }}CalendarTimedRecord
+ * ----------------------------------------------------------------------------
+ */
+class Backend {
+    constructor() {
+        /**
+         * @type {Map<string, Map<string, CalendarTimedRecord>>}
+         */
+        this.view = new Map();
+
+        /**
+         * @type {Array<{time: number} & TemporalKey>}
+         */
+        this.newEvents = [];
+        this.userCursor = 0;
+        this.isBusy = false;
+        this.lastUpdateTimestamp = 0;
+    }
+
+    #getState() {
+        if (!this.authentifiedUser.userName) {
             throw {
                 errorMessage: "Utilisateur non identifié",
                 errorCode: 403
-            }
+            };
         }
         return {
-            view: this._Backend__view,
+            view: this.view,
             newEvents: [... new Set(
-                [...this._Backend__newEvents]
-                .map(({ strTime, strDate }) => (`${strDate} ${strTime}`))
+                [...this.newEvents]
+                    .map(({ strTime, strDate }) => (`${strDate} ${strTime}`))
             )].map(expression => {
-                let index = expression.indexOf(" ");
+                const index = expression.indexOf(" ");
                 return {
                     strDate: expression.substring(0, index),
-                    strTime: expression.substring(index+1)
-                }
+                    strTime: expression.substring(index + 1)
+                };
             })
-        }
-    },
-    
-    _Backend__deleteEvent: function([strDate, strTime]) {
-        let view = this._Backend__view;
-        
-        if(view.has(strDate)) {
-            let dateView = view.get(strDate)
-            if(dateView.has(strTime)) {
-                dateView.delete(strTime)
+        };
+    }
+
+    /**
+     * @param {[strDate: string, strTime: string]} _1 
+     * ------------------------------------------------------------------------
+     */
+    #deleteEvent(_1) {
+        const [strDate, strTime] = _1;
+
+        const timeMap = this.view.get(strDate);
+        if (timeMap) {
+            timeMap.delete(strTime);
+
+            if (!timeMap.size) {
+                this.view.delete(strDate);
             }
-            if(dateView.size === 0) {
-                view.delete(strDate)
-            }
         }
-    },
-    
-    _Backend__createEvent: function([strDate, strTime], {description, time}) {
-        let userCursor = this._Backend__userCursor;
-        let view = this._Backend__view;
-        let newEvents = this._Backend__newEvents;
-        
-        let entry = {
+    }
+
+    /**
+     * @param {[strDate: string, strTime: string]} _1
+     * @param {{description: string, time: number}} _2 
+     * ------------------------------------------------------------------------
+     */
+    #createEvent(_1, _2) {
+        const [strDate, strTime] = _1;
+        const { description, time } = _2;
+
+        const entry = {
             description,
-            unread: time && time > userCursor
+            unread: time && time > this.userCursor ? true : false
+        };
+
+        if (!this.view.has(strDate)) {
+            this.view.set(strDate, new Map());
         }
-        
-        if(!view.has(strDate))
-            view.set(strDate, new Map())
-        view = view.get(strDate);
-        view.set(strTime, entry)
-        
-        if(entry.unread) {
-            newEvents.add({ time, strDate, strTime })
+        const timeMap = /** @type{Map<string, CalendarTimedRecord>} */ (
+            this.view.get(strDate)
+        );
+        timeMap.set(strTime, entry);
+
+        if (entry.unread) {
+            this.newEvents.push({ time, strDate, strTime });
         }
-    },
-    
-    _Backend__markEventsAsRead: function(isReadPredicate) {
-        let newEvents = this._Backend__newEvents;
-        let view = this._Backend__view;
-        for(let elem of newEvents) {
-            if(isReadPredicate(elem)) {
-                let { strDate, strTime } = elem
-                let forDate = view.get(strDate)
-                let entry = forDate ? forDate.get(strTime) : undefined;
-                
-                if(entry) {
+    }
+
+    /**
+     * 
+     * @callback IsReadPredicate
+     * @param {{time: number | undefined, strDate: string | undefined}} _
+     * @returns {boolean}
+     */
+
+    /**
+     * @param {IsReadPredicate} isReadPredicate 
+     */
+    #markEventsAsRead(isReadPredicate) {
+        const newEvents = [];
+
+        for (const elem of this.newEvents) {
+            if (isReadPredicate(elem)) {
+                const { strDate, strTime } = elem;
+                const forDate = this.view.get(strDate);
+                const entry = forDate ? forDate.get(strTime) : undefined;
+
+                if (entry) {
                     entry.unread = false;
                 }
-                newEvents.delete(elem)
+            } else {
+                newEvents.push(elem);
             }
         }
-    },
-    
-    _Backend__patchCursor: function(cursor) {
-        if(!isNaN(cursor)) {
-            cursor = Math.max(this._Backend__userCursor, cursor)
-            
-            this._Backend__markEventsAsRead(
-                elem => elem.time <= cursor
-            )
+        this.newEvents = newEvents;
+    }
+
+    /**
+     * @param {number} cursor 
+     */
+    #patchCursor(cursor) {
+        if (!isNaN(cursor)) {
+            const effectiveCursor = Math.max(this.userCursor, cursor);
+
+            this.#markEventsAsRead(
+                ({ time }) => (time || -1) <= effectiveCursor
+            );
         }
-    },
-    
-    _Backend__checkIfAppointmentBelongsToView: function({ strTime, strDate }) {
-        let view = this._Backend__view;
-        let belongsToTheView = view.has(strDate) && view.get(strDate).has(strTime);
-        return belongsToTheView;
-    },
-    
-    
-    _Backend__update: async function({ password, newEvent }) {
+    }
+
+    /**
+     * @param {{
+     *  password?: string | undefined
+     *  newEvent?: CalendarEvent | undefined
+     * }} _1
+     */
+    async #update(_1) {
+        const { password, newEvent } = _1;
         try {
-            if(this._Backend__isBusy) return false;
-            
-            this._Backend__isBusy = true;
-            try {
-                var continuation = await sendEvent(
-                    {
-                        password,
-                        newEvent,
-                        from: this._Backend__userCursor
-                    },
-                    {
-                        deleteEvent: this._Backend__deleteEvent.bind(this),
-                        createEvent: this._Backend__createEvent.bind(this),
-                        patchCursor: this._Backend__patchCursor.bind(this)
+            if (this.isBusy) {
+                return false;
+            } else {
+                this.isBusy = true;
+                try {
+                    const continuation = await sendEvent(
+                        {
+                            password,
+                            newEvent,
+                            from: this.userCursor
+                        }, {
+                        patchCursor: this.#patchCursor.bind(this),
+                        deleteEvent: this.#deleteEvent.bind(this),
+                        createEvent: this.#createEvent.bind(this),
                     }
-                );
-                
-                let nextCursor = await continuation()
-                this._Backend__userCursor = nextCursor || this._Backend__userCursor
-                
-                // We clean here the newEvents array, to filter it only after the batch process
-                const todayDate = dateTimeToString(Date.now());
-                this._Backend__markEventsAsRead(
-                    elem => elem.strDate < todayDate
-                )                    
-                return true;
-            } finally {
-                this._Backend__isBusy = false
+                    );
+
+                    const nextCursor = await continuation();
+                    this.userCursor = nextCursor || this.userCursor;
+
+                    // We clean here the newEvents array,
+                    // to filter it only after the batch process
+                    const todayDate = dateTimeToString(Date.now());
+                    this.#markEventsAsRead(
+                        ({ strDate }) => (strDate || '') < todayDate
+                    );
+                    return true;
+                } finally {
+                    this.isBusy = false;
+                }
             }
-        } catch(error) {
-            console.error(error)
-            throw error
+        } catch (error) {
+            console.error(error);
+            throw error;
         }
-    },
-    
+    }
+
     /** Exposed getters */
-    
+
     get state() {
         return new Promise((res, rej) => {
-            let now = Date.now()
-            ;(async() => {
-                if(!this._Backend__lastUpdateTimestamp || this._Backend__lastUpdateTimestamp < now - 30*1000) {
+            const now = Date.now();
+            (async () => {
+                if (!this._Backend__lastUpdateTimestamp ||
+                    this._Backend__lastUpdateTimestamp < now - 30 * 1000
+                ) {
                     try {
-                        await this._Backend__update({})
-                        this._Backend__lastUpdateTimestamp = now
-                    } catch(error) {
-                        rej(error)
+                        await this.#update({});
+                        this._Backend__lastUpdateTimestamp = now;
+                    } catch (error) {
+                        rej(error);
                     }
                 }
                 try {
-                    res(this._Backend__getState())
-                } catch(error) {
-                    rej(error)
+                    res(this.#getState());
+                } catch (error) {
+                    rej(error);
                 }
-            })()
-        })
-    },
-    
+            })();
+        });
+    }
+
     get authentifiedUser() {
         return {
             userName: localStorage.getItem('userName') || undefined
-        }
-    },
-
-    get authentify() {
-        return (async function({ password, userName }) {
-            if(!userName) {
-                localStorage.removeItem('userName')
-            } else {
-                localStorage.setItem('userName', userName)
-            }
-            return this._Backend__update({ password })
-        }).bind(this);
-    },
-
-    get createEvent() {
-        return (async function({ strTime, strDate, strDescription }) {
-            let newEvent = {
-                strTime, strDate, strDescription,
-                userInitiator: window.localStorage.getItem('userName'),
-                kind: "create",
-                version: 1
-            }
-            return this._Backend__update({ newEvent })
-        }).bind(this);
-    },
-    
-    get cancelEvent() {
-        return (async function({ strDate, strTime }) {
-            let newEvent = {
-                strDate, strTime,
-                userInitiator: window.localStorage.getItem('userName'),
-                version: 1,
-                kind: "cancel"
-            }
-            
-            return this._Backend__update({ newEvent })
-        }).bind(this)
-    },
-    
-    get editEvent() {
-        return (async function({ toCancel, toCreate }) {
-            let userInitiator = window.localStorage.getItem('userName');
-            
-            toCreate = (({ strTime, strDate, strDescription }) => ({
-                strTime, strDate, strDescription,
-                userInitiator,
-                version: 1,
-                kind: "create"
-            }))(toCreate);
-            
-            toCancel = (({ strTime, strDate }) => ({
-                strTime, strDate,
-                version: 1,
-                kind: "cancel",
-                userInitiator
-            }))(toCancel);
-            
-            let newEvent = {
-                toCreate, toCancel,
-                userInitiator,
-                version: 2
-            };
-            
-            return this._Backend__update({ newEvent })
-        }).bind(this)
-    },
-    
-    get markRead() {
-        return (async function() {
-            let newEvent = {
-                userInitiator: window.localStorage.getItem('userName'),
-                kind: "cursor_move",
-                version: 1,
-                cursor: this._Backend__userCursor
-            }
-            return this._Backend__update({ newEvent })
-        }).bind(this)
+        };
     }
+
+    /**
+     * 
+     * @param {{
+     *  password: string | undefined,
+     *  userName: string | undefined
+     * }} credentials
+     * @returns {Promise<boolean>}
+     */
+    authentify = async credentials => {
+        const { password, userName } = credentials;
+        if (!userName) {
+            localStorage.removeItem('userName');
+        } else {
+            localStorage.setItem('userName', userName);
+        }
+        return this.#update({ password });
+    };
+
+    /**
+     * @param {TemporalKey & {strDescription: string}} appointmentRecord 
+     * @returns {Promise<boolean>}
+     */
+    createEvent = async (appointmentRecord) => {
+        const { strTime, strDate, strDescription } = appointmentRecord;
+        /**
+         * @type {EventV1_Create}
+         */
+        const newEvent = {
+            strTime, strDate, strDescription,
+            userInitiator: window.localStorage.getItem('userName'),
+            kind: "create",
+            version: 1
+        };
+        return this.#update({ newEvent });
+    };
+
+    /**
+     * @param {TemporalKey} temporalKey
+     * @returns {Promise<boolean>}
+     */
+    cancelEvent = async (temporalKey) => {
+        const { strDate, strTime } = temporalKey;
+        /**
+         * @type {EventV1_Cancel}
+         */
+        const newEvent = {
+            strDate, strTime,
+            userInitiator: window.localStorage.getItem('userName'),
+            version: 1,
+            kind: "cancel"
+        };
+
+        return this.#update({ newEvent });
+    };
+
+    /**
+     * @param {{
+     *  toCreate: TemporalKey & {strDescription: string},
+     *  toCancel: TemporalKey
+     * }} modification 
+     * @returns 
+     */
+    editEvent = async (modification) => {
+        const { toCancel, toCreate } = modification;
+        const userInitiator = window.localStorage.getItem('userName');
+
+        /**
+         * @type {EventV1_Create}
+         */
+        const createEvent = (({ strTime, strDate, strDescription }) => ({
+            strTime, strDate, strDescription,
+            userInitiator,
+            version: 1,
+            kind: "create"
+        }))(toCreate);
+
+        /**
+         * @type {EventV1_Cancel}
+         */
+        const cancelEvent = (({ strTime, strDate }) => ({
+            strTime, strDate,
+            version: 1,
+            kind: "cancel",
+            userInitiator
+        }))(toCancel);
+
+        /**
+         * @type {EventV2_Modify}
+         */
+        const newEvent = {
+            toCreate: createEvent,
+            toCancel: cancelEvent,
+            version: 2
+        };
+
+        return this.#update({ newEvent });
+    };
+
+    markRead = async () => {
+        /**
+         * @type {EventV1_CursorMove}
+         */
+        const newEvent = {
+            userInitiator: window.localStorage.getItem('userName'),
+            kind: "cursor_move",
+            version: 1,
+            cursor: this.userCursor
+        };
+        return this.#update({ newEvent });
+    };
 }
 
 
 const backend = new Backend();
 
-export { backend }
+export { backend };

@@ -133,7 +133,7 @@ function generateUuid(elementUuids)
  * sections of the template.
  * 
  * @param {string} template - The source template string
- * @param {Set<string>} reservedUuids - Collection of forbidden UUIDs
+ * @param {Set<string>} [reservedUuids] - Collection of forbidden UUIDs
  * @returns {Root & Branch} - The template root
  * ----------------------------------------------------------------------------
  */
@@ -745,7 +745,7 @@ class RootProcessor {
 
 /**
  * @param {string} template 
- * @param {Set<string>} reservedUuids 
+ * @param {Set<string>} [reservedUuids] 
  * @returns 
  */
 function compile(template, reservedUuids) {

@@ -1,4 +1,4 @@
-import { dateTimeToString } from './date-utils';
+import { now } from './date-utils';
 
 /**
  * @typedef {{
@@ -14,6 +14,8 @@ import { dateTimeToString } from './date-utils';
  *  strDate: string,
  *  strTime: string,
  *  strDescription: string,
+ *  strDetails: string?,
+ *  isDayOff: boolean?,
  *  userInitiator: string?,
  *  version: 1
  * }} EventV1_Create
@@ -50,7 +52,12 @@ import { dateTimeToString } from './date-utils';
  * 
  * @callback CreateEventEffect
  * @param {[strDate: string, strTime: string]} temporalKey - [strDate, strTime]
- * @param {{ description: string, time: number }} details - event details
+ * @param {{
+ *  description: string,
+ *  details: string?,
+ *  isDayOff:boolean,
+ *  time: number
+ * }} details - event details
  * ----------------------------------------------------------------------------
  * 
  * @callback DeleteEventEffect
@@ -93,7 +100,7 @@ function eventV1Handle(event, time, currentUser) {
             return undefined;
         } else {
             if (kind === 'create') {
-                const { strDescription } = event;
+                const { strDescription, strDetails, isDayOff } = event;
                 if (!strDescription) {
                     return undefined;
                 } else {
@@ -103,7 +110,12 @@ function eventV1Handle(event, time, currentUser) {
 
                     return ({ createEvent }) => createEvent(
                         [strDate, strTime],
-                        { description: strDescription, time: reportTime }
+                        {
+                            description: strDescription,
+                            details: strDetails || null,
+                            isDayOff: isDayOff || false,
+                            time: reportTime
+                        }
                     );
                 }
             } else if (kind === 'cancel') {
@@ -314,6 +326,7 @@ async function sendEvent(x, calendar) {
  * 
  * @typedef {{
  *  description: string,
+ *  details: string?,
  *  unread?: boolean | undefined
  * }}CalendarTimedRecord
  * ----------------------------------------------------------------------------
@@ -375,15 +388,20 @@ class Backend {
 
     /**
      * @param {[strDate: string, strTime: string]} _1
-     * @param {{description: string, time: number}} _2 
+     * @param {{
+     *  description: string,
+     *  details: string?,
+     *  time: number,
+     *  isDayOff: boolean
+     * }} _2 
      * ------------------------------------------------------------------------
      */
     #createEvent(_1, _2) {
         const [strDate, strTime] = _1;
-        const { description, time } = _2;
+        const { description, details, time, isDayOff } = _2;
 
         const entry = {
-            description,
+            description, details, isDayOff,
             unread: time && time > this.userCursor ? true : false
         };
 
@@ -473,7 +491,7 @@ class Backend {
 
                     // We clean here the newEvents array,
                     // to filter it only after the batch process
-                    const todayDate = dateTimeToString(Date.now());
+                    const todayDate = now();
                     this.#markEventsAsRead(
                         ({ strDate }) => (strDate || '') < todayDate
                     );
@@ -538,16 +556,23 @@ class Backend {
     };
 
     /**
-     * @param {TemporalKey & {strDescription: string}} appointmentRecord 
+     * @param {TemporalKey & {
+     *  strDescription: string,
+     *  strDetails: string?,
+     *  isDayOff: boolean
+     * }} appointmentRecord 
      * @returns {Promise<boolean>}
      */
     createEvent = async (appointmentRecord) => {
-        const { strTime, strDate, strDescription } = appointmentRecord;
+        const {
+            strTime, strDate,
+            strDescription, strDetails, isDayOff
+        } = appointmentRecord;
         /**
          * @type {EventV1_Create}
          */
         const newEvent = {
-            strTime, strDate, strDescription,
+            strTime, strDate, strDescription, strDetails, isDayOff,
             userInitiator: window.localStorage.getItem('userName'),
             kind: "create",
             version: 1
@@ -576,7 +601,11 @@ class Backend {
 
     /**
      * @param {{
-     *  toCreate: TemporalKey & {strDescription: string},
+     *  toCreate: TemporalKey & {
+     *   strDescription: string,
+     *   strDetails: string?,
+     *   isDayOff: boolean
+     *  },
      *  toCancel: TemporalKey
      * }} modification 
      * @returns 
@@ -588,8 +617,11 @@ class Backend {
         /**
          * @type {EventV1_Create}
          */
-        const createEvent = (({ strTime, strDate, strDescription }) => ({
-            strTime, strDate, strDescription,
+        const createEvent = (({
+            strTime, strDate,
+            strDescription, strDetails, isDayOff
+        }) => ({
+            strTime, strDate, strDescription, strDetails, isDayOff,
             userInitiator,
             version: 1,
             kind: "create"

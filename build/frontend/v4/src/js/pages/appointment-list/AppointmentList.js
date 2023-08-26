@@ -1,4 +1,4 @@
-import { compile } from '../../template-engine.js';
+import { safeCompileOnce } from '../../template-engine.js';
 import { recordSorting } from '../../date-utils.js';
 
 
@@ -9,15 +9,19 @@ function* generateList(records, navigateTo, options) {
         sortedRecords = sortedRecords.sort(recordSorting);
         iterableRecords = sortedRecords;
     }
-    for(let {
+    for(const {
         strDate, strTime,
-        strDescription, markUnread
+        strDescription, strDetails,
+        isDayOff,
+        markUnread
     } of iterableRecords) {
         yield {
             strDate,
             strTime,
             markUnread,
             strDescription,
+            strDetails,
+            isDayOff,
             handleClick: () => {
                 navigateTo({
                     url: '/calendar/mutate/modify',
@@ -31,9 +35,12 @@ function* generateList(records, navigateTo, options) {
     }
 }
 
+
+const TEMPLATE_ID = "appointments_list";
+
 function AppointmentList() {
-    this.__templates = compile(
-        document.getElementById("appointments_list").innerText
+    this.__templates = safeCompileOnce(
+        document.getElementById(TEMPLATE_ID).innerText
     );
 }
 AppointmentList.prototype = {
@@ -42,13 +49,13 @@ AppointmentList.prototype = {
             entriesGenerator, ctx.navigateTo, options
         );
         this.__templates(
-            ctx.anchorElement.querySelector("*[data-id=appointments_list]"),
+            ctx.anchorElement.querySelector(`*[data-id=${TEMPLATE_ID}]`),
             { appointments }
-        ).next();
+        );
     },
     clear: function(ctx) {
         ctx.anchorElement.querySelector(
-            "*[data-id=appointments_list]"
+            `*[data-id=${TEMPLATE_ID}]`
         ).innerHTML = "";
     }
 };

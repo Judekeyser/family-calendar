@@ -110,6 +110,12 @@
     "backend.js",
     "date-utils.js",
     "search-engine.js",
-    "template-engine.js"
+    "template-engine.js",
+    "components/DayTwoDigits.js",
+    "components/FrenchMonth.js",
+    "components/LongFrenchDate.js",
+    "components/LongFrenchTime.js",
+    "components/MonthTwoDigits.js",
+    "components/YearFourDigits.js"
   ]
 }

@@ -1,0 +1,275 @@
+/* RESET */
+
+* {
+  background-color: none;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-size: 2.8vw;
+  width: 100%;
+  background-color: white;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+@media only screen and (min-width: 600px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+/** RECTIFY PADDING AND MARGIN */
+
+p,h1,h2,form,fieldset,td,th,tr,menu,dl,ul,ol {
+  margin: 0;
+  padding: 0;
+  line-height: 1.4em;
+}
+
+/** Rectify font-size of base blocks */
+
+p,fieldset,table,ul,ol,dl {
+  font-size: 1em;
+  line-height: 1.5em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/** Rectify font-size of title elements */
+
+h1 {
+  font-size: 1.5em;
+  line-height: 1.5em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+/** Rectory borders and items */
+
+fieldset,table,tr,th,td {
+  border: 0;
+}
+menu,ul,ol,li {
+  list-style-type: none;
+}
+
+/** Rectify button */
+
+button,input[type=button] {
+  border: 1px solid black;
+  background-color: white;
+  padding-left: 0.6em;
+  padding-right: 0.6em;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #EAEAEA;
+  }
+}
+
+/** MIXINS */
+
+@mixin centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main {
+  @include centered;
+  max-width: 800px;
+  padding-left: 2em;
+  padding-right: 2em;
+  padding-bottom: 1em;
+}
+
+@mixin appointment-list {
+  dt {
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1em;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+@mixin with-nav-bar {
+  menu {
+    text-align: right;
+    margin-bottom: 2em;
+
+    li {
+      display: inline-block;
+      margin-left: 0.2em;
+
+      a {
+        text-decoration: none;
+
+        line-height: 2em;
+        cursor: pointer;
+
+        display: inline-block;
+        padding-right: 0.5em;
+        padding-left: 0.5em;
+      }
+      
+      a:hover {
+        background-color: #EAEAEA;
+      }
+    }
+  }
+}
+
+/* LAYOUT AND BRANDING */
+
+*[data-id=calendar-grid_main] {
+  @include with-nav-bar;
+  
+  form {
+    width: 100%;
+  }
+  
+  fieldset {
+    @include centered;
+
+    width: 75%;
+    text-align: center;
+  }
+
+  table {
+    @include centered;
+
+    border-spacing: 0;
+    border-collapse: separate;
+    width: 94.5%;
+
+    td, thead th {
+      height: 3em;
+      line-height: 3em;
+      width: 13.5%;
+      text-align: center;
+    }
+
+    border-bottom: 1px solid black;
+    tbody > tr:first-child td, thead th {
+      border-top: 1px solid black;
+    }
+    td {
+      border-top: 1px solid #EAEAEA;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #EAEAEA;
+      }
+    }
+    td:nth-child(6),th:nth-child(6) {
+      border-left: 2px solid #EAEAEA;
+    }
+    tbody tr.bar th {
+      font-size: 0.7em;
+      text-align: center;
+      height: 2em;
+      padding-top: 0.5em;
+      padding-bottom: 0.5em;
+      line-height: 1em;
+      background-color: #333;
+      color: #EAEAEA;
+    }
+  }
+}
+*[data-id=unread-appointments_main] {
+  @include with-nav-bar;
+  @include appointment-list;
+}
+*[data-id=day-appointments_main] {
+  @include with-nav-bar;
+  @include appointment-list;
+}
+*[data-id="appointments-search_main"] {
+  @include with-nav-bar;
+  @include appointment-list;
+}
+*[data-id=calendar-mutation-form] {
+  *[data-id=conflicts_container] {
+    @include appointment-list;
+  }
+}
+*[data-id="authentication-pane"] {
+  @include with-nav-bar;
+  @include appointment-list;
+}
+
+/** Multi columns */
+
+.multi-column-2 {
+  width: 100%;
+}
+.multi-column-2::after {
+  content: '';
+  clear: both;
+}
+.multi-column-2 .column {
+  width: 50%;
+  float: left;
+}
+
+  
+/* INLINES */
+
+.text-centered {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+.margin-right {
+  margin-right: 1em;
+}
+
+/* ERROR BOX */
+
+.error-box {
+  @include centered;
+  
+  width: 75%;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  border: 1px solid hsl(0, 0%, 22%);
+  box-shadow: 0px 0px 4px 0px hsl(0, 0%, 27%);
+
+  font-size: 0.8em;
+
+  *[data-id=appointments_list] {
+    margin-left: 2em;
+  }
+}
+
+/* CONTROLS */
+
+.hidden {
+    display: none
+}
+
+.hasAppointments, .hasAppointments * {
+  font-weight: bold;
+}
+.isToday,.isToday * {
+  background-color: #f0f0f0
+}
+.isFocus {
+  text-decoration: underline
+}
+.inTodayMonth .hide-when-inTodayMonth {
+  display: none
+}
+.hasNoUnread .hide-when-hasNoUnread {
+  display: none
+}

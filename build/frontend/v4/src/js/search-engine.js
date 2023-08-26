@@ -1,3 +1,5 @@
+import { now } from "./date-utils";
+
 /**
  * @template T - The `yield` type of the base iterator
  */
@@ -29,7 +31,7 @@ class BatchedIterator
                 }
             }
         }
-        if(batch.length) {
+        if(!batch.length) {
             this.done = true;
             return {
                 done: true,
@@ -474,13 +476,14 @@ const StopWords = new Set([
  * ----------------------------------------------------------------------------
  */
 function uniformizeDiphtongues(word) {
-    if(StopWords.has(word)) {
+    const lcWord = word.toLocaleLowerCase();
+    if(StopWords.has(lcWord)) {
         return undefined;
-    } else if(word == "eau") {
-        return word;
+    } else if(lcWord == "eau") {
+        return lcWord;
     } else {
         const wordWithoutSpecialChars = (
-            word.replaceAll("ç", "ss")
+            lcWord.replaceAll("ç", "ss")
                 .replaceAll("ï", "hi")
                 .replaceAll("ë", "he")
                 .replaceAll("ü", "hu")
@@ -530,8 +533,11 @@ function letterDistance(a, b) {
     } else {
         switch(a+b) {
             case "oO": case "Oo":
+            case "uO": case "Ou":
             case "aA": case "Aa":
+            case "eA": case "Ae":
             case "eE": case "Ee":
+            case "uE": case "Eu":
             case "iI": case "Ii":
             case "iy": case "yi":
             case "yI": case "Iy":
@@ -609,8 +615,8 @@ function _recursiveLevenshtein(a, b, stack, config) {
         };
         return Math.min(
             _recursiveLevenshtein(a.slice(1), b.slice(1), nextStack, config),
-            _recursiveLevenshtein(a, b.slice(1), nextStack, config),
-            _recursiveLevenshtein(a.slice(1), b, nextStack, config),
+            1.1 * _recursiveLevenshtein(a, b.slice(1), nextStack, config),
+            1.1 * _recursiveLevenshtein(a.slice(1), b, nextStack, config),
         );
     }
 }
@@ -662,18 +668,39 @@ class SearchEngine {
     }
     
     /**
+     * @param {Set<string>} tokens 
      * @param {Map<string, number>} expansion 
      * @param {Set<string>} words 
-     * @returns - The distance between the expansion and the words
+     * @returns {{distance: number, idf: number }} - The distance and best IDF
      */
-    #distanceToDocument(expansion, words) {
-        let product = 0.;
-        for(const word of words) {
-            const expansionWeight = expansion.get(word) || 0.;
-            const idf = (this.frequencies.get(word) || 0) / this.documentCount;
-            product += expansionWeight * (1. - idf);
+    #distanceToDocument(tokens, expansion, words) {
+        let scan = [];
+        for(const candidate of expansion.keys()) {
+            if(words.has(candidate)) {
+                const idf = Math.log((1 + this.documentCount) / (
+                    1 + (this.frequencies.get(candidate) || 0)
+                ));
+                const weight = tokens.has(candidate) ? 1. : 0.9;
+                scan.push({weight, idf });
+            }
         }
-        return product;
+
+        let product = 0.;
+        let closestDistance = 0.;
+        let bestIdf = 0.;
+        for(const {weight, idf} of scan) {
+            product += 0.9 * weight;
+            if(weight > closestDistance) {
+                closestDistance = weight;
+                bestIdf = idf;
+            } else if (weight == closestDistance) {
+                bestIdf = bestIdf < idf ? idf : bestIdf;
+            }
+        }
+        return {
+            distance: product,
+            idf: bestIdf
+        };
     }
 
     /**
@@ -686,29 +713,32 @@ class SearchEngine {
          */
         const expansion = new Map();
 
-        let upperBound = -Infinity;
         for(const token of tokens) {
             for(const candidate of this.frequencies.keys()) {
                 const distance = levenshteinDistance(
-                    token, candidate, upperBound
+                    token, candidate, 4
                 );
-                if (
-                    distance <= Math.min(
-                        4, Math.max(token.length / 2, candidate.length)
-                    )
-                ) {
-                    const weightSoFar = expansion.get(candidate) || null;
-                    const weight = weightSoFar == null || !isFinite(weightSoFar)
+                if (distance <= Math.min(
+                    4, token.length / 2, candidate.length
+                )) {
+                    const weightSoFar = expansion.get(candidate) || NaN;
+                    const weight = !isFinite(weightSoFar)
                         ? distance
                         : Math.min(distance, weightSoFar);
-                    
-                    upperBound = weight > upperBound ? weight : upperBound;
                     expansion.set(candidate, weight);
                 }
             }
         }
+
+        let upperBound = -Infinity;
+        for(const value of expansion.values()) {
+            upperBound = Math.max(upperBound, value);
+        }
         for(const [key, weight] of expansion.entries()) {
             expansion.set(key, 1 + upperBound - weight);
+        }
+        for(const token of tokens) {
+            expansion.set(token, 1+upperBound);
         }
 
         return expansion;
@@ -750,32 +780,59 @@ class SearchEngine {
     };
 
     /**
-     * @param {{maximalCount: number, searchQuery: string}} _1
+     * @param {{maximalCount: number, searchQuery: string, past: boolean}} _1
      * @returns
      * ------------------------------------------------------------------------
      */
     search = (_1) => {
         const { maximalCount, searchQuery } = _1;
         const self = this;
-        const expansion = this.#expansionOfWords(extractTokens(searchQuery));
+        const tokens = extractTokens(searchQuery);
+        const expansion = this.#expansionOfWords(tokens);
 
         /**
-         * @type {Array<{distance: number, key: string}>}
+         * @typedef {{
+         *   distance: number,
+         *   idf: number
+         * }} QueueEntry
+         * 
+         * @param {QueueEntry} a 
+         * @param {QueueEntry} b 
+         * @returns {number}
+         */
+        const sortFunction = (a,b) => b.distance == a.distance
+                                ? b.idf - a.idf
+                                : b.distance - a.distance;
+        
+        const todayDate = now();
+
+        /**
+         * @type {Array<QueueEntry & {key: string}>}
          */
         let queue = [];
         let threshold = 0.;
 
         for(const entries of new BatchedIterator(self.documents.entries())) {
             for(const [key, words] of entries) {
-                const distance = self.#distanceToDocument(expansion, words);
-                if(distance > threshold) {
-                    queue.push({ distance, key });
+                if(key < todayDate) {
+                    continue;
+                } else {
+                    const  { distance, idf } = self.#distanceToDocument(
+                        tokens, expansion, words
+                    );
+                    if(distance >= threshold) {
+                        queue.push({ distance, key, idf });
+                    }
                 }
             }
+            queue.sort(sortFunction);
             if(queue.length > maximalCount) {
-                queue.sort((a,b) => b.distance - a.distance);
                 queue = queue.slice(0, maximalCount);
-                threshold = /** @type{{distance: number}} */(queue[0]).distance;
+                threshold = (
+                    /**
+                     * @type{{distance: number}}
+                     * */(queue[0])
+                ).distance;
             }
         }
 

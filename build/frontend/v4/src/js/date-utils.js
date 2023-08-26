@@ -8,6 +8,18 @@ Utility file to deal with dates and times.
 */
 
 /**
+ * Gets the current date, as a string. This is wrapped for coherency reasons.
+ * 
+ * @returns {string} - The date, as a string
+ */
+function now()
+{
+    const nowDate = new Date(Date.now());
+    const [day, month, year] = nowDate.toLocaleDateString("fr-BE").split("/");
+    return [year, month, day].join('-');
+}
+
+/**
  * Computes the UTC day of week corresponding to a timestamp from Epoch.
  * This computation is meant for module private usages.
  * 
@@ -106,7 +118,7 @@ function mondayOfDateTime(datetime)
     const dayOfWeek = __dayOfWeek(datetime);
     const dayShift = - ((dayOfWeek + 6) % 7);
 
-    return nextDatetime(datetime, { dayShift });
+    return dayShift ? nextDatetime(datetime, { dayShift }) : datetime;
 }
 
 /**
@@ -249,6 +261,7 @@ function strTimeOverlap(a, b)
 }
 
 export {
+    now,
     dateTimeToString,
     nextDatetime,
     mondayOfDateTime,

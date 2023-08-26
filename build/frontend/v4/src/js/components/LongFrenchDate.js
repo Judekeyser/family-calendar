@@ -59,7 +59,19 @@ function computeFrenchDay(day)
 
 
 customElements.define("app-long-french-date", class extends HTMLElement {
-    constructor() { super(); }
+    constructor() {
+        super();
+        /**
+         * @type {{
+         *  strdate: string | undefined,
+         *  case: string | undefined
+         * }}
+         */
+        this.state = {
+            strdate: undefined,
+            case: undefined
+        };
+    }
 
     static get observedAttributes() {
         return [
@@ -69,20 +81,27 @@ customElements.define("app-long-french-date", class extends HTMLElement {
 
     /**
      * 
-     * @param {string} name - The name of the attribute that changes
-     * @param {string=} _oldValue - The previous value
-     * @param {string=} newValue - The new value
+     * @param {('strdate')} name - The name of the attribute that changes
+     * @param {string | undefined} _oldValue - The previous value
+     * @param {string | undefined} newValue - The new value
      */
     attributeChangedCallback(name, _oldValue, newValue) {
-        if(name === 'strdate' && newValue) {
-            const frenchMonth = computeFrenchMonth(monthOfDate(newValue));
+        this.state[name] = newValue || undefined;
+        this.#paint();
+    }
 
-            const frenchDay = computeFrenchDay(dayOfDate(newValue));
+    #paint() {
+        const strDate = this.state.strdate;
+
+        if(strDate) {
+            const frenchMonth = computeFrenchMonth(monthOfDate(strDate));
+            const frenchDay = computeFrenchDay(dayOfDate(strDate));
+
             if(frenchDay == '1er') {
-                this.innerHTML = `Le 1<sup>er</sup> `;
+                this.innerHTML = `1<sup>er</sup> `;
                 this.appendChild(document.createTextNode(frenchMonth));
             } else {
-                this.textContent = `Le ${frenchDay} ${frenchMonth}`;
+                this.textContent = `${frenchDay} ${frenchMonth}`;
             }
         } else {
             this.innerHTML = "";

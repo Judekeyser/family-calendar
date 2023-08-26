@@ -1,10 +1,11 @@
 import { backend } from './backend.js';
-import { dateTimeToString } from './date-utils.js';
 
 import './components/LongFrenchDate.js';
 import './components/LongFrenchTime.js';
+import './components/FrenchMonth.js';
 import './components/DayTwoDigits.js';
 import './components/MonthTwoDigits.js';
+import './components/YearFourDigits.js';
 
 import {
     CalendarGridStartegy
@@ -30,6 +31,7 @@ import {
 customElements.define("app-route-listener", class extends HTMLElement {
     constructor() {
         super();
+        this.currentRouteURL = undefined;
     }
     
     connectedCallback() {
@@ -84,10 +86,12 @@ customElements.define("app-route-listener", class extends HTMLElement {
                 if(!url) {
                     break onResolvedUrl;
                 } else {
-                    let strategy = this.__URLS.get(url);
+                    const strategy = this.__URLS.get(url);
                     if(!strategy) {
                         break onResolvedUrl;
                     } else {
+                        this.currentRouteURL = url;
+                        this.clearPage();
                         (
                             url == '/authentication/'
                                 ? this.patchAuthenticationPrototype(strategy)
@@ -104,10 +108,7 @@ customElements.define("app-route-listener", class extends HTMLElement {
             // If we are here, resolution failed. fallback
             this.emitNavigation({
                 url: '/calendar-grid/',
-                parameters: {
-                    numberOfWeeks: 5,
-                    firstWeekIncludes: dateTimeToString(Date.now())
-                }
+                parameters: {}
             });
         }
     }
@@ -179,16 +180,21 @@ customElements.define("app-route-listener", class extends HTMLElement {
 
             get navigateTo() {
                 return function({ url, parameters }) {
+                    const currentState = history.state;
                     {
-                        let sp = new URLSearchParams();
-                        for(let [key, value] of Object.entries(parameters)) {
+                        const sp = new URLSearchParams();
+                        for(const [key, value] of Object.entries(parameters)) {
                             sp.append(key, value);
                         }
-                        let queryString = `${url}?${sp.toString()}`;
-                        history.pushState(
-                            { url, parameters },
-                            '', `#${btoa(queryString)}`
-                        );
+                        const queryString = `${url}?${sp.toString()}`;
+                        const hash = `#${btoa(queryString)}`;
+                        const state = { url, parameters };
+
+                        if(currentState && currentState.url === state.url) {
+                            history.replaceState(state, '', hash);
+                        } else {
+                            history.pushState(state, '', hash);
+                        }
                     }
                     return self.emitNavigation({url, parameters });
                 };
@@ -200,6 +206,10 @@ customElements.define("app-route-listener", class extends HTMLElement {
         };
         Object.setPrototypeOf(_backendAdapter, strategy);
         return _backendAdapter;
+    }
+
+    clearPage() {
+        document.getElementById("anchor-content").innerHTML = "";
     }
 
     patchAuthenticationPrototype(strategy) {
@@ -235,16 +245,21 @@ customElements.define("app-route-listener", class extends HTMLElement {
 
             get navigateTo() {
                 return function({ url, parameters }) {
+                    const currentState = history.state;
                     {
-                        let sp = new URLSearchParams();
-                        for(let [key, value] of Object.entries(parameters)) {
+                        const sp = new URLSearchParams();
+                        for(const [key, value] of Object.entries(parameters)) {
                             sp.append(key, value);
                         }
-                        let queryString = `${url}?${sp.toString()}`;
-                        history.pushState(
-                            { url, parameters },
-                            '', `#${btoa(queryString)}`
-                        );
+                        const queryString = `${url}?${sp.toString()}`;
+                        const hash = `#${btoa(queryString)}`;
+                        const state = { url, parameters };
+
+                        if(currentState && currentState.url === state.url) {
+                            history.replaceState(state, '', hash);
+                        } else {
+                            history.pushState(state, '', hash);
+                        }
                     }
                     return self.emitNavigation({url, parameters });
                 };

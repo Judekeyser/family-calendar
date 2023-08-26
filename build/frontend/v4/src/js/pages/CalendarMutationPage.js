@@ -1,4 +1,4 @@
-import { compile } from '../template-engine.js';
+import { safeCompileOnce } from '../template-engine.js';
 import { strTimeOverlap } from '../date-utils.js';
 
 import { AppointmentList } from './appointment-list/AppointmentList.js';
@@ -44,7 +44,9 @@ function timeNumericOf(strTime) {
  * }} TemporalPreferredKey
  * 
  * @typedef {TemporalPreferredKey &
- *           { preferredDescription: string }
+ *           { preferredDescription: string } &
+ *           { preferredDetails: string? } &
+ *           { preferredIsDayOff: boolean }
  * } Preferences
  */
 
@@ -62,54 +64,84 @@ function timeNumericOf(strTime) {
  */
 function rectifyAfterChange(formElement, preferences)
 {
-    const { preferredDate, preferredTime, preferredDescription } = preferences;
+    const {
+        preferredDate, preferredTime,
+        preferredDescription, preferredDetails, preferredIsDayOff
+    } = preferences;
     const cancel = formElement.cancel ? !!formElement.cancel.checked : false;
     if(cancel) {
-        formElement.strDate.value = preferredDate || undefined;
+        formElement.strDate.value = preferredDate || '';
         formElement.strDescription.value = preferredDescription || '';
+        formElement.strDetails.value = preferredDetails || '';
+        formElement.isDayOff.checked = preferredIsDayOff || false;
+        
         formElement.strTimeNumeric.value = (
-            timeNumericOf(preferredTime) || undefined
+            timeNumericOf(preferredTime) || ''
         );
         formElement.strTimeRange.value = (
-            timeRangeOf(preferredTime) || undefined
+            timeRangeOf(preferredTime) || ''
         );
 
         formElement.strTimeRange.disabled = true;
         formElement.strDescription.disabled = true;
+        formElement.strDetails.disabled = true;
+        formElement.isDayOff.disabled = true;
         formElement.strDate.disabled = true;
         formElement.strTimeNumeric.disabled = true;
 
         return { cancel };
     }
     else {
-        const formStrTimeRange = (
-            /** @type{string | undefined} */
-            (formElement.strTimeRange.value)
-         ) || undefined;
-         const formStrTimeNumeric = (
-             /** @type{string | undefined} */
-             (formElement.strTimeNumeric.value)
-        ) || undefined;
-        const formStrDate = (
+        const strDate = (
             /** @type{string | undefined} */
             (formElement.strDate.value)
         ) || undefined;
+        const isDayOff = (
+            /** @type{boolean} */
+            (formElement.isDayOff.checked)
+        );
 
-        formElement.strTimeRange.disabled = false;
+        formElement.strTimeRange.disabled = isDayOff;
         formElement.strDescription.disabled = false;
+        formElement.strDetails.disabled = false;
         formElement.strDate.disabled = false;
-        if(!formStrTimeRange) {
-            formElement.strTimeNumeric.required = true;
-            formElement.strTimeNumeric.disabled = false;
-        } else {
+        formElement.isDayOff.disabled = false;
+        if(isDayOff && strDate) {
             formElement.strTimeNumeric.disabled = true;
             formElement.strTimeNumeric.required = false;
+
+            formElement.strTimeNumeric.value = '';
+            formElement.strTimeRange.value = 'fullday';
+
+            return {
+                strTime: "fullday",
+                strDate,
+                cancel
+            };
+        } else {
+            const formStrTimeRange = (
+                /** @type{string | undefined} */
+                (formElement.strTimeRange.value)
+             ) || undefined;
+             const formStrTimeNumeric = (
+                 /** @type{string | undefined} */
+                 (formElement.strTimeNumeric.value)
+            ) || undefined;
+
+            if(!formStrTimeRange) {
+                formElement.strTimeNumeric.required = true;
+                formElement.strTimeNumeric.disabled = false;
+            } else {
+                formElement.strTimeNumeric.disabled = true;
+                formElement.strTimeNumeric.required = false;
+            }
+
+            return {
+                strTime: formStrTimeRange || formStrTimeNumeric || undefined,
+                strDate,
+                cancel
+            };
         }
-    
-        const strTime = formStrTimeRange || formStrTimeNumeric || undefined;
-        const strDate = formStrDate || undefined;
-    
-        return { strTime, strDate, cancel };
     }
 }
 
@@ -120,18 +152,31 @@ function rectifyAfterChange(formElement, preferences)
  * @param {Preferences} preferences 
  */
 function setAfterLoad(formElement, preferences) {
-    const { preferredDate, preferredTime, preferredDescription } = preferences;
-    formElement.strDate.value = preferredDate || undefined;
+    const {
+        preferredDate, preferredTime,
+        preferredDescription, preferredDetails, preferredIsDayOff
+    } = preferences;
+    formElement.strDate.value = preferredDate || '';
     formElement.strDescription.value = preferredDescription || '';
-    formElement.strTimeNumeric.value = (
-        timeNumericOf(preferredTime) || undefined
-    );
-    formElement.strTimeRange.value = (
-        timeRangeOf(preferredTime) || undefined
-    );
+    formElement.strDetails.value = preferredDetails || '';
+    formElement.isDayOff.checked = preferredIsDayOff || false;
 
-    formElement.strTimeRange.disabled = false;
+    if(formElement.isDayOff.checked) {
+        formElement.strTimeNumeric.value = '';
+        formElement.strTimeRange.value = 'fullday';
+    } else {
+        formElement.strTimeNumeric.value = (
+            timeNumericOf(preferredTime) || ''
+        );
+        formElement.strTimeRange.value = (
+            timeRangeOf(preferredTime) || ''
+        );
+    }
+
+    formElement.strTimeRange.disabled = formElement.isDayOff.checked;
     formElement.strDescription.disabled = false;
+    formElement.strDetails.disabled = false;
+    formElement.isDayOff.disabled = false;
     formElement.strDate.disabled = false;
     if(!formElement.strTimeRange.value) {
         formElement.strTimeNumeric.required = true;
@@ -149,6 +194,8 @@ function setAfterLoad(formElement, preferences) {
  *  strDate: string,
  *  strTime: string,
  *  strDescription: string,
+ *  strDetails: string?,
+ *  isDayOff: boolean,
  *  isCancelling: boolean
  * }} submitData
  * @return {Promise<void>}
@@ -171,10 +218,18 @@ function submitForm(formElement, doSubmit)
         /** @type {string} */
         (formElement.strTimeRange.value)
      ) || undefined;
-    const strDescription = (
+     const strDescription = (
+         /** @type {string} */
+         (formElement.strDescription.value)
+      ) || '';
+    const strDetails = (
         /** @type {string} */
-        (formElement.strDescription.value)
-     ) || '';
+        (formElement.strDetails.value)
+    ) || '';
+    const isDayOff = (
+        /** @type {boolean} */
+        (formElement.isDayOff.checked)
+    );
     const isCancelling = !!(formElement.cancel && formElement.cancel.checked);
 
     const strTime = strTimeRange || strTimeNumeric;
@@ -188,6 +243,8 @@ function submitForm(formElement, doSubmit)
                 formElement.strTimeNumeric,
                 formElement.strTimeRange,
                 formElement.strDescription,
+                formElement.strDetails,
+                formElement.isDayOff,
                 formElement.cancel,
                 formElement.querySelector("button")
             ];
@@ -201,7 +258,8 @@ function submitForm(formElement, doSubmit)
                 }
                 await doSubmit({
                     strDate, strTime,
-                    strDescription, isCancelling
+                    strDescription, strDetails, isDayOff,
+                    isCancelling
                 });
             } finally {
                 for(let i = 0; i < controllers.length; i++) {
@@ -215,10 +273,10 @@ function submitForm(formElement, doSubmit)
 }
 
 
-
+const TEMPLATE_ID = "calendar-mutation-form";
 function CalendarMutationPage() {
-    this.__template = compile(
-        document.getElementById("calendar-mutation-form").innerText
+    this.__template = safeCompileOnce(
+        document.getElementById(TEMPLATE_ID).innerText
     );
     this.__listHandler = new AppointmentList();
 }
@@ -226,7 +284,9 @@ CalendarMutationPage.prototype = {
     paint: async function({ preferredDate, preferredTime }) {
         let { view } = await this.state;
 
-        let preferredDescription;
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+
+        let preferredDescription, preferredDetails, preferredIsDayOff;
         {
             preferredDescription = '';
             if(preferredDate && preferredTime) {
@@ -234,8 +294,11 @@ CalendarMutationPage.prototype = {
                 let entriesforDateTime = (
                     new Map(entriesforDate)
                 ).get(preferredTime);
-                let description = entriesforDateTime.description;
-                preferredDescription = description || preferredDescription;
+                preferredDescription = (
+                    entriesforDateTime.description
+                );
+                preferredDetails = entriesforDateTime.details;
+                preferredIsDayOff = entriesforDateTime.isDayOff;
             }
         }
 
@@ -247,7 +310,8 @@ CalendarMutationPage.prototype = {
                     e.preventDefault();
                     submitForm(e.target, async ({
                         strTime, strDate,
-                        strDescription, isCancelling
+                        strDescription, strDetails, isDayOff,
+                        isCancelling
                     }) => {
                         if(isCancelling) {
                             await this.cancelEvent({ strDate, strTime });
@@ -263,13 +327,15 @@ CalendarMutationPage.prototype = {
                                     }, toCreate: {
                                         strTime,
                                         strDate,
-                                        strDescription
+                                        strDescription,
+                                        strDetails,
+                                        isDayOff
                                     }
                                 });
                             } else {
                                 await this.createEvent({
                                     strTime, strDate,
-                                    strDescription
+                                    strDescription, strDetails, isDayOff
                                 });
                             }
                         }
@@ -279,7 +345,11 @@ CalendarMutationPage.prototype = {
                 handleChange: e => {
                     let { strDate, strTime } = rectifyAfterChange(
                         e.target.form,
-                        { preferredDate, preferredDescription, preferredTime }
+                        {
+                            preferredDate, preferredTime,
+                            preferredDescription, preferredDetails,
+                            preferredIsDayOff
+                        }
                     );
                     this.showConflicts(
                         { strTime, strDate },
@@ -289,16 +359,16 @@ CalendarMutationPage.prototype = {
                 },
                 ...this.templateParameters
             }
-        ).next();
+        );
 
         setAfterLoad(
-            this.anchorElement.querySelector(
-                "form[data-id=calendar-mutation-form]"
-            ),
+            this.anchorElement.querySelector(`form[data-id=${TEMPLATE_ID}]`),
             {
                 preferredDate,
                 preferredTime,
-                preferredDescription
+                preferredDescription,
+                preferredDetails,
+                preferredIsDayOff
             }
         );
         
@@ -319,10 +389,12 @@ CalendarMutationPage.prototype = {
             if(preferredDate != strDate || preferredTime != strTime) {
                 conflicts = [...new Map(view.get(strDate)).entries()]
                     .filter(([_strTime]) => strTimeOverlap(strTime, _strTime))
+                    .filter(([_strTime]) => preferredTime !== _strTime)
                     .map(([_strTime, record]) => ({
                         strTime: _strTime,
                         strDate,
                         strDescription: record.description,
+                        strDetails: undefined,
                         markUnread: record.unread,
                     }));
             }
@@ -331,12 +403,12 @@ CalendarMutationPage.prototype = {
         let maskContainer = this.anchorElement.querySelector(
             "*[data-id=conflicts_container]"
         );
+        this.__listHandler.clear(this);
         if(conflicts.length) {
-            this.__listHandler.hydrate(this, conflicts);
+            this.__listHandler.hydrate(this, conflicts, { sort: true });
             maskContainer.classList.remove("hidden");
         } else {
             maskContainer.classList.add("hidden");
-            this.__listHandler.clear(this);
         }
     }
 

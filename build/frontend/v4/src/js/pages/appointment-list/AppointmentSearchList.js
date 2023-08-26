@@ -1,4 +1,4 @@
-import { compile } from '../../template-engine.js';
+import { safeCompileOnce } from '../../template-engine.js';
 import { SearchEngine } from '../../search-engine.js';
 import { AppointmentList } from './AppointmentList.js';
 
@@ -7,25 +7,35 @@ function* generateEntries(searchResult, view) {
     for(let { key } of searchResult) {
         let strDate = key.substring(0, key.indexOf(' '));
         let strTime = key.substring(strDate.length + 1);
-        let { unread, description } = view.get(strDate).get(strTime);
+        let {
+            unread,
+            description, details,
+            isDayOff
+        } = view.get(strDate).get(strTime);
         yield {
             strDate, strTime,
             strDescription :description,
-            markUnread: unread
+            strDetails: details,
+            markUnread: unread,
+            isDayOff: isDayOff || false
         };
     }
 }
 
 
+const TEMPLATE_ID = "appointments-search_main";
+
 function AppointmentSearchList() {
-    this.__templates = compile(
-        document.getElementById("appointments-search_main").innerText
+    this.__templates = safeCompileOnce(
+        document.getElementById(TEMPLATE_ID).innerText
     );
     this.__listHandler = new AppointmentList();
 }
 AppointmentSearchList.prototype = {
     paint: async function({ defaultSearchQuery }) {
         let { view } = await this.state;
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+
         let searchEngine = new SearchEngine();
         for(let [strDate, timeMap] of view) {
             for(let [strTime, record] of timeMap) {
@@ -47,12 +57,12 @@ AppointmentSearchList.prototype = {
                         button.disabled = true;
                         try {
                             let searchResult = searchEngine.search(
-                                { maximalCount: 7, searchQuery }
+                                { maximalCount: 10, searchQuery, past: false }
                             );
+                            self.__listHandler.clear(self);
                             self.__listHandler.hydrate(
                                 self,
-                                generateEntries(searchResult, view),
-                                { sort: false }
+                                generateEntries(searchResult, view)
                             );
                         } finally {
                             button.disabled = false;
@@ -60,9 +70,17 @@ AppointmentSearchList.prototype = {
                     }
                 })(this),
                 hasAppointments: false,
-                defaultSearchQuery
+                defaultSearchQuery,
+                menu: {
+                    back: {
+                        handleClick: () => void this.navigateTo({
+                            url: '/calendar/grid',
+                            parameters: {}
+                        })
+                    },
+                }
             }
-        ).next();
+        );
 
     }
 };

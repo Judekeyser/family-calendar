@@ -13,12 +13,57 @@
   <body>
     <script src="/main.js"></script>
 
-    <div id="anchor-content"></div>
+    <main>
+        <div id="anchor-content"></div>
+    </main>
 
     <script type="text/plain" id="calendar-grid_main">
+        <nav>
+            <menu>
+                {# searchNavigation}
+                    <li><a {#}{% click}{/}>&#128270;</a></li>
+                {/}
+
+                {# unreadNavigation}
+                    <li><a {#}{% click}{/}>&#128276; (<span {#}{$ size}{/}></span>)</a></li>
+                {/}
+            </menu>
+        </nav>
+        
         <form>
-            <label>Nombre de semaines:
-                <input type="range" min="1" max="7"
+            <fieldset>
+                <label
+                    for="calendar-grid_main__date_select"
+                >Date d'intérêt</label>&#160;:
+                <input type="date"
+                    id="calendar-grid_main__date_select"
+                    {#}
+                        {# firstDateIncludesController}
+                            {% change}
+                            { value | value }
+                        {/}
+                    {/}
+                > <input type="button" value="&#9664;"
+                    {#}
+                        {# previousWeekController}
+                            {% click}
+                        {/}
+                    {/}
+                > <input type="button" value="&#9654;"
+                    {#}
+                        {# nextWeekController}
+                            {% click}
+                        {/}
+                    {/}
+                >
+            </fieldset>
+
+            <div data-id="calendar-grid_rows"></div>
+            <div data-id="calendar-weekly-detail"></div>
+            
+            <fieldset>
+                <input type="range" min="3" max="6"
+                    list="calendar-rid_main__range_suggestions"
                     {#}
                         {# numberOfWeeksController}
                             {% change}
@@ -26,35 +71,15 @@
                         {/}
                     {/}
                 >
-            </label>
-            <br>
-            <label>Première semaine inclu:
-                <input type="date"
-                    {#}
-                        {# firstDateIncludesController}
-                            {% change}
-                            { value | value }
-                        {/}
-                    {/}
-                >
-            </label>
-            <br>
-            <input type="button" value="Semaine précédente"
-                {#}
-                    {# previousWeekController}
-                        {% click}
-                    {/}
-                {/}
-            >
-            <input type="button" value="Semaine suivante"
-                {#}
-                    {# nextWeekController}
-                        {% click}
-                    {/}
-                {/}
-            >
+                <datalist id="calendar-rid_main__range_suggestions">
+                    <option value="3">Vue par semaine</option>
+                    <option value="6">Vue mensuelle élargie</option>
+                </datalist>
+            </fieldset>
         </form>
+    </script>
 
+    <script type="text/plain" id="calendar-grid_rows">
         <table>
             <thead>
                 <tr>
@@ -67,47 +92,56 @@
                     <th><abbr>Dim.</abbr></th>
                 </tr>
             </thead>
-            <tbody data-id="calendar-grid_rows"></tbody>
+            {# blocks}
+                <tbody>
+                    <tr class="bar">
+                        <th colspan="7"
+                            ><app-french-month {#}{strDate | strDate}{/}></app-french-month>
+                        </th>
+                    </tr>
+                    {# rows}
+                        <tr>
+                            {# cols}
+                                <td 
+                                    {#}
+                                        {% click}
+                                        {? hasAppointments} { "hasAppointments | class }{/}
+                                            {? hasNoUnread} {     "hasNoUnread | class }{/}
+                                                {? isToday} {         "isToday | class }{/}
+                                                {? isFocus} {         "isFocus | class }{/}
+                                    {/}
+                                >{: isDayOff}<app-day-two-digits {#}{strDate|strDate}{/}></app-day-two-digits
+                                >{/}{? isDayOff}&#9969;{/}<span class="hide-when-hasNoUnread">*</span></td>
+                            {/}
+                        </tr>
+                    {/}
+                </tbody>
+            {/}
         </table>
-
-        {# unreadNavigation}
-            <hr>
-            <p>
-                <button {#}{% click}{/}>Voir les non lus (<span {#}{$ size}{/}></span>)</button>
-            </p>
-        {/}
-
-        {# searchNavigation}
-            <hr>
-            <p>
-                <button {#}{% click}{/}>Rechercher un rendez-vous</button>
-            </p>
-        {/}
-    </script>
-
-    <script type="text/plain" id="calendar-grid_rows">
-        {# rows}
-            <tr>
-                {# cols}
-                    <td 
-                        {#}
-                            {% click}
-                            {? hasAppointments} { "hasAppointments | class }{/}
-                                {? hasNoUnread} {     "hasNoUnread | class }{/}
-                               {? inTodayMonth} {    "inTodayMonth | class }{/}
-                                    {? isToday} {         "isToday | class }{/}
-                                    {? isFocus} {         "isFocus | class }{/}
-                        {/}
-                    ><app-day-two-digits {#}{strDate|strDate}{/}></app-day-two-digits
-                    ><span class="hide-when-inTodayMonth">/<app-month-two-digits {#}{strDate|strDate}{/}></app-month-two-digits></span
-                    ><span class="hide-when-hasNoUnread">*</span
-                    ></td>
-                {/}
-            </tr>
-        {/}
     </script>
 
     <script type="text/plain" id="day-appointments_main">
+        <nav>
+            <menu>
+                {# menu}
+                    {# back}
+                        <li><a
+                            {#}
+                                {% click}
+                            {/}
+                        >&#128197;</a></li>
+                    {/}
+                    {# create}
+                        <li><a 
+                            {#}
+                                {% click}
+                            {/}
+                        >&#10133;</a></li>
+                    {/}
+                {/}
+            </menu>
+        </nav>
+
         <h1>Rendez-vous du
             <app-long-french-date
                 {#}{ strDate | strDate }{/}
@@ -120,19 +154,41 @@
         {: hasAppointments} 
             <p>Aucun rendez-vous prévu à cette date.</p>
         {/}
-
-        <hr>
-        <button {#}{% click}{/}>Nouveau rendez-vous</button>
     </script>
 
     <script type="text/plain" id="unread-appointments_main">
+        <nav>
+            <menu>
+                {# menu}
+                    {# back}
+                        <li><a
+                            {#}
+                                {% click}
+                            {/}
+                        >&#128197;</a></li>
+                    {/}
+                    {# markRead}
+                        <li><a 
+                            {#}
+                                {% click}
+                            {/}
+                        >&#9989;</a></li>
+                    {/}
+                    {# create}
+                        <li><a 
+                            {#}
+                                {% click}
+                            {/}
+                        >&#10133;</a></li>
+                    {/}
+                {/}
+            </menu>
+        </nav>
+
         <h1>Rendez-vous non lus</h1>
 
         {? hasAppointments}
             <div data-id="appointments_list"></div>
-
-            <hr>
-            <button {#}{% click}{/}>Tout marquer comme lu</button>
         {/}
         {: hasAppointments} 
             <p>Aucun rendez-vous non lus.</p>
@@ -140,9 +196,24 @@
     </script>
 
     <script type="text/plain" id="appointments-search_main">
+        <nav>
+            <menu>
+                {# menu}
+                    {# back}
+                        <li><a
+                            {#}
+                                {% click}
+                            {/}
+                        >&#128197;</a></li>
+                    {/}
+                {/}
+            </menu>
+        </nav>
+
         <h1>Rechercher un rendez-vous</h1>
 
-        <form {#}
+        <form class="text-centered"
+            {#}
                 {% submit }
             {/}
         >
@@ -156,6 +227,12 @@
         </form>
 
         <div data-id="appointments_list"></div>
+
+        <hr>
+        
+        <p class="text-centered"><small>Pour le moment, la recherche ne cible que les événements futurs<br>et
+            présente les dix meilleurs résultats.<br>Ces résultats pourraient ne pas tous
+            être pertinents.</small></p>
     </script>
 
     <script type="text/plain" id="appointments_list">
@@ -164,20 +241,32 @@
                 <dt {#}
                         {% click}
                     {/}
-                ><app-long-french-date {#}
+                >
+                {? isDayOff}
+                    &#9969;&#160;
+                {/}Le <app-long-french-date
+                    {#}
                         { strDate | strDate }
                     {/}
-                ></app-long-french-date>, <app-long-french-time {#}
+                ></app-long-french-date>, <app-long-french-time
+                    case="lowercase"
+                    {#}
                         { strTime | strTime }
                     {/}
-                ></app-long-french-time><span {#}
-                        {? markUnread } 
+                ></app-long-french-time
+                ><span
+                    {#}
+                        {: markUnread } 
                             { "hidden | class } 
                         {/}
                     {/}
-                ></span></dt>
+                >*</span></dt>
                 <dd {#}
                         {$ strDescription}
+                    {/}
+                ></dd>
+                <dd {#}
+                        {$ strDetails}
                     {/}
                 ></dd>
             {/}
@@ -196,60 +285,93 @@
                 {% submit}
             {/}
         >
-            {? allowCancel}
-                <label><input type="checkbox" name="cancel"
-                    {#}
-                        {% change} 
-                    {/}
-                >Annuler le rendez-vous</label>
 
-                <hr>
-            {/}
+            <fieldset class="multi-column-2">
+                <div class="column">
+                    <p class="text-centered">
+                        <label>Jour du rendez-vous</label>:&#160;<br
+                        ><input type="date" name="strDate"
+                            {#}
+                                {% change}
+                            {/}
+                        required>
+                    </p>
+                    <p class="text-centered">
+                        <input type="checkbox" name="isDayOff"
+                            {#}
+                                {% change}
+                            {/}
+                        ><label>Jour férié&#160;?&#160;&#9969;</label>
+                    </p>
+                </div>
+                <div class="column">
+                    <p class="text-centered">
+                        <label>Plage horaire</label>:&#160;<br
+                        ><select name="strTimeRange"
+                            value="fullday"
+                            {#}
+                                {% change}
+                            {/}
+                        >
+                            <option value="">Ponctuel</option>
+                            <option value="fullday">Toute la journée</option>
+                            <option value="morning">La matinée</option>
+                            <option value="afternoon">L'après-midi</option>
+                        </select>
+                    </p>
+                    <p class="text-centered">
+                        <label>Heure du rendez-vous</label>:&#160;<br
+                        ><input type="time" name="strTimeNumeric"
+                            {#}
+                                {% change}
+                            {/}
+                        >
+                    </p>
+                </div>
+            </fieldset>
 
-            <label>Jour du rendez-vous:
-                <input type="date" name="strDate"
-                    {#}
-                        {% change}
-                    {/}
-                required>
-            </label>
-            <label>Plage horaire:
-                <select name="strTimeRange"
-                    value="fullday"
-                    {#}
-                        {% change}
-                    {/}
-                >
-                    <option value="">Ponctuel</option>
-                    <option value="fullday">Toute la journée</option>
-                    <option value="morning">La matinée</option>
-                    <option value="afternoon">L'après-midi</option>
-                </select>
-            </label>
-            <label>Heure du rendez-vous:
-                <input type="time" name="strTimeNumeric"
-                    {#}
-                        {% change}
-                    {/}
-                >
-            </label>
+            <aside data-id="conflicts_container" class="error-box hidden">
+                <p>&#9940; Les rendez-vous suivants sont en conflit:</p>
 
+                <div data-id="appointments_list"></div>
+            </aside>
+            
+            <fieldset>
+            <p class="text-centered">
+                <label>Description du rendez-vous.</label><br>
+                <small>Un texte succinct permet d'améliorer la recherche
+                par mots-clé.</small>
+                <br>
+                <textarea name="strDescription" cols="40" rows="4"></textarea>
+            </p>
+
+            <p class="text-centered">
+                <label>Commentaires</label><br>
+                <small>(lieu, papiers à apporter, &hellip;).</small>
+                <br>
+                <textarea name="strDetails" cols="40" rows="4"></textarea>
+            </p>
+
+            </fieldset>
             <hr>
 
-            <textarea name="strDescription" required></textarea>
-
-            <hr>
-
-            <button {#}
-                {$ submitText}
-            {/}></button>
+            <div class="multi-column-2">
+                <p class="column">
+                    {? allowCancel}
+                        <label><input type="checkbox" name="cancel"
+                            {#}
+                                {% change} 
+                            {/}
+                        >Annuler le rendez-vous</label>
+                    {/}
+                </p>
+                <p class="column text-right">
+                    <button {#}
+                        {$ submitText}
+                    {/}></button>
+                </p>
+            </div>
         </form>
-
-        <div data-id="conflicts_container" class="hidden">
-            <p>Les rendez-vous suivants sont en conflit:</p>
-
-            <div data-id="appointments_list"></div>
-        </div>
     </script>
 
     <script type="text/plain" id="calendar-mutation-form_conflicts">
@@ -287,22 +409,30 @@
             {/}
         >
             <input type="text" class="hidden" name="username" autocomplete="username" value="appv1" readonly disabled>
-            <label>Mot de passe:
-                <input type="password" name="password" autocomplete="new-password" required>
-            </label>
-            <br>
-            <label>Identité:
-                <select data-id="user-identity" name="identity" required>
-                    <option value="" disabled>Identité utilisateur</option>
-                    <option value="caroline">Caroline</option>
-                    <option value="justin">Justin</option>
-                </select>
-            </label>
+            <fieldset>
+                <p class="text-centered">
+                    <label>Mot de passe</label>&#160;:
+                    <br>
+                    <input type="password" name="password" autocomplete="new-password" required>
+                </p>
+            </p>
+            <fieldset class="text-centered">
+                <p class="text-centered">
+                    <label>Identité</label>&#160;:<br>
+                    <select data-id="user-identity" name="identity" required>
+                        <option value="" disabled>Identité utilisateur</option>
+                        <option value="caroline">Caroline</option>
+                        <option value="justin">Justin</option>
+                    </select>
+                </p>
+            </fieldset>
         
             <hr>
 
-            <p data-id="error-feedback-container" class="hidden"><small data-id="error-feedback"></small></p>
-            <button>Se connecter</button>
+            <p class="text-right">
+                <small data-id="error-feedback" class="margin-right"></small>
+                <button>Se connecter</button>
+            </p>
         </form>
     </script>
 

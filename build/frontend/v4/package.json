@@ -6,13 +6,15 @@
   "scripts": {
     "build": "npm run check && npx webpack --config webpack.config.js",
     "start": "npx webpack serve --open",
-    "check": "npx tsc -p src && npx eslint src"
+    "check": "npx tsc -p src/js && npx eslint src"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "eslint": "^8.47.0",
+    "less": "^4.2.0",
+    "sass": "^1.66.1",
     "typescript": "^5.1.6",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",

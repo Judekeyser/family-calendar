@@ -133,18 +133,26 @@ function generateUuid(elementUuids)
  * sections of the template.
  * 
  * @param {string} template - The source template string
- * @param {Set<string>} [reservedUuids] - Collection of forbidden UUIDs
+ * @param {Set<string>} reservedUuids - Collection of forbidden UUIDs
+ * @param {boolean} readOnlySet - Tells if the set can be mutated or not.
  * @returns {Root & Branch} - The template root
  * ----------------------------------------------------------------------------
  */
-function generateTreeFromExpression(template, reservedUuids)
+function generateTreeFromExpression(template, reservedUuids, readOnlySet)
 {
+    if(readOnlySet) {
+        return generateTreeFromExpression(
+            template,
+            new Set(reservedUuids),
+            false
+        );
+    }
     /** @type {Branch & Root} */
     const root = {
         children: [],
         symbol: 'root'
     };
-    const elementUuids = new Set(reservedUuids);
+    const elementUuids = reservedUuids;
     
     /**
      * @type {Array<WithSymbol & Branch>}
@@ -400,16 +408,12 @@ function plantToProcessor(plant, scope)
                     the expected handler for event ${variable}`;
             } else {
                 const textContent = scope[variable];
-                if(textContent) {
-                    return new SingleEmission({
-                        kind: 2,
-                        identifier: '',
-                        sideEffect: _ => (_.textContent = textContent),
-                        cancelEffect: _ => (_.textContent = '')
-                    });
-                } else {
-                    return new EmptyProcessor();
-                }
+                return textContent != null ? new SingleEmission({
+                    kind: 2,
+                    identifier: '',
+                    sideEffect: _ => (_.textContent = textContent),
+                    cancelEffect: _ => (_.textContent = '')
+                }) : new EmptyProcessor();
             }
         }
         case 'hardAttribute':
@@ -424,7 +428,6 @@ function plantToProcessor(plant, scope)
                 const variable = plant.variable;
                 if( scope
                     && Object.hasOwn(scope, variable)
-                    && scope[variable]
                 ) {
                     value = scope[variable];
                 } else {
@@ -461,20 +464,19 @@ function plantToProcessor(plant, scope)
                     the expected handler for event ${variable}`;
             }
             const handler = scope[attribute];
-            
-            return new SingleEmission({
+            return handler != null ? new SingleEmission({
                 kind: 2,
                 identifier: '',
                 sideEffect: _ => _.addEventListener(variable, handler),
                 cancelEffect: _ => _.removeEventListener(variable, handler)
-            });
+            }) : new EmptyProcessor();
         }
         case 'section':
         case 'if':
         case 'else': {
             if(!scope || !Object.hasOwn(scope, plant.variable)) {
                 throw `Scope is undefined or does not exhibit
-                    the expected variable ${plant.variable}`;
+                    the expected block variable ${plant.variable}`;
             } else {
                 const scopeValue = scope[plant.variable];
                 switch(plant.symbol) {
@@ -483,7 +485,7 @@ function plantToProcessor(plant, scope)
                             const iterator = scopeValue[Symbol.iterator];
                             if(typeof iterator === 'function') {
                                 return new SectionProcessor(
-                                    plant, iterator()
+                                    plant, iterator.bind(scopeValue)()
                                 );
                             } else {
                                 return new BranchProcessor(plant, scopeValue);
@@ -744,15 +746,23 @@ class RootProcessor {
 
 
 /**
+ * The set of `reservedUuids` might be mutated and contain new elements that
+ * were generated during the compilation. Callers of this method, that do not
+ * wish to have their set mutated, should pass `readOnlySet=true`.
+ * 
  * @param {string} template 
- * @param {Set<string>} [reservedUuids] 
+ * @param {Set<string>} [reservedUuids]
+ * @param {boolean} [readOnlySet]
  * @returns 
  */
-function compile(template, reservedUuids) {
+function compile(template, reservedUuids, readOnlySet)
+{
     /**
      * @type {Root & Branch}
      */
-    const root = generateTreeFromExpression(template, reservedUuids);
+    const root = generateTreeFromExpression(
+        template, reservedUuids || new Set(), readOnlySet || false
+    );
     
     /**
      * @param {*} domRoot 
@@ -762,8 +772,7 @@ function compile(template, reservedUuids) {
      */
     const Hydrate = function* (domRoot, scope)
     {
-        const sideEffects = new Map();
-        
+        const sideEffects = new Map();        
         /* hydratation not done yet */
         {
             const htmlFragments = [];
@@ -798,6 +807,39 @@ function compile(template, reservedUuids) {
                 }
             }
             
+            /*
+            IMPORTANT NOTE:
+            ---------------
+                With the use of DOMPurify, some elements are removed and
+                replaced by their textual values. For example, this directive
+                    <app-foo {#}{" bar | bar}{/}></app-foo>
+                used to be rendered as
+                    <app-foo></app-foo>
+                with an additional side-effect
+                    setAttribute("bar", "bar");
+
+                With the introduction of DOMPurify, the above is still true
+                but *then* the DOM fragment is cleaned and the result actually
+                becomes
+                    "bar"
+                (taking as asusmption <app-foo> simply prints its content
+                without further action).
+
+                This effect might not be desired at all. For example,
+                if the custom element is meant to be kept alive, maybe it should
+                not get removed out of the DOM.
+
+                We therefore *do not* process DOMPurify here, but we
+                delegate on another compilation unit that abandon rehydratation
+                and other features custom elements might offer.
+
+                It is always possible to mix both approaches and do something
+                more secure, but this would be opinionated and we prefer to
+                expose a reusable piece, than making a decision that might
+                cost us later.
+            */
+
+
             // STEP 2: yield nothing and wait for next scope to show up
             const nextScope = yield;
             
@@ -841,4 +883,53 @@ function compile(template, reservedUuids) {
     return Hydrate;
 }
 
-export { compile };
+
+/**
+ * This method is a variation of `compile`, where we compile only
+ * once without allowing rehydratation. The resulting DOM, however, is
+ * purified using DOMPurify.
+ * 
+ * This method fails if DOMPurify is not available.
+ * 
+ * The result might contain an extra `div` container.
+ * 
+ * @param {string} template 
+ * @param {Set<string>} [reservedUuids]
+ * @param {boolean} [readOnlySet]
+ * @returns 
+ */
+function safeCompileOnce(template, reservedUuids, readOnlySet)
+{
+    const DOMPurify = (
+        /**
+         * @type {*} - DOMPurify interface
+         */ (window)
+    ).DOMPurify;
+    if(!DOMPurify) {
+        throw "DOMPurify library is required to use this method.";
+    } else {
+        const BaseHydrate = compile(template, reservedUuids, readOnlySet);
+        /**
+         * @param {*} domRoot 
+         * @param {*} scope 
+         * @yields {undefined}
+         * @returns {*}
+         */
+        const Hydrate = (domRoot, scope) => {
+            const phantom = document.createElement("div");
+            BaseHydrate(phantom, scope).next();
+
+            DOMPurify.sanitize(phantom, {
+                IN_PLACE: true,
+                ALLOWED_CUSTOM_ELEMENTS: 'all'
+            });
+            domRoot.innnerHTML = "";
+            domRoot.appendChild(phantom);
+        };
+
+        return Hydrate;
+    }
+}
+
+
+export { compile, safeCompileOnce };

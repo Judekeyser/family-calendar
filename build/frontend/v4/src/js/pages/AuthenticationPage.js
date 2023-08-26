@@ -21,13 +21,8 @@ function submitForm(formElement, doSubmit) {
             let { errorCode, errorMessage } = error;
             if([401,403,429].includes(errorCode)) {
                 formElement.querySelector(
-                    "*[data-id=error-feedback-container]"
-                ).classList.remove("hidden");
-                formElement.querySelector(
                     "*[data-id=error-feedback]"
                 ).textContent = errorMessage;
-                formElement.password.focus();
-                formElement.password.select();
             } else {
                 console.error(error);
             }
@@ -35,19 +30,23 @@ function submitForm(formElement, doSubmit) {
             for(let ctrl of controllers) {
                 ctrl.disabled = false;
             }
+            formElement.password.focus();
+            formElement.password.select();
         }
     })();
 }
 
+const TEMPLATE_ID = "authentication-pane";
 function AuthenticationPage() {
     this.__templates = {
         main: compile(
-            document.getElementById("authentication-pane").innerText
+            document.getElementById(TEMPLATE_ID).innerText
         )
     };
 }
 AuthenticationPage.prototype = {
     paint: async function() {
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
         
         this.__templates.main(
             this.anchorElement,

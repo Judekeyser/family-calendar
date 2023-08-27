@@ -116,6 +116,11 @@
     "components/LongFrenchDate.js",
     "components/LongFrenchTime.js",
     "components/MonthTwoDigits.js",
-    "components/YearFourDigits.js"
+    "components/YearFourDigits.js",
+
+    "pages/AuthenticationPage.js"
+  ],
+  "include": [
+    "__documented_types.js"
   ]
 }

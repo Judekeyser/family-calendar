@@ -3,7 +3,7 @@ import { now } from './date-utils';
 /**
  * @typedef {{
  *  kind: 'cursor_move',
- *  userInitiator: string?,
+ *  userInitiator: string | undefined,
  *  cursor: number,
  *  version: 1
  * }} EventV1_CursorMove
@@ -14,9 +14,9 @@ import { now } from './date-utils';
  *  strDate: string,
  *  strTime: string,
  *  strDescription: string,
- *  strDetails: string?,
- *  isDayOff: boolean?,
- *  userInitiator: string?,
+ *  strDetails: string | undefined,
+ *  isDayOff: boolean | undefined,
+ *  userInitiator: string | undefined,
  *  version: 1
  * }} EventV1_Create
 * ----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import { now } from './date-utils';
  *  kind: 'cancel',
  *  strDate: string,
  *  strTime: string,
- *  userInitiator: string?,
+ *  userInitiator: string | undefined,
  *  version: 1
  * }} EventV1_Cancel
  * ----------------------------------------------------------------------------
@@ -54,8 +54,8 @@ import { now } from './date-utils';
  * @param {[strDate: string, strTime: string]} temporalKey - [strDate, strTime]
  * @param {{
  *  description: string,
- *  details: string?,
- *  isDayOff:boolean,
+ *  details: string | undefined,
+ *  isDayOff: boolean,
  *  time: number
  * }} details - event details
  * ----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ import { now } from './date-utils';
 /**
  * @param {EventV1_CursorMove | EventV1_Cancel | EventV1_Create} event
  * @param {number} time
- * @param {string=} currentUser
- * @returns {CalendarEffect=} - A side effect on the calendar
+ * @param {string} [currentUser]
+ * @returns {CalendarEffect | undefined} - A side effect on the calendar
  * ----------------------------------------------------------------------------
  */
 function eventV1Handle(event, time, currentUser) {
@@ -112,7 +112,7 @@ function eventV1Handle(event, time, currentUser) {
                         [strDate, strTime],
                         {
                             description: strDescription,
-                            details: strDetails || null,
+                            details: strDetails || undefined,
                             isDayOff: isDayOff || false,
                             time: reportTime
                         }
@@ -131,8 +131,8 @@ function eventV1Handle(event, time, currentUser) {
  * 
  * @param {EventV2_Modify} event 
  * @param {number} time 
- * @param {string=} currentUser 
- * @returns {CalendarEffect=} - A side effect on the calendar
+ * @param {string} [currentUser] 
+ * @returns {CalendarEffect | undefined} - A side effect on the calendar
  *-----------------------------------------------------------------------------
  */
 function eventV2Handle(event, time, currentUser) {
@@ -149,10 +149,10 @@ function eventV2Handle(event, time, currentUser) {
 }
 
 /**
- * @param {CalendarEvent?} event 
+ * @param {CalendarEvent | undefined} event 
  * @param {number} time 
- * @param {string=} currentUser 
- * @returns {CalendarEffect=}
+ * @param {string} [currentUser] 
+ * @returns {CalendarEffect | undefined}
  */
 function eventHandler(event, time, currentUser) {
     if (event) {
@@ -187,7 +187,7 @@ async function fetchRoutine(_1) {
     const url = '/send_event.php?from=' + String(from);
 
     /**
-     * @type {string=}
+     * @type {string | undefined}
      */
     const csrfToken = (
         /**
@@ -252,7 +252,9 @@ async function fetchRoutine(_1) {
  */
 async function sendEvent(x, calendar) {
     /**
-     * @param {Iterable<[CalendarEvent | null, number]?>} content
+     * @param {Iterable<
+     *  [CalendarEvent | undefined, number] | undefined
+     * >} content
      */
     function consumeContent(content) {
         if (!content) {
@@ -326,8 +328,8 @@ async function sendEvent(x, calendar) {
  * 
  * @typedef {{
  *  description: string,
- *  details: string?,
- *  unread?: boolean | undefined
+ *  details: string | undefined,
+ *  unread: boolean | undefined
  * }}CalendarTimedRecord
  * ----------------------------------------------------------------------------
  */
@@ -390,7 +392,7 @@ class Backend {
      * @param {[strDate: string, strTime: string]} _1
      * @param {{
      *  description: string,
-     *  details: string?,
+     *  details: string | undefined,
      *  time: number,
      *  isDayOff: boolean
      * }} _2 
@@ -408,8 +410,10 @@ class Backend {
         if (!this.view.has(strDate)) {
             this.view.set(strDate, new Map());
         }
-        const timeMap = /** @type{Map<string, CalendarTimedRecord>} */ (
-            this.view.get(strDate)
+        const timeMap = (
+            /**
+             * @type{Map<string, CalendarTimedRecord>}
+             */ (this.view.get(strDate))
         );
         timeMap.set(strTime, entry);
 
@@ -462,8 +466,8 @@ class Backend {
 
     /**
      * @param {{
-     *  password?: string | undefined
-     *  newEvent?: CalendarEvent | undefined
+     *  password: string | undefined
+     *  newEvent: CalendarEvent | undefined
      * }} _1
      */
     async #update(_1) {
@@ -516,7 +520,10 @@ class Backend {
                     this._Backend__lastUpdateTimestamp < now - 30 * 1000
                 ) {
                     try {
-                        await this.#update({});
+                        await this.#update({
+                            password: undefined,
+                            newEvent: undefined
+                        });
                         this._Backend__lastUpdateTimestamp = now;
                     } catch (error) {
                         rej(error);
@@ -552,13 +559,13 @@ class Backend {
         } else {
             localStorage.setItem('userName', userName);
         }
-        return this.#update({ password });
+        return this.#update({ password, newEvent: undefined });
     };
 
     /**
      * @param {TemporalKey & {
      *  strDescription: string,
-     *  strDetails: string?,
+     *  strDetails: string | undefined,
      *  isDayOff: boolean
      * }} appointmentRecord 
      * @returns {Promise<boolean>}
@@ -573,11 +580,13 @@ class Backend {
          */
         const newEvent = {
             strTime, strDate, strDescription, strDetails, isDayOff,
-            userInitiator: window.localStorage.getItem('userName'),
+            userInitiator: (
+                window.localStorage.getItem('userName') || undefined
+            ),
             kind: "create",
             version: 1
         };
-        return this.#update({ newEvent });
+        return this.#update({ newEvent, password: undefined });
     };
 
     /**
@@ -591,19 +600,21 @@ class Backend {
          */
         const newEvent = {
             strDate, strTime,
-            userInitiator: window.localStorage.getItem('userName'),
+            userInitiator: (
+                window.localStorage.getItem('userName') || undefined
+            ),
             version: 1,
             kind: "cancel"
         };
 
-        return this.#update({ newEvent });
+        return this.#update({ newEvent, password: undefined });
     };
 
     /**
      * @param {{
      *  toCreate: TemporalKey & {
      *   strDescription: string,
-     *   strDetails: string?,
+     *   strDetails: string | undefined,
      *   isDayOff: boolean
      *  },
      *  toCancel: TemporalKey
@@ -612,7 +623,9 @@ class Backend {
      */
     editEvent = async (modification) => {
         const { toCancel, toCreate } = modification;
-        const userInitiator = window.localStorage.getItem('userName');
+        const userInitiator = (
+            window.localStorage.getItem('userName') || undefined
+        );
 
         /**
          * @type {EventV1_Create}
@@ -646,7 +659,7 @@ class Backend {
             version: 2
         };
 
-        return this.#update({ newEvent });
+        return this.#update({ newEvent, password: undefined });
     };
 
     markRead = async () => {
@@ -654,12 +667,14 @@ class Backend {
          * @type {EventV1_CursorMove}
          */
         const newEvent = {
-            userInitiator: window.localStorage.getItem('userName'),
+            userInitiator: (
+                window.localStorage.getItem('userName') || undefined
+            ),
             kind: "cursor_move",
             version: 1,
             cursor: this.userCursor
         };
-        return this.#update({ newEvent });
+        return this.#update({ newEvent, password: undefined });
     };
 }
 

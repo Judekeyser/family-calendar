@@ -3,7 +3,7 @@
 if(session_status() == PHP_SESSION_DISABLED)
     return terminate_in_error(500, "Erreur de configuration: sessions désactivées");
 
-define('DATABASE_HOST', 'localhost');
+define('DATABASE_HOST', 'host.docker.internal');
 define('DATABASE_USER', 'root');
 define('DATABASE_PASSWORD', 'kostas');
 define('DATABASE_NAME', 'familycalendar');

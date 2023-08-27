@@ -404,36 +404,40 @@
     </script>
 
     <script type="text/plain" id="authentication-pane">
-        <form {#}
-                {% submit}
+        <app-authentication-form
+            {#}
+                {% app-authentify}
+                { username | username }
             {/}
         >
-            <input type="text" class="hidden" name="username" autocomplete="username" value="appv1" readonly disabled>
-            <fieldset>
-                <p class="text-centered">
-                    <label>Mot de passe</label>&#160;:
-                    <br>
-                    <input type="password" name="password" autocomplete="new-password" required>
+            <form>
+                <input type="text" class="hidden" name="username" autocomplete="username" value="appv1" readonly disabled>
+                <fieldset>
+                    <p class="text-centered">
+                        <label>Mot de passe</label>&#160;:
+                        <br>
+                        <input type="password" name="password" autocomplete="new-password" required>
+                    </p>
                 </p>
-            </p>
-            <fieldset class="text-centered">
-                <p class="text-centered">
-                    <label>Identité</label>&#160;:<br>
-                    <select data-id="user-identity" name="identity" required>
-                        <option value="" disabled>Identité utilisateur</option>
-                        <option value="caroline">Caroline</option>
-                        <option value="justin">Justin</option>
-                    </select>
-                </p>
-            </fieldset>
-        
-            <hr>
+                <fieldset class="text-centered">
+                    <p class="text-centered">
+                        <label>Identité</label>&#160;:<br>
+                        <select name="identity" required>
+                            <option value="" disabled>Identité utilisateur</option>
+                            <option value="caroline">Caroline</option>
+                            <option value="justin">Justin</option>
+                        </select>
+                    </p>
+                </fieldset>
+            
+                <hr>
 
-            <p class="text-right">
-                <small data-id="error-feedback" class="margin-right"></small>
-                <button>Se connecter</button>
-            </p>
-        </form>
+                <p class="text-right">
+                    <small data-id="error-feedback" class="margin-right"></small>
+                    <button>Se connecter</button>
+                </p>
+            </form>
+        </app-authentication-form>
     </script>
 
     <app-route-listener></app-route-listener>

@@ -1,77 +1,191 @@
-import { compile } from '../template-engine.js';
+import { safeCompileOnce } from '../template-engine.js';
+import { PageEnvironmentConfig } from './PageEnvironmentConfig';
+
+/**
+ * @callback FormAction
+ * @param {CredentialsInput} credentials
+ * @returns {Promise<unknown>}
+ * @throws {BackendError}
+ */
+
+/**
+ * @callback FormActionRunner
+ * @param {FormAction} action
+ * @returns {Promise<unknown>}
+ */
 
 
-function submitForm(formElement, doSubmit) {
-    let password = formElement.password.value || '';
-    let userName = formElement.identity.value || '';
+customElements.define("app-authentication-form", class extends HTMLElement {
+    static get observedAttributes()
+        { return ['username'] }
+    constructor() {
+        super();
+        /**
+         * @type {{
+         *  formElement: HTMLFormElement,
+         *  passwordController: HTMLInputElement,
+         *  userNameController: HTMLInputElement,
+         *  errorArea: HTMLElement
+         * } | undefined}
+         */
+        this._cache = undefined;
+    }
 
-    (async () => {
-        let controllers = [
-            formElement.password,
-            formElement.identity,
-            formElement.querySelector("button")
-        ];
+    connectedCallback() {
+        const formElement = this.#formElement;
 
+        /**
+         * @param {SubmitEvent} event 
+         */
+        const submitListener = event => {
+            event.preventDefault();
+            this.dispatchEvent(new CustomEvent("app-authentify", {
+                detail: this.submit
+            }));
+            return undefined;
+        };
+
+        formElement.addEventListener("submit", submitListener);
+    }
+
+    /**
+     * @param {('strdate')} _name 
+     * @param {string | undefined} _old 
+     * @param {string | undefined} newValue 
+     */
+    attributeChangedCallback(_name, _old, newValue) {
+        this.#userNameController.value = newValue || '';
+    }
+
+    get #cache() {
+        if(!this._cache) {
+            const formElement = (
+                /**
+                 * @type { HTMLFormElement}
+                 */ (this.querySelector("form"))
+            );
+            this._cache = (
+                /**
+                 * @type {{
+                 *  formElement: HTMLFormElement,
+                 *  passwordController: HTMLInputElement,
+                 *  userNameController: HTMLInputElement,
+                 *  errorArea: HTMLElement
+                 * }}
+                 */ ({
+                    formElement,
+                    passwordController: formElement['password'],
+                    userNameController: formElement['identity'],
+                    errorArea: this.querySelector("*[data-id=error-feedback]")
+                 })
+            );
+        }
+        return this._cache;
+    }
+
+    get #formElement() {
+        return this.#cache.formElement;
+    }
+
+    get #userNameController() {
+        return this.#cache.userNameController;
+    }
+
+    get #passwordController() {
+        return this.#cache.passwordController;
+    }
+
+    get #errorArea() {
+        return this.#cache.errorArea;
+    }
+
+    /**
+     * @param {FormAction} action
+     */
+    submit = async (action) => {
+        this.#errorArea.innerHTML = "";
+        this.#userNameController.disabled = true;
+        this.#passwordController.disabled = true;
+        
         try {
-            for(let ctrl of controllers) {
-                ctrl.disabled = true;
-            }
-            await doSubmit({ userName, password });
+            const credentials = {
+                password: this.#passwordController.value || '',
+                userName: this.#userNameController.value || ''
+            };
+            await action(credentials);
         } catch(error) {
-            let { errorCode, errorMessage } = error;
-            if([401,403,429].includes(errorCode)) {
-                formElement.querySelector(
-                    "*[data-id=error-feedback]"
-                ).textContent = errorMessage;
-            } else {
-                console.error(error);
+            const backendError = (
+                /**
+                 * @type {BackendError}
+                 */ (error)
+            );
+            const { errorCode } = backendError;
+            if(errorCode && errorCode >= 400) {
+                this.#errorArea.textContent = backendError.errorMessage;
             }
         } finally {
-            for(let ctrl of controllers) {
-                ctrl.disabled = false;
-            }
-            formElement.password.focus();
-            formElement.password.select();
+            this.#userNameController.disabled = false;
+            this.#passwordController.disabled = false;
+            this.#passwordController.focus();
+            this.#passwordController.select();
         }
-    })();
-}
+        return undefined;
+    }
+});
+
 
 const TEMPLATE_ID = "authentication-pane";
 function AuthenticationPage() {
+    const templateElement = (
+        /**
+         * @type {HTMLElement}
+         */ (document.getElementById(TEMPLATE_ID))
+    );
+
     this.__templates = {
-        main: compile(
-            document.getElementById(TEMPLATE_ID).innerText
-        )
+        main: safeCompileOnce(templateElement.innerText)
     };
 }
 AuthenticationPage.prototype = {
+    get _environment() {
+        return (
+            /**
+             * @type {PageEnvironmentConfig}
+             */ (
+                /**
+                 * @type {unknown}
+                 */ (this)
+            )
+        );
+    },
+
     paint: async function() {
-        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+        this._environment.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+
+        const username = this._environment.authentifiedUser.userName;
+        /**
+         * @type {FormAction}
+         */
+        const action = async (credentials) => {
+            await this._environment.authentify(credentials);
+            this._environment.navigateTo({
+                url: '/calendar-grid',
+                parameters: {}
+            });
+            return undefined
+        };
         
         this.__templates.main(
-            this.anchorElement,
+            this._environment.anchorElement,
             {
-                handleSubmit: e => {
-                    e.preventDefault();
-                    submitForm(e.target, async ({ userName, password }) => {
-                        await this.authentify({ userName, password });
-                        this.navigateTo({
-                            url: '/calendar-grid/',
-                            parameters: {}
-                        });
-                    });
-                }
+                /**
+                 * @param {{ detail: FormActionRunner }} _0 
+                 */
+                handleAppAuthentify: ({ detail }) => detail(action),
+                username
             }
-        ).next();
-
-        let { userName } = this.authentifiedUser;
-        if(userName) {
-            this.anchorElement.querySelector(
-                "*[data-id=user-identity]"
-            ).value = userName;
-        }
+        );
     }
-
 };
 
 

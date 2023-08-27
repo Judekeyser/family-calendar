@@ -10,7 +10,8 @@ rehydratation.
 const HANDLED_EVENTS = Object.freeze(new Map([
     ["click", "handleClick"],
     ["submit", "handleSubmit"],
-    ["change", "handleChange"]
+    ["change", "handleChange"],
+    ["app-authentify", "handleAppAuthentify"]
 ]));
 
 const MAX_ALLOWED_DEPTH = 10;
@@ -919,9 +920,25 @@ function safeCompileOnce(template, reservedUuids, readOnlySet)
             const phantom = document.createElement("div");
             BaseHydrate(phantom, scope).next();
 
+            /**
+             * @callback DOMPredicate
+             * @param {string} name
+             * @returns {boolean}
+             */
+
             DOMPurify.sanitize(phantom, {
                 IN_PLACE: true,
-                ALLOWED_CUSTOM_ELEMENTS: 'all'
+                CUSTOM_ELEMENT_HANDLING: {
+                    // allow all tags starting with "app-"
+                    tagNameCheck: (/** @type {DOMPredicate} */(
+                        (tagName) => !!tagName.match(/^app-/)
+                    )), 
+                    // allow all containing "baz"
+                    attributeNameCheck: (/** @type {DOMPredicate} */(
+                        () => true
+                    )),// allow customized built-ins
+                    allowCustomizedBuiltInElements: true, 
+                }
             });
             domRoot.innnerHTML = "";
             domRoot.appendChild(phantom);

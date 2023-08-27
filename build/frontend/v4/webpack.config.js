@@ -16,18 +16,5 @@ module.exports = {
     proxy: {
       '/send_event.php': 'http://localhost:8000/send_event.php',
     },
-  },
-  
-  plugins: [
-    {
-      apply: (compiler) => {
-        compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
-          child_process.exec('npx lessc src/less/app.less dist/app.css', (err, stdout, stderr) => {
-            if (stdout) process.stdout.write(stdout);
-            if (stderr) process.stderr.write(stderr);
-          });
-        });
-      }
-    }
-  ]
+  }
 };

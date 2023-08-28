@@ -11,7 +11,11 @@ const HANDLED_EVENTS = Object.freeze(new Map([
     ["click", "handleClick"],
     ["submit", "handleSubmit"],
     ["change", "handleChange"],
-    ["app-authentify", "handleAppAuthentify"]
+    ["app-authentify", "handleAppAuthentify"],
+    ["app-calendar-mutation-form-change",
+                                    "handleAppCalendarMutationFormChange"],
+    ["app-calendar-mutation-form-submit",
+                                    "handleAppCalendarMutationFormSubmit"],
 ]));
 
 const MAX_ALLOWED_DEPTH = 10;

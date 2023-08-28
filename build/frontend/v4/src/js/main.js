@@ -7,6 +7,9 @@ import './components/DayTwoDigits.js';
 import './components/MonthTwoDigits.js';
 import './components/YearFourDigits.js';
 
+import './components/forms/AuthenticationForm.js';
+import './components/forms/CalendarMutationForm.js';
+
 import {
     CalendarGridStartegy
 } from './pages/CalendarGridStrategy.js';

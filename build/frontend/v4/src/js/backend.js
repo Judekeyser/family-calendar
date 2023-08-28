@@ -96,6 +96,7 @@ function eventV1Handle(event, time, currentUser) {
     } else {
         const { strDate, strTime } = event;
         const jsDayDate = Date.parse(strDate);
+
         if (isNaN(jsDayDate) || !strTime) {
             return undefined;
         } else {
@@ -376,6 +377,7 @@ class Backend {
      * ------------------------------------------------------------------------
      */
     #deleteEvent(_1) {
+        console.log("DELETE", _1);
         const [strDate, strTime] = _1;
 
         const timeMap = this.view.get(strDate);
@@ -399,6 +401,7 @@ class Backend {
      * ------------------------------------------------------------------------
      */
     #createEvent(_1, _2) {
+        console.log("CREATE", _1, _2)
         const [strDate, strTime] = _1;
         const { description, details, time, isDayOff } = _2;
 

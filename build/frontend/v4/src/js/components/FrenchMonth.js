@@ -1,4 +1,4 @@
-import { monthOfDate } from "../date-utils";
+import { monthOfDate, validateDateString } from "../date-utils";
 
 
 /**
@@ -36,7 +36,7 @@ customElements.define("app-french-month", class extends HTMLElement {
 
         /**
          * @type {{
-         *  strdate: string | undefined
+         *  strdate: DateString | undefined
          * }}
          */
         this.state = {
@@ -57,14 +57,23 @@ customElements.define("app-french-month", class extends HTMLElement {
      * @param {string | undefined} newValue - The new value
      */
     attributeChangedCallback(name, _oldValue, newValue) {
-        this.state[name] = newValue || undefined;
+        registerState: {
+            if(newValue) {
+                const maybeDate = validateDateString(newValue);
+                if(maybeDate) {
+                    this.state[name] = maybeDate;
+                    break registerState;
+                }
+            }
+            this.state[name] = undefined;
+        }
         this.#paint();
     }
 
     #paint() {
-        const strDate = this.state.strdate;
-        if(strDate) {
-            const frenchMonth = computeFrenchMonth(monthOfDate(strDate));
+        const date = this.state.strdate;
+        if(date) {
+            const frenchMonth = computeFrenchMonth(monthOfDate(date));
             this.textContent = frenchMonth;
         } else {
             this.innerHTML = "";

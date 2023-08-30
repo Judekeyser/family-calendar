@@ -1,7 +1,9 @@
+import { validateTimeString } from "../date-utils";
+
 /**
  * Computes a French fragment that best represents the time.
  * 
- * @param {string} strTime - The time to convert to French
+ * @param {TimeString} strTime - The time to convert to French
  * @returns {string} A French version of the time.
  */
 function computeFrenchTime(strTime)
@@ -21,7 +23,7 @@ customElements.define("app-long-french-time", class extends HTMLElement {
 
         /**
          * @type {{
-         *  strtime: string | undefined,
+         *  strtime: TimeString | undefined,
          *  case: string | undefined
          * }}
          */
@@ -45,16 +47,25 @@ customElements.define("app-long-french-time", class extends HTMLElement {
      * @param {string | undefined} newValue - The new value
      */
     attributeChangedCallback(name, _oldValue, newValue) {
-        this.state[name] = newValue || undefined;
+        registerState: {
+            if(newValue) {
+                const maybeDate = validateTimeString(newValue);
+                if(maybeDate) {
+                    this.state[name] = maybeDate;
+                    break registerState;
+                }
+            }
+            this.state[name] = undefined;
+        }
         this.#paint();
     }
 
     #paint() {
-        const strTime = this.state.strtime;
+        const time = this.state.strtime;
         const letterCase = this.state.case;
 
-        if(strTime) {
-            let frenchTime = computeFrenchTime(strTime);
+        if(time) {
+            let frenchTime = computeFrenchTime(time);
             if(letterCase == 'lowercase') {
                 frenchTime = frenchTime.toLowerCase();
             }

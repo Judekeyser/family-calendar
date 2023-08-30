@@ -3,7 +3,7 @@ const child_process = require('child_process');
 
 
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: path.resolve(__dirname, 'src', 'js', 'main.js'),
   output: {
     filename: 'main.js',
@@ -11,7 +11,7 @@ module.exports = {
   },
   devServer: {
     static: path.resolve(__dirname, 'dist'),
-    //compress: true,
+    compress: true,
     port: 5000,
     proxy: {
       '/send_event.php': 'http://localhost:8000/send_event.php',

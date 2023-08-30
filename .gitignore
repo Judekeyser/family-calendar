@@ -2,3 +2,5 @@ build/frontend/**/node_modules
 build/frontend/**/build
 build/frontend/**/package-lock.json
 __*
+
+**/.DS_Store

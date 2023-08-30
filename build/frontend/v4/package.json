@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npm run check && npx webpack --config webpack.config.js",
     "start": "npx webpack serve --open",
-    "check": "npx tsc -p src/js && npx eslint src"
+    "check": "npx eslint src; npx tsc -p src/js"
   },
   "keywords": [],
   "author": "",

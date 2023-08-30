@@ -84,7 +84,7 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
         ]) {
             controller.addEventListener("change", () => {
                 this.#rectifyAfterChange();
-                this.#emitChange()
+                this.#emitChange();
             });
         }
 
@@ -142,8 +142,7 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
             timeNumericController,
             isDayOffController,
             descriptionController,
-            detailsController,
-            cancelController
+            detailsController
         } = this.#cache;
         const value = this._value;
 
@@ -178,7 +177,7 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
 
         detailsController.value = value.details;
         detailsController.disabled = false;
-    };
+    }
 
     #rectifyAfterCancelStateChange() {
         this.#rectifyAfterLoad();

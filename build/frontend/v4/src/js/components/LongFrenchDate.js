@@ -1,4 +1,4 @@
-import { monthOfDate, dayOfDate } from "../date-utils";
+import { monthOfDate, dayOfDate, validateDateString } from "../date-utils";
 
 
 /**
@@ -63,7 +63,7 @@ customElements.define("app-long-french-date", class extends HTMLElement {
         super();
         /**
          * @type {{
-         *  strdate: string | undefined,
+         *  strdate: DateString | undefined,
          *  case: string | undefined
          * }}
          */
@@ -86,16 +86,25 @@ customElements.define("app-long-french-date", class extends HTMLElement {
      * @param {string | undefined} newValue - The new value
      */
     attributeChangedCallback(name, _oldValue, newValue) {
-        this.state[name] = newValue || undefined;
+        registerState: {
+            if(newValue) {
+                const maybeDate = validateDateString(newValue);
+                if(maybeDate) {
+                    this.state[name] = maybeDate;
+                    break registerState;
+                }
+            }
+            this.state[name] = undefined;
+        }
         this.#paint();
     }
 
     #paint() {
-        const strDate = this.state.strdate;
+        const date = this.state.strdate;
 
-        if(strDate) {
-            const frenchMonth = computeFrenchMonth(monthOfDate(strDate));
-            const frenchDay = computeFrenchDay(dayOfDate(strDate));
+        if(date) {
+            const frenchMonth = computeFrenchMonth(monthOfDate(date));
+            const frenchDay = computeFrenchDay(dayOfDate(date));
 
             if(frenchDay == '1er') {
                 this.innerHTML = `1<sup>er</sup> `;

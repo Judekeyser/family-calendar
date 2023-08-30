@@ -1,4 +1,4 @@
-import { dayOfDate } from "../date-utils";
+import { dayOfDate, validateDateString } from "../date-utils";
 
 
 customElements.define("app-day-two-digits", class extends HTMLElement {
@@ -7,7 +7,7 @@ customElements.define("app-day-two-digits", class extends HTMLElement {
 
         /**
          * @type {{
-         *  strdate: string | undefined
+         *  strdate: DateString | undefined
          * }}
          */
         this.state = {
@@ -28,14 +28,23 @@ customElements.define("app-day-two-digits", class extends HTMLElement {
      * @param {string | undefined} newValue - The new value
      */
     attributeChangedCallback(name, _oldValue, newValue) {
-        this.state[name] = newValue || undefined;
+        registerState: {
+            if(newValue) {
+                const maybeDate = validateDateString(newValue);
+                if(maybeDate) {
+                    this.state[name] = maybeDate;
+                    break registerState;
+                }
+            }
+            this.state[name] = undefined;
+        }
         this.#paint();
     }
 
     #paint() {
-        const strDate = this.state.strdate;
-        if(strDate) {
-            this.textContent = dayOfDate(strDate);
+        const date = this.state.strdate;
+        if(date) {
+            this.textContent = dayOfDate(date);
         } else {
             this.innerHTML = "";
         }

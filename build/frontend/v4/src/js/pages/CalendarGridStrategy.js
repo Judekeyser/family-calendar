@@ -1,15 +1,55 @@
 import { safeCompileOnce } from '../template-engine.js';
 import {
     nextDatetime,
-    mondayOfDateTime,
     dateTimeToString,
     monthOfDate,
     stringToDateTime,
-    now
+    now,
+    validateDateString,
+    computeGrid
 } from '../date-utils.js';
 
+/**
+ * @typedef {{
+ *  strDate: DateString,
+ *  hasAppointments: boolean,
+ *  hasNoUnread: boolean,
+ *  inFocusMonth: boolean,
+ *  isToday: boolean,
+ *  isFocus: boolean,
+ *  isDayOff: boolean,
+ *  handleClick: *
+ * }} FilledTemplateGridCellData
+ *
+ * @typedef {{
+ *  strDate: undefined,
+ *  hasAppointments: false,
+ *  hasNoUnread: true,
+ *  inFocusMonth: true,
+ *  isToday: false,
+ *  isFocus: false,
+ *  isDayOff: false,
+ *  handleClick: undefined
+ * }} UnfilledTemplateGridCellData
+ * 
+ * @typedef {UnfilledTemplateGridCellData |
+ *           FilledTemplateGridCellData} TemplateGridCellData
+ */
 
-function makeCell({ strDate, todayStrDate, focusStrDate }, view, navigateTo) {
+
+/**
+ * 
+ * @param {{
+ *  strDate: DateString | undefined,
+ *  todayStrDate: DateString,
+ *  focusStrDate: DateString
+ * }} dateData 
+ * @param {View} view 
+ * @param {NavigateToCallback} navigateTo 
+ * @returns {TemplateGridCellData}
+ */
+function makeCell(dateData, view, navigateTo) {
+    const { strDate, todayStrDate, focusStrDate } = dateData;
     if(!strDate) {
         return {
             strDate: undefined,
@@ -22,15 +62,15 @@ function makeCell({ strDate, todayStrDate, focusStrDate }, view, navigateTo) {
             handleClick: undefined
         };
     } else {
-        let timeMap = new Map(view.get(strDate));
+        const timeMap = new Map(view.get(strDate));
     
         let hasUnread = false;
         let hasAppointments = false;
         let anyDayOff = false;
-        for (let { unread, isDayOff } of timeMap.values()) {
+        for (const { unread, isDayOff } of timeMap.values()) {
             hasAppointments = true;
-            hasUnread |= unread;
-            anyDayOff |= isDayOff;
+            hasUnread = hasUnread || unread;
+            anyDayOff = anyDayOff || isDayOff;
         }
     
         return {
@@ -41,7 +81,7 @@ function makeCell({ strDate, todayStrDate, focusStrDate }, view, navigateTo) {
             isToday: strDate == todayStrDate,
             isFocus: strDate == focusStrDate,
             isDayOff: anyDayOff,
-            handleClick: () => navigateTo({
+            handleClick: () => void navigateTo({
                 url: '/appointments/day/',
                 parameters: {
                     strDate
@@ -51,72 +91,30 @@ function makeCell({ strDate, todayStrDate, focusStrDate }, view, navigateTo) {
     }
 }
 
-function generateTable(
-    { numberOfWeeks, todayStrDate, focusStrDate },
-    view, navigateTo
-) {
-    const focusDatetime = stringToDateTime(focusStrDate);
-    const focusMonth = monthOfDate(focusStrDate);
+/**
+ * 
+ * @param {{
+ *  numberOfWeeks: number,
+ *  todayStrDate: DateString,
+ *  focusStrDate: DateString
+ * }} tableData 
+ * @param {View} view 
+ * @param {NavigateToCallback} navigateTo 
+ * @returns {{
+ *  blocks: Array.<{
+ *      rows: Array.<{
+ *          cols: Array.<TemplateGridCellData>
+ *      }>,
+ *      strDate: DateString | undefined
+ *  }>
+ * }}
+ */
+function generateTable(tableData, view, navigateTo) {
+    const { numberOfWeeks, todayStrDate, focusStrDate } = tableData;
 
-    const dates = [];
-
-    // First week is different because we have to prepend as many
-    // blank days as the number of days out of month.
-    let cursor = mondayOfDateTime(focusDatetime);
-    for(;;) {
-        const strDate = dateTimeToString(cursor);
-        if(monthOfDate(strDate) == focusMonth) {
-            break;
-        } else {
-            dates.push(null);
-            cursor = nextDatetime(cursor);
-        }
-    }
-    
-    const numberOfDaysToFill = Math.min(numberOfWeeks, 5) * 7 - dates.length;
-    let monthCursor = focusMonth;
-    for(let i = 0; i < numberOfDaysToFill; i++) {
-        const strDate = dateTimeToString(cursor);
-        const cursorMonth = monthOfDate(strDate);
-        if(cursorMonth !== monthCursor) {
-            for(let j = 0; j < 7; j++) {
-                dates.push(null);
-            }
-            monthCursor = cursorMonth;
-        }
-        dates.push(strDate);
-        cursor = nextDatetime(cursor);
-    }
-
-    if(numberOfWeeks == 6) {
-        const lastMonth = monthOfDate(dates[dates.length - 1]);
-        for(let dayCount = dates.length;;) {
-            const strDate = dateTimeToString(cursor);
-            const cursorMonth = monthOfDate(strDate);
-            if(cursorMonth !== lastMonth) {
-                for(let j = 0; j < 7 - (dayCount % 7); j++) {
-                    dates.push(null);
-                }
-                break;
-            } else {
-                dates.push(strDate);
-                cursor = nextDatetime(cursor);
-                dayCount += 1;
-            }
-        }
-    }
-
-
-    const blocks = [];
-    for(let i = 0; i < dates.length;) {
-        const block = [];
-        let week = [];
-        do {
-            week = dates.slice(i, i += 7);
-            block.push(week);
-        } while(week[6]);
-        blocks.push(block);
-    }
+    const blocks = computeGrid(
+        focusStrDate, Math.min(5, numberOfWeeks), numberOfWeeks == 6
+    );
 
     return {
         blocks: blocks.map(block => ({
@@ -230,37 +228,78 @@ const GRID_MAIN_ID = "calendar-grid_main";
 const GRID_ROWS_ID = "calendar-grid_rows";
 
 function CalendarGridStartegy() {
-    const reservedUuids = new Set();
-    const mainTemplate = safeCompileOnce(
-        document.getElementById(GRID_MAIN_ID).innerText,
-        reservedUuids
+    const uuids = new Set();
+    const gridMainContainer = (
+        /**
+         * @type {HTMLElement}
+         */ (document.getElementById(GRID_MAIN_ID))
     );
+    const gridRowsContainer = (
+        /**
+         * @type {HTMLElement}
+         */ (document.getElementById(GRID_ROWS_ID))
+    );
+
+    const mainTemplate = safeCompileOnce(gridMainContainer.innerText, uuids);
     this.__templates = {
         main: mainTemplate,
-        rows: safeCompileOnce(
-            document.getElementById(GRID_ROWS_ID).innerText,
-            reservedUuids, true
-        )
+        rows: safeCompileOnce(gridRowsContainer.innerText, uuids, true)
     };
 }
 CalendarGridStartegy.prototype = {
-    paint: async function ({ numberOfWeeks, firstWeekIncludes }) {
+    get _environment() {
+        return (
+            /**
+             * @type {PageEnvironmentConfig}
+             */ (
+                /**
+                 * @type {unknown}
+                 */ (this)
+            )
+        );
+    },
+
+    /**
+     * @param {{
+     *  numberOfWeeks: number | undefined,
+     *  firstWeekIncludes: DateString | undefined
+     * }} parameters 
+     * @returns {Promise<unknown>}
+     */
+    paint: async function(parameters) {
+        const { numberOfWeeks, firstWeekIncludes } = parameters;
         if (!numberOfWeeks) {
             const fromStore = sessionStorage.getItem('numberOfWeeks');
-            const recovered = fromStore || 5;
+            if(fromStore) {
+                const numberFromStore = parseInt(fromStore);
+                if(isFinite(numberFromStore)) {
+                    return await this.paint({
+                        numberOfWeeks: numberFromStore,
+                        firstWeekIncludes
+                    });
+                }
+            }
             return await this.paint({
-                numberOfWeeks: recovered,
+                numberOfWeeks: 5,
                 firstWeekIncludes
             });
         } else {
-            sessionStorage.setItem('numberOfWeeks', numberOfWeeks);
+            sessionStorage.setItem('numberOfWeeks', String(numberOfWeeks));
         }
         if (!firstWeekIncludes) {
             const fromStore = sessionStorage.getItem('firstWeekIncludes');
-            const recovered = fromStore || now();
+            if(fromStore) {
+                const dateFromStore = validateDateString(fromStore);
+                if(dateFromStore) {
+                    return await this.paint({
+                        numberOfWeeks,
+                        firstWeekIncludes: dateFromStore
+                    });
+                }
+            }
             return await this.paint({
                 numberOfWeeks,
-                firstWeekIncludes: recovered
+                firstWeekIncludes: now()
             });
         } else {
             sessionStorage.setItem('firstWeekIncludes', firstWeekIncludes);
@@ -307,6 +346,8 @@ CalendarGridStartegy.prototype = {
                 focusStrDate: firstWeekIncludes
             }, view, this.navigateTo)
         );
+
+        return undefined;
     }
 };
 

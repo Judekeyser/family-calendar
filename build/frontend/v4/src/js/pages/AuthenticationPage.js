@@ -1,5 +1,4 @@
 import { safeCompileOnce } from '../template-engine.js';
-import { PageEnvironmentConfig } from './PageEnvironmentConfig';
 
 /**
  * @callback FormAction
@@ -40,24 +39,27 @@ AuthenticationPage.prototype = {
         );
     },
 
+    /**
+     * @returns {Promise<unknown>}
+     */
     paint: async function() {
-        this._environment.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
 
-        const username = this._environment.authentifiedUser.userName;
+        const username = this.authentifiedUser.userName;
         /**
          * @type {FormAction}
          */
         const action = async (credentials) => {
-            await this._environment.authentify(credentials);
-            this._environment.navigateTo({
+            await this.authentify(credentials);
+            this.navigateTo({
                 url: '/calendar-grid',
                 parameters: {}
             });
-            return undefined
+            return undefined;
         };
         
         this.__templates.main(
-            this._environment.anchorElement,
+            this.anchorElement,
             {
                 /**
                  * @param {{ detail: FormActionRunner }} _0 
@@ -66,6 +68,8 @@ AuthenticationPage.prototype = {
                 username
             }
         );
+
+        return undefined;
     }
 };
 

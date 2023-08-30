@@ -8,7 +8,7 @@
 
 customElements.define("app-authentication-form", class extends HTMLElement {
     static get observedAttributes()
-        { return ['username'] }
+        { return ['username']; }
         
     constructor() {
         super();

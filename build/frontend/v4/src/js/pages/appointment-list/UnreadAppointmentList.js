@@ -4,6 +4,7 @@ import { AppointmentList } from './AppointmentList.js';
 
 
 function* unreadEntriesGenerator(newEvents, view) {
+    console.log(newEvents, view);
     for(let { strDate, strTime } of newEvents) {
         const entry = view.get(strDate).get(strTime);
         const strDescription = entry.description;

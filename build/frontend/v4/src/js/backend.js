@@ -1,6 +1,10 @@
 import { now } from './date-utils';
 
 /**
+ * ============================================================================
+ * ===  EVENT STRUCTURES AND VERSIONING  ======================================
+ * ============================================================================
+ * 
  * @typedef {{
  *  kind: 'cursor_move',
  *  userInitiator: string | undefined,
@@ -37,6 +41,8 @@ import { now } from './date-utils';
  * }} EventV2_Modify
  * ----------------------------------------------------------------------------
  * 
+ * Summary of all types, through the union `CalendarEvent`.
+ * 
  * @typedef {EventV1_CursorMove |
  *               EventV1_Create |
  *               EventV2_Modify |
@@ -46,12 +52,21 @@ import { now } from './date-utils';
 
 
 /**
+ * ============================================================================
+ * ===  CALENDAR EFFECTS  =====================================================
+ * ============================================================================
+ * 
+ * Calendar effects refer to how events (as typed through `CalendarEvent`)
+ * 
  * @callback PatchCursorEffect
  * @param {number} cursorCandidate
  * ----------------------------------------------------------------------------
  * 
  * @callback CreateEventEffect
- * @param {[strDate: string, strTime: string]} temporalKey - [strDate, strTime]
+ * @param {[
+ *  strDate: string,
+ *  strTime: string
+ * ]} temporalKey - [strDate, strTime]
  * @param {{
  *  description: string,
  *  details: string | undefined,
@@ -401,7 +416,6 @@ class Backend {
      * ------------------------------------------------------------------------
      */
     #createEvent(_1, _2) {
-        console.log("CREATE", _1, _2)
         const [strDate, strTime] = _1;
         const { description, details, time, isDayOff } = _2;
 
@@ -439,16 +453,14 @@ class Backend {
         const newEvents = [];
 
         for (const elem of this.newEvents) {
-            if (isReadPredicate(elem)) {
-                const { strDate, strTime } = elem;
-                const forDate = this.view.get(strDate);
-                const entry = forDate ? forDate.get(strTime) : undefined;
-
-                if (entry) {
-                    entry.unread = false;
+            const { strDate, strTime } = elem;
+            const mapEntry = new Map(this.view.get(strDate)).get(strTime);
+            if(mapEntry) {
+                if(isReadPredicate(elem)) {
+                    mapEntry.unread = false;
+                } else {
+                    newEvents.push(elem);
                 }
-            } else {
-                newEvents.push(elem);
             }
         }
         this.newEvents = newEvents;

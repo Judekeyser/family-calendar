@@ -103,10 +103,10 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
     /**
      * 
      * @param {(
-     *  'preferred-date',
-     *  'preferred-time',
-     *  'preferred-description',
-     *  'preferred-details',
+     *  'preferred-date' |
+     *  'preferred-time' |
+     *  'preferred-description' |
+     *  'preferred-details' |
      *  'preferred-is-day-off'
      * )} name 
      * @param {string | undefined} _oldValue 
@@ -265,7 +265,7 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
         if(!this._cache) {
             const formController = (
                 /**
-                 * @type {HTMLElement}
+                 * @type {HTMLFormElement}
                  */ (
                     this.querySelector("form")
                  )
@@ -284,6 +284,19 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
         return this._cache;
     }
 
+    /**
+     * @param {SubmitFormAction<{
+     *  cancel: true
+     * } | {
+     *  cancel: false,
+     *  isDayOff: boolean,
+     *  strDate: DateString,
+     *  strTime: TimeString,
+     *  strDescription: string,
+     *  strDetails: string | undefined
+     * }>} action 
+     * @returns {Promise<unknown>}
+     */
     submit = async action => {
         const {
             dateController,
@@ -308,9 +321,10 @@ customElements.define("app-calendar-mutation-form", class extends HTMLElement {
                     timeRangeController.value ||
                     timeNumericController.value || undefined
                 ),
-                strDescription: descriptionController.value || undefined,
+                strDescription: descriptionController.value || '',
                 strDetails: detailsController.value || undefined
             });
         }
+        return undefined;
     };
 });

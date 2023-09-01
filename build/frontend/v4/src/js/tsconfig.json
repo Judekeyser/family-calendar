@@ -118,7 +118,8 @@
     "components/MonthTwoDigits.js",
     "components/YearFourDigits.js",
     
-    "components/forms/AuthenticationForm.js"
+    "components/forms/AuthenticationForm.js",
+    "components/forms/CalendarMutationForm.js"
   ],
   "include": [
     "__documented_types.js"

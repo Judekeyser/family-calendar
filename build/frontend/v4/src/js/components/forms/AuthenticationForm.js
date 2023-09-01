@@ -1,11 +1,3 @@
-/**
- * @callback FormAction
- * @param {CredentialsInput} credentials
- * @returns {Promise<unknown>}
- * @throws {BackendError}
- */
-
-
 customElements.define("app-authentication-form", class extends HTMLElement {
     static get observedAttributes()
         { return ['username']; }
@@ -92,7 +84,8 @@ customElements.define("app-authentication-form", class extends HTMLElement {
     }
 
     /**
-     * @param {FormAction} action
+     * @param {SubmitFormAction<CredentialsInput>} action
+     * @returns {Promise<unknown>}
      */
     submit = async (action) => {
         this.#errorArea.innerHTML = "";

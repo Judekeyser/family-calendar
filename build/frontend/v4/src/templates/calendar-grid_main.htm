@@ -1,0 +1,59 @@
+<nav>
+    <menu>
+        {# searchNavigation}
+            <li><a {#}{% click}{/}>&#128270;</a></li>
+        {/}
+
+        {# unreadNavigation}
+            <li><a {#}{% click}{/}>&#128276; (<span {#}{$ size}{/}></span>)</a></li>
+        {/}
+    </menu>
+</nav>
+
+<form>
+    <fieldset>
+        <label
+            for="calendar-grid_main__date_select"
+        >Date d'intérêt</label>&#160;:
+        <input type="date"
+            id="calendar-grid_main__date_select"
+            {#}
+                {# firstDateIncludesController}
+                    {% change}
+                    { value | value }
+                {/}
+            {/}
+        > <input type="button" value="Préc."
+            {#}
+                {# previousWeekController}
+                    {% click}
+                {/}
+            {/}
+        > <input type="button" value="Suiv."
+            {#}
+                {# nextWeekController}
+                    {% click}
+                {/}
+            {/}
+        >
+    </fieldset>
+
+    <div data-id="calendar-grid_rows"></div>
+    <div data-id="calendar-weekly-detail"></div>
+    
+    <fieldset>
+        <input type="range" min="3" max="6"
+            list="calendar-rid_main__range_suggestions"
+            {#}
+                {# numberOfWeeksController}
+                    {% change}
+                    { value | value }
+                {/}
+            {/}
+        >
+        <datalist id="calendar-rid_main__range_suggestions">
+            <option value="3">Vue par semaine</option>
+            <option value="6">Vue mensuelle élargie</option>
+        </datalist>
+    </fieldset>
+</form>

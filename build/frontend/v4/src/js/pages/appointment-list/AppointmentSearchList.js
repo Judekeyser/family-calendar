@@ -1,4 +1,3 @@
-import { safeCompileOnce } from '../../template-engine.js';
 import { SearchEngine } from '../../search-engine.js';
 import { AppointmentList } from './AppointmentList.js';
 
@@ -26,15 +25,11 @@ function* generateEntries(searchResult, view) {
 const TEMPLATE_ID = "appointments-search_main";
 
 function AppointmentSearchList() {
-    this.__templates = safeCompileOnce(
-        document.getElementById(TEMPLATE_ID).innerText
-    );
     this.__listHandler = new AppointmentList();
 }
 AppointmentSearchList.prototype = {
     paint: async function({ defaultSearchQuery }) {
         let { view } = await this.state;
-        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
 
         let searchEngine = new SearchEngine();
         for(let [strDate, timeMap] of view) {
@@ -46,7 +41,8 @@ AppointmentSearchList.prototype = {
             }
         }
 
-        this.__templates(
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+        this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
             {
                 handleSubmit: ((self) => function(e) {
@@ -62,7 +58,8 @@ AppointmentSearchList.prototype = {
                             self.__listHandler.clear(self);
                             self.__listHandler.hydrate(
                                 self,
-                                generateEntries(searchResult, view)
+                                generateEntries(searchResult, view),
+                                { prefix: "1" }
                             );
                         } finally {
                             button.disabled = false;
@@ -79,7 +76,8 @@ AppointmentSearchList.prototype = {
                         })
                     },
                 }
-            }
+            },
+            "0"
         );
 
     }

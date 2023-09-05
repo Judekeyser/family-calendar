@@ -1,0 +1,36 @@
+<nav>
+    <menu>
+        {# menu}
+            {# back}
+                <li><a
+                    {#}
+                        {% click}
+                    {/}
+                >&#128197;</a></li>
+            {/}
+            {# markRead}
+                <li><a 
+                    {#}
+                        {% click}
+                    {/}
+                >&#9989;</a></li>
+            {/}
+            {# create}
+                <li><a 
+                    {#}
+                        {% click}
+                    {/}
+                >&#10133;</a></li>
+            {/}
+        {/}
+    </menu>
+</nav>
+
+<h1>Rendez-vous non lus</h1>
+
+{? hasAppointments}
+    <div data-id="appointments_list"></div>
+{/}
+{: hasAppointments} 
+    <p>Aucun rendez-vous non lus.</p>
+{/}

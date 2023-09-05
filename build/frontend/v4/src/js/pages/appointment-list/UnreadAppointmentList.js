@@ -1,10 +1,8 @@
 import { now } from '../../date-utils.js';
-import { safeCompileOnce } from '../../template-engine.js';
 import { AppointmentList } from './AppointmentList.js';
 
 
 function* unreadEntriesGenerator(newEvents, view) {
-    console.log(newEvents, view);
     for(let { strDate, strTime } of newEvents) {
         const entry = view.get(strDate).get(strTime);
         const strDescription = entry.description;
@@ -22,20 +20,16 @@ function* unreadEntriesGenerator(newEvents, view) {
 
 const TEMPLATE_ID = "unread-appointments_main";
 function UnreadAppointmentList() {
-    this.__templates = safeCompileOnce(
-        document.getElementById(TEMPLATE_ID).innerText
-    );
     this.__listHandler = new AppointmentList();
 }
 UnreadAppointmentList.prototype = {
     paint: async function() {
         let { view, newEvents } = await this.state;
 
-        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
-
         let hasAppointments = !!newEvents.length;
 
-        this.__templates(
+        this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+        this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
             {
                 menu: {
@@ -66,14 +60,15 @@ UnreadAppointmentList.prototype = {
                     } : undefined
                 },
                 hasAppointments
-            }
+            },
+            "0"
         );
 
         if(hasAppointments) {
             this.__listHandler.hydrate(
                 this,
                 unreadEntriesGenerator(newEvents, view),
-                { sort: true }
+                { sort: true, prefix: "1" }
             );
         }
 

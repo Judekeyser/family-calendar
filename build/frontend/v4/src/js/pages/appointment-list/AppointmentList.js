@@ -1,4 +1,3 @@
-import { safeCompileOnce } from '../../template-engine.js';
 import { recordSorting } from '../../date-utils.js';
 
 
@@ -38,19 +37,16 @@ function* generateList(records, navigateTo, options) {
 
 const TEMPLATE_ID = "appointments_list";
 
-function AppointmentList() {
-    this.__templates = safeCompileOnce(
-        document.getElementById(TEMPLATE_ID).innerText
-    );
-}
+function AppointmentList() {}
 AppointmentList.prototype = {
     hydrate: async function(ctx, entriesGenerator, options) {
         let appointments = generateList(
             entriesGenerator, ctx.navigateTo, options
         );
-        this.__templates(
+        ctx.getTemplate(TEMPLATE_ID)(
             ctx.anchorElement.querySelector(`*[data-id=${TEMPLATE_ID}]`),
-            { appointments }
+            { appointments },
+            options.prefix
         );
     },
     clear: function(ctx) {

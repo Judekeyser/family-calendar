@@ -1,0 +1,86 @@
+<h1 
+{#}
+    {$ pageTitle} 
+{/}
+></h1>
+
+<app-calendar-mutation-form
+{#}
+    { preferred-date | preferred-date }
+    { preferred-time | preferred-time }
+    { preferred-description | preferred-description }
+    { preferred-details | preferred-details }
+    { preferred-is-day-off | preferred-is-day-off }
+
+    {% app-calendar-mutation-form-change}
+    {% app-calendar-mutation-form-submit}
+{/}
+>
+<form>
+    <fieldset class="multi-column-2">
+            <div class="column">
+                <p class="text-centered">
+                    <label>Jour du rendez-vous</label>:&#160;<br
+                    ><input type="date" name="dateController" required>
+                </p>
+                <p class="text-centered">
+                    <input type="checkbox" name="isDayOffController"
+                    ><label>Jour férié&#160;?&#160;&#9969;</label>
+                </p>
+            </div>
+            <div class="column">
+                <p class="text-centered">
+                    <label>Plage horaire</label>:&#160;<br
+                    ><select name="timeRangeController">
+                        <option value="">Ponctuel</option>
+                        <option value="fullday">Toute la journée</option>
+                        <option value="morning">La matinée</option>
+                        <option value="afternoon">L'après-midi</option>
+                    </select>
+                </p>
+                <p class="text-centered">
+                    <label>Heure du rendez-vous</label>:&#160;<br
+                    ><input type="time" name="timeNumericController">
+                </p>
+            </div>
+    </fieldset>
+
+    <aside data-id="conflicts_container" class="error-box hidden">
+        <p>&#9940; Les rendez-vous suivants sont en conflit:</p>
+
+        <div data-id="appointments_list"></div>
+    </aside>
+    
+    <fieldset>
+    <p class="text-centered">
+        <label>Description du rendez-vous.</label><br>
+        <small>Un texte succinct permet d'améliorer la recherche
+        par mots-clé.</small>
+        <br>
+        <textarea name="descriptionController" cols="40" rows="4" required></textarea>
+    </p>
+
+    <p class="text-centered">
+        <label>Commentaires</label><br>
+        <small>(lieu, papiers à apporter, &hellip;).</small>
+        <br>
+        <textarea name="detailsController" cols="40" rows="4"></textarea>
+    </p>
+
+    </fieldset>
+    <hr>
+
+    <div class="multi-column-2">
+        <p class="column">
+            {? allowCancel}
+                <label><input type="checkbox" name="cancelController">Annuler le rendez-vous</label>
+            {/}
+        </p>
+        <p class="column text-right">
+            <button {#}
+                {$ submitText}
+            {/}></button>
+        </p>
+    </div>
+</form>
+</app-calendar-mutation-form>

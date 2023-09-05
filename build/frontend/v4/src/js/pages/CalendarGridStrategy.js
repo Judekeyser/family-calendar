@@ -1,4 +1,3 @@
-import { safeCompileOnce } from '../template-engine.js';
 import {
     nextDatetime,
     dateTimeToString,
@@ -227,25 +226,7 @@ function makeSearchNavigation(navigateTo) {
 const GRID_MAIN_ID = "calendar-grid_main";
 const GRID_ROWS_ID = "calendar-grid_rows";
 
-function CalendarGridStartegy() {
-    const uuids = new Set();
-    const gridMainContainer = (
-        /**
-         * @type {HTMLElement}
-         */ (document.getElementById(GRID_MAIN_ID))
-    );
-    const gridRowsContainer = (
-        /**
-         * @type {HTMLElement}
-         */ (document.getElementById(GRID_ROWS_ID))
-    );
-
-    const mainTemplate = safeCompileOnce(gridMainContainer.innerText, uuids);
-    this.__templates = {
-        main: mainTemplate,
-        rows: safeCompileOnce(gridRowsContainer.innerText, uuids, true)
-    };
-}
+function CalendarGridStartegy() {}
 CalendarGridStartegy.prototype = {
     get _environment() {
         return (
@@ -313,7 +294,7 @@ CalendarGridStartegy.prototype = {
         );
         const todayStrDate = now();
 
-        this.__templates.main(
+        this.getTemplate(GRID_MAIN_ID)(
             this.anchorElement,
             {
                 numberOfWeeksController: makeNumberOfWeeksCtrl({
@@ -336,15 +317,17 @@ CalendarGridStartegy.prototype = {
                     { newEvents }, this.navigateTo
                 ),
                 searchNavigation: makeSearchNavigation(this.navigateTo)
-            }
+            },
+            "0"
         );
 
-        this.__templates.rows(
+        this.getTemplate(GRID_ROWS_ID)(
             this.anchorElement.querySelector(`*[data-id=${GRID_ROWS_ID}]`),
             generateTable({
                 numberOfWeeks, todayStrDate,
                 focusStrDate: firstWeekIncludes
-            }, view, this.navigateTo)
+            }, view, this.navigateTo),
+            "1"
         );
 
         return undefined;

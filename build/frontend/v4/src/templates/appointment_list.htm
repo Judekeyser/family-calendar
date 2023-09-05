@@ -1,0 +1,35 @@
+<dl>
+    {# appointments}
+        <dt {#}
+                {% click}
+            {/}
+        >
+        {? isDayOff}
+            &#9969;&#160;
+        {/}Le <app-long-french-date
+            {#}
+                { strDate | strDate }
+            {/}
+        ></app-long-french-date>, <app-long-french-time
+            case="lowercase"
+            {#}
+                { strTime | strTime }
+            {/}
+        ></app-long-french-time
+        ><span
+            {#}
+                {: markUnread } 
+                    { "hidden | class } 
+                {/}
+            {/}
+        >*</span></dt>
+        <dd {#}
+                {$ strDescription}
+            {/}
+        ></dd>
+        <dd {#}
+                {$ strDetails}
+            {/}
+        ></dd>
+    {/}
+</dl>

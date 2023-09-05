@@ -1,0 +1,33 @@
+<nav>
+    <menu>
+        {# menu}
+            {# back}
+                <li><a
+                    {#}
+                        {% click}
+                    {/}
+                >&#128197;</a></li>
+            {/}
+            {# create}
+                <li><a 
+                    {#}
+                        {% click}
+                    {/}
+                >&#10133;</a></li>
+            {/}
+        {/}
+    </menu>
+</nav>
+
+<h1>Rendez-vous du
+    <app-long-french-date
+        {#}{ strDate | strDate }{/}
+    ></app-long-french-date>
+</h1>
+
+{? hasAppointments}
+    <div data-id="appointments_list"></div>
+{/}
+{: hasAppointments} 
+    <p>Aucun rendez-vous prévu à cette date.</p>
+{/}

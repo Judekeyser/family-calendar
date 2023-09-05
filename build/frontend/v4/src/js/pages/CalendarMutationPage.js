@@ -1,14 +1,9 @@
-import { safeCompileOnce } from '../template-engine.js';
 import { strTimeOverlap } from '../date-utils.js';
-
 import { AppointmentList } from './appointment-list/AppointmentList.js';
 
 
 const TEMPLATE_ID = "calendar-mutation-form";
 function CalendarMutationPage() {
-    this.__template = safeCompileOnce(
-        document.getElementById(TEMPLATE_ID).innerText
-    );
     this.__listHandler = new AppointmentList();
 }
 CalendarMutationPage.prototype = {
@@ -33,7 +28,7 @@ CalendarMutationPage.prototype = {
         }
 
 
-        this.__template(
+        this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
             {
                 "preferred-date": preferredDate,
@@ -65,7 +60,8 @@ CalendarMutationPage.prototype = {
                 },
 
                 ...this.templateParameters
-            }
+            },
+            "0"
         );
     },
 
@@ -95,7 +91,9 @@ CalendarMutationPage.prototype = {
         );
         this.__listHandler.clear(this);
         if(conflicts.length) {
-            this.__listHandler.hydrate(this, conflicts, { sort: true });
+            this.__listHandler.hydrate(
+                this, conflicts, { sort: true, prefix: "1" }
+            );
             maskContainer.classList.remove("hidden");
         } else {
             maskContainer.classList.add("hidden");

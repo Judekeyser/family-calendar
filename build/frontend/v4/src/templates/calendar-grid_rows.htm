@@ -1,0 +1,38 @@
+<table>
+    <thead>
+        <tr>
+            <th><abbr>Lun.</abbr></th>
+            <th><abbr>Mar.</abbr></th>
+            <th><abbr>Mer.</abbr></th>
+            <th><abbr>Jeu.</abbr></th>
+            <th><abbr>Ven.</abbr></th>
+            <th><abbr>Sam.</abbr></th>
+            <th><abbr>Dim.</abbr></th>
+        </tr>
+    </thead>
+    {# blocks}
+        <tbody>
+            <tr class="bar">
+                <th colspan="7"
+                    ><app-french-month {#}{strDate | strDate}{/}></app-french-month>
+                </th>
+            </tr>
+            {# rows}
+                <tr>
+                    {# cols}
+                        <td 
+                            {#}
+                                {% click}
+                                {? hasAppointments} { "hasAppointments | class }{/}
+                                    {? hasNoUnread} {     "hasNoUnread | class }{/}
+                                        {? isToday} {         "isToday | class }{/}
+                                        {? isFocus} {         "isFocus | class }{/}
+                            {/}
+                        >{: isDayOff}<app-day-two-digits {#}{strDate|strDate}{/}></app-day-two-digits
+                        >{/}{? isDayOff}&#9969;{/}<span class="hide-when-hasNoUnread">*</span></td>
+                    {/}
+                </tr>
+            {/}
+        </tbody>
+    {/}
+</table>

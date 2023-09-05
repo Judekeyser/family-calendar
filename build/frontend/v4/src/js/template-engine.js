@@ -362,7 +362,7 @@ function generateTreeFromExpression(template, reservedUuids, readOnlySet)
 
 /**
  * @callback DOMEffect
- * @param {*} _
+ * @param {HTMLElement} _
  */
 
 /**
@@ -388,410 +388,283 @@ function generateTreeFromExpression(template, reservedUuids, readOnlySet)
  */
 
 /**
- * 
- * @param {Plant} plant
- * @param {*} [scope]
- * @returns {Iterator<TemplateSegment>} 
+ * @param {string} identifier
+ * @param {DOMEffect} sideEffect
+ * @param {DOMEffect} cancelEffect
+ * @returns {SideEffectEmission}
  */
-function plantToProcessor(plant, scope)
-{
-    switch(plant.symbol) {
-        case 'fragment':
-            return new SingleEmission({
-                kind: 0,
-                fragment: plant.slice
-            });
-        case 'root':
-            throw `Root must be handled differently,
-                as it returns string or side effects`;
-        case 'uuid':
-            return new InnerIdentificationSectionProcessor(plant, scope);
-        case 'textContent': {
-            const variable = plant.variable;
-            if(!scope || !Object.hasOwn(scope, variable)) {
-                throw `Scope is undefined or does not exhibit
-                    the expected handler for event ${variable}`;
-            } else {
-                const textContent = scope[variable];
-                return textContent != null ? new SingleEmission({
-                    kind: 2,
-                    identifier: '',
-                    sideEffect: _ => (_.textContent = textContent),
-                    cancelEffect: _ => (_.textContent = '')
-                }) : new EmptyProcessor();
-            }
-        }
-        case 'hardAttribute':
-        case 'dynamicAttribute': {
-            const attribute = plant.pipe;
-    
-            /**
-             * @type{string}
-             */
-            let value;
-            if(plant.symbol == 'dynamicAttribute') {
-                const variable = plant.variable;
-                if( scope
-                    && Object.hasOwn(scope, variable)
-                ) {
-                    value = scope[variable];
-                } else {
-                    throw `Scope is undefined or does not exhibit
-                        the expected variable ${variable}`;
-                }
-            } else {
-                value = plant.value;
-            }
-    
-            if(attribute === 'class') {
-                return value != null
-                    ? new SingleEmission({
-                        kind: 2,
-                        identifier: '',
-                        sideEffect: _ => _.classList.add(value),
-                        cancelEffect: _ => _.classList.remove(value)
-                    }) : new EmptyProcessor();
-            } else {
-                return value != null
-                    ? new SingleEmission({
-                        kind: 2,
-                        identifier: '',
-                        sideEffect: _ => _.setAttribute(attribute, value),
-                        cancelEffect: _ => _.removeAttribute(attribute)
-                    }) : new EmptyProcessor();
-            }
-        }
-        case 'event': {
-            const variable = plant.variable;
-            const attribute = HANDLED_EVENTS.get(variable);
-            if(!scope || !attribute || !Object.hasOwn(scope, attribute)) {
-                throw `Scope is undefined or does not exhibit
-                    the expected handler for event ${variable}`;
-            }
-            const handler = scope[attribute];
-            return handler != null ? new SingleEmission({
-                kind: 2,
-                identifier: '',
-                sideEffect: _ => _.addEventListener(variable, handler),
-                cancelEffect: _ => _.removeEventListener(variable, handler)
-            }) : new EmptyProcessor();
-        }
-        case 'section':
-        case 'if':
-        case 'else': {
-            if(!scope || !Object.hasOwn(scope, plant.variable)) {
-                throw `Scope is undefined or does not exhibit
-                    the expected block variable ${plant.variable}`;
-            } else {
-                const scopeValue = scope[plant.variable];
-                switch(plant.symbol) {
-                    case 'section':
-                        if(scopeValue) {
-                            const iterator = scopeValue[Symbol.iterator];
-                            if(typeof iterator === 'function') {
-                                return new SectionProcessor(
-                                    plant, iterator.bind(scopeValue)()
-                                );
-                            } else {
-                                return new BranchProcessor(plant, scopeValue);
-                            }
-                        } else {
-                            return new EmptyProcessor();
-                        }
-                    case 'if':
-                        if(scopeValue) {
-                            return new BranchProcessor(plant, scope, 't');
-                        } else {
-                            return new EmptyProcessor();
-                        }
-                    case 'else':
-                        if(scopeValue) {
-                            return new EmptyProcessor();
-                        } else {
-                            return new BranchProcessor(plant, scope, 'f');
-                        }
-                }
-            }
-        } break;
-        default: throw "Plant processor cannot be used in provided context";
-    }
-}
-
-class EmptyProcessor
-{
-    /**
-     * @returns {IteratedTemplateSegment}
-     */
-    next = () => ({ done: true, value: null });
-}
-class BranchProcessor
-{
-    /**
-     * @constructor
-     * @param {Branch} plant 
-     * @param {*} [scope] 
-     * @param {string} [prefix]
-     */
-    constructor(plant, scope, prefix)
-    {
-        this.scope = scope;
-        this.prefix = prefix;
-        this.children = plant.children;
-        this.readCursor = 0;
-        /**
-         * @type {Iterator<TemplateSegment>}
-         */
-        this.delegation = new EmptyProcessor();
-    }
-
-    /**
-     * @returns {IteratedTemplateSegment}
-     */
-    next = () => {
-        for(;;) {
-            const { done, value } = this.delegation.next();
-            if(!done) {
-                if(this.prefix) {
-                    if(value.kind == 1 || value.kind == 2) {
-                        const identifier = [
-                            this.prefix,
-                            value.identifier
-                        ].filter(Boolean).join('_');
-                        return {
-                            value: {
-                                ...value,
-                                identifier
-                            }
-                        };
-                    }
-                }
-                return { value };
-            }
-            else {
-                if(this.readCursor < this.children.length) {
-                    const child = (
-                        /**
-                         * @type {Plant} Not null by design
-                         */ (this.children[this.readCursor])
-                    );
-                    this.readCursor += 1;
-                    this.delegation = plantToProcessor(child, this.scope);
-                } else {
-                    break;
-                }
-            }
-        }
-        return { done: true, value: null };
-    };
-}
-class InnerIdentificationSectionProcessor
-{
-    /**
-     * @constructor
-     * @param {*} [scope]
-     * @param {InnerIdentificationSection & Branch} plant
-     */
-    constructor(plant, scope) {
-        this.elementUuid = plant.elementUuid;
-        this.identificationSent = false;
-        this.delegation = new BranchProcessor(plant, scope);
-    }
-
-    /**
-     * @returns {IteratedTemplateSegment}
-     */
-    next = () => {
-        if(!this.identificationSent) {            
-            this.identificationSent = true;
-            return {
-                value: {
-                    kind: 1,
-                    identifier: this.elementUuid
-                }
-            };
-        } else {
-            for(;;) {
-                const { done, value } = this.delegation.next();
-                if(done) {
-                    return { done, value: null };
-                } else {
-                    if(value.kind == 2) {
-                        return {
-                            value: {
-                                kind: 2,
-                                identifier: this.elementUuid,
-                                sideEffect: value.sideEffect,
-                                cancelEffect: value.cancelEffect
-                            }
-                        };
-                    } else {
-                        throw `Unexpected value emission of kind ${value.kind}
-                            inside of identifier block ${this.elementUuid}`;
-                    }
-                }
-            }
-        }
-    };
-}
-class SectionProcessor {
-    /**
-     * @constructor
-     * @param {Branch} plant 
-     * @param {Generator<*,*,*>} generator
-     */
-    constructor(plant, generator) {
-        this.plant = plant;
-        this.generator = generator;
-
-        /**
-         * @type {BranchProcessor?}
-         */
-        this.delegation = null;
-        this.counter = -1;
-    }
-
-    /**
-     * @returns {IteratedTemplateSegment}
-     */
-    next = () => {
-        if(this.delegation) {
-            const { done, value } = this.delegation.next();
-            if(!done) {
-                return { value };
-            }
-        }
-
-        // Otherwise, delegation is exhausted or was never defined
-        for(;;) {
-            const baseGeneratorEmission = this.generator.next();
-            if(baseGeneratorEmission.done) {
-                return { done: true, value: null };
-            } else {
-                this.counter += 1;
-                this.delegation = new BranchProcessor(
-                    this.plant,
-                    baseGeneratorEmission.value,
-                    String(this.counter)
-                );
-                const { done, value } = this.delegation.next();
-                if(!done) {
-                    return { value };
-                }
-                else {
-                    continue;
-                }
-            }
-        }
+function asDOMEffect(identifier, sideEffect, cancelEffect) {
+    return {
+        kind: 2,
+        identifier,
+        sideEffect,
+        cancelEffect
     };
 }
 
-class SingleEmission {
-    /**
-     * @constructor
-     * @param {TemplateSegment} segment
-     */
-    constructor(segment) {
-        this.segment = segment;
-        this.done = false;
-    }
-
-    /**
-     * @returns {IteratedTemplateSegment}
-     */
-    next = () => {
-        if(this.done) {
-            return { done: true, value: null };
-        } else {
-            this.done = true;
-            return { value: this.segment };
-        }
+/**
+ * @param {string} fragment
+ * @returns {FragmentEmission}
+ */
+function asFragment(fragment) {
+    return {
+        kind: 0,
+        fragment
     };
 }
 
-class RootProcessor {
-    /**
-     * @constructor
-     * @param {Root & Branch} plant
-     * @param {*} scope
-     */
-    constructor(plant, scope) {
-        this.delegation = new BranchProcessor(plant, scope);
-    }
-
-    /**
-     * @returns {IteratorResult<string | SideEffectEmission, undefined>}
-     */
-    next = () => {
-        const { done, value } = this.delegation.next();
-        if(done) {
-            return { done, value: undefined };
-        } else {
-            if(value.kind === 0) {
-                return { value: value.fragment };
-            } else {
-                const identifier = `id${value.identifier}`;
-                if(value.kind === 1) {
-                    return {
-                        value: ` ${IDENTIFICATION_ATTRIBUTE}="${identifier}" `
-                    };
-                } else {
-                    return {
-                        value: {
-                            ...value,
-                            identifier: identifier
-                        }
-                    };
-                }
-            }
-        }
+/**
+ * @param {string} identifier
+ * @returns {IdentifierEmission}
+ */
+function asIdentification(identifier) {
+    return {
+        kind: 1,
+        identifier
     };
-
-    [Symbol.iterator] = () => this;
 }
+
 
 
 /**
- * The set of `reservedUuids` might be mutated and contain new elements that
- * were generated during the compilation. Callers of this method, that do not
- * wish to have their set mutated, should pass `readOnlySet=true`.
+ * @param {Object.<string, unknown>} scope - Scope to access property from
+ * @param {string | undefined} property - The property to access
+ * @returns {unknown}
+ */
+function _getProperty(scope, property) {
+    if(!property) {
+        throw `Provided property is undefined-- giving up`;
+    }
+    else if(!scope) {
+        throw `Provided scope is undefined (propery ${property}) - giving up`;
+    }
+    else if(!Object.hasOwn(scope, property)) {
+        throw `Scope does not exhibit expected property ${property}`;
+    }
+    else {
+        return scope[property];
+    }
+}
+
+/**
+ * @generator
+ * @param {Plant} plant - The plant to process
+ * @param {Object.<string,unknown>} scope - Scope holding template data
+ * @yields {TemplateSegment}
+ * @returns {IterableIterator<TemplateSegment>}
+ */
+function* it(plant, scope) {
+    switch(plant.symbol) {
+        case "fragment": {
+            yield asFragment(plant.slice);
+        } break;
+        case "uuid": {
+            const uuid = plant.elementUuid;
+            yield asIdentification(uuid);
+            for(const child of plant.children) {
+                for(const emission of it(child, scope)) {
+                    if(emission.kind == 2) {
+                        yield asDOMEffect(
+                            uuid,
+                            emission.sideEffect,
+                            emission.cancelEffect
+                        );
+                    } else {
+                        yield emission;
+                    }
+                }
+            }
+        } break;
+        case "dynamicAttribute": {
+            const attributeName = plant.pipe;
+            const value = _getProperty(scope, plant.variable) || '';
+
+            if(!['string', 'boolean', 'number'].includes(typeof value)) {
+                throw `Property ${plant.variable} used as dynamic attribute `
+                    + `must be a a primitive`;
+            } else {
+                const strValue = String(value);
+                if(attributeName == "class") {
+                    yield asDOMEffect(
+                        '',
+                        _ => _.classList.add(strValue),
+                        _ => _.classList.remove(strValue)
+                    );
+                } else {
+                    yield asDOMEffect(
+                        '',
+                        _ => _.setAttribute(attributeName, strValue),
+                        _ => _.removeAttribute(attributeName)
+                    );
+                }
+            }
+        } break;
+        case "hardAttribute": {
+            const attributeName = plant.pipe;
+            const value = plant.value;
+
+            if(attributeName == "class") {
+                yield asDOMEffect(
+                    '',
+                    _ => _.classList.add(value),
+                    _ => _.classList.remove(value)
+                );
+            } else {
+                yield asDOMEffect(
+                    '',
+                    _ => _.setAttribute(attributeName, value),
+                    _ => _.removeAttribute(attributeName)
+                );
+            }
+        } break;
+        case "textContent": {
+            const textContent = _getProperty(scope, plant.variable) || '';
+            if(typeof textContent != 'string') {
+                throw `Property ${plant.variable} used for textContent `
+                    + `must be a string`;
+            } else {
+                yield asDOMEffect(
+                    '',
+                    _ => (_.textContent = textContent),
+                    _ => (_.textContent = '')
+                );
+            }
+        } break;
+        case "event": {
+            const channel = plant.variable;
+            const property = HANDLED_EVENTS.get(channel);
+            const handler = _getProperty(scope, property);
+            if(handler) {
+                if(typeof handler != 'function') {
+                    throw `Property ${property} used as event handler `
+                        + `must be a function`;
+                } else {
+                    yield asDOMEffect(
+                        '',
+                        _ => _.addEventListener(
+                            channel,
+                            /** @type {EventListener} */ (handler)
+                        ),
+                        _ => _.removeEventListener(
+                            channel,
+                            /** @type {EventListener} */ (handler)
+                        )
+                    );
+                }
+            }
+        } break;
+        case "if": {
+            const flag = !!_getProperty(scope, plant.variable);
+            if(flag) {
+                for(const child of plant.children) {
+                    yield* it(child, scope);
+                }
+            }
+        } break;
+        case "else": {
+            const flag = !_getProperty(scope, plant.variable);
+            if(flag) {
+                for(const child of plant.children) {
+                    yield* it(child, scope);
+                }
+            }
+        } break;
+        case "section": {
+            const value = (
+                /**
+                 * @type {*}
+                 */ (_getProperty(scope, plant.variable))
+            );
+            if(value) {
+                if(typeof value[Symbol.iterator] == 'function') {
+                    let index = 0;
+                    for(const subScope of value) {
+                        for(const child of plant.children) {
+                            for(const emission of it(child, subScope)) {
+                                if(emission.kind == 0) {
+                                    yield emission;
+                                } else {
+                                    const newIdentifier = (
+                                        `${emission.identifier}_${index}`
+                                    );
+                                    if(emission.kind == 2) {
+                                        yield asDOMEffect(
+                                            newIdentifier,
+                                            emission.sideEffect,
+                                            emission.cancelEffect
+                                        );
+                                    } else if(emission.kind == 1) {
+                                        yield asIdentification(
+                                            newIdentifier
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        index += 1;
+                    }
+                } else {
+                    for(const child of plant.children) {
+                        yield* it(child, value);
+                    }
+                }
+            }
+        } break;
+        default: throw `Unsupported plant symbol ${plant.symbol}`;
+    }
+}
+
+/**
+ * The `prefix` attribute will be prefixed on every element that requires to
+ * be identified. This can be used by components to enforce a kind of
+ * uniqueness they can control, in case they want to reuse the same compiled
+ * template in different contexts.
  * 
- * @param {string} template 
- * @param {Set<string>} [reservedUuids]
- * @param {boolean} [readOnlySet]
+ * @param {string} template
  * @returns 
  */
-function compile(template, reservedUuids, readOnlySet)
+function compile(template)
 {
     /**
      * @type {Root & Branch}
      */
     const root = generateTreeFromExpression(
-        template, reservedUuids || new Set(), readOnlySet || false
+        template, new Set(), false
     );
     
     /**
      * @param {*} domRoot 
      * @param {*} scope 
+     * @param {string} prefix
      * @yields {undefined}
      * @returns {*}
      */
-    const Hydrate = function* (domRoot, scope)
+    const Hydrate = function* (domRoot, scope, prefix)
     {
         const sideEffects = new Map();        
         /* hydratation not done yet */
         {
             const htmlFragments = [];
-            for(const item of new RootProcessor(root, scope)) {
-                if(typeof item === 'string') {
-                    htmlFragments.push(item);
-                } else {
-                    const { identifier, sideEffect, cancelEffect } = item;
-                    if(! sideEffects.has(identifier)) {
-                        sideEffects.set(identifier, []);
+            for(const plant of root.children) {
+                for(const emission of it(plant, scope)) {
+                    if(emission.kind == 0) {
+                        htmlFragments.push(emission.fragment);
+                    } else {
+                        const identifier = `id${prefix}_${emission.identifier}`;
+                        if(emission.kind == 1) {
+                            htmlFragments.push(
+                                ` ${IDENTIFICATION_ATTRIBUTE}="${identifier}" `
+                            );
+                        } else {
+                            if(!sideEffects.has(identifier)) {
+                                sideEffects.set(identifier, []);
+                            }
+                            sideEffects.get(identifier).push({
+                                sideEffect: emission.sideEffect,
+                                cancelEffect: emission.cancelEffect
+                            });
+                        }
                     }
-                    sideEffects.get(identifier).push(
-                        { sideEffect, cancelEffect }
-                    );
                 }
             }
             domRoot.innerHTML = htmlFragments.join("");
@@ -869,17 +742,20 @@ function compile(template, reservedUuids, readOnlySet)
             } else {
                 // STEP 4: Iterate on the scope again,
                 // populate the effects map again
-                for(const item of new RootProcessor(root, nextScope)) {
-                    if(typeof item === 'string') {
-                        continue;
-                    } else {
-                        const { identifier, sideEffect, cancelEffect } = item;
-                        if(!sideEffects.has(identifier)) {
-                            sideEffects.set(identifier, []);
+                for(const plant of root.children) {
+                    for(const emission of it(plant, scope)) {
+                        if(emission.kind == 2) {
+                            const identifier = (
+                                `id${prefix}_${emission.identifier}`
+                            );
+                            if(!sideEffects.has(identifier)) {
+                                sideEffects.set(identifier, []);
+                            }
+                            sideEffects.get(identifier).push({
+                                sideEffect: emission.sideEffect,
+                                cancelEffect: emission.cancelEffect
+                            });
                         }
-                        sideEffects.get(identifier).push(
-                            { sideEffect, cancelEffect }
-                        );
                     }
                 }
             }
@@ -899,11 +775,9 @@ function compile(template, reservedUuids, readOnlySet)
  * The result might contain an extra `div` container.
  * 
  * @param {string} template 
- * @param {Set<string>} [reservedUuids]
- * @param {boolean} [readOnlySet]
  * @returns 
  */
-function safeCompileOnce(template, reservedUuids, readOnlySet)
+function safeCompileOnce(template)
 {
     const DOMPurify = (
         /**
@@ -913,16 +787,17 @@ function safeCompileOnce(template, reservedUuids, readOnlySet)
     if(!DOMPurify) {
         throw "DOMPurify library is required to use this method.";
     } else {
-        const BaseHydrate = compile(template, reservedUuids, readOnlySet);
+        const BaseHydrate = compile(template);
         /**
          * @param {*} domRoot 
          * @param {*} scope 
+         * @param {string} prefix
          * @yields {undefined}
          * @returns {*}
          */
-        const Hydrate = (domRoot, scope) => {
+        const Hydrate = (domRoot, scope, prefix) => {
             const phantom = document.createElement("div");
-            BaseHydrate(phantom, scope).next();
+            BaseHydrate(phantom, scope, prefix).next();
 
             /**
              * @callback DOMPredicate
@@ -953,4 +828,51 @@ function safeCompileOnce(template, reservedUuids, readOnlySet)
 }
 
 
-export { compile, safeCompileOnce };
+const Templates =
+{
+    __compiledTemplates: new Map(),
+    /**
+     * Get a template from its ID. This method performs a DOM look-up
+     * to extract the corresponding template text, and stores the compile
+     * result in memoized map.
+     * 
+     * @param {string} templateId 
+     * ------------------------------------------------------------------------
+     */
+    getTemplate: function(templateId)
+    {
+        const memo = this.__compiledTemplates;
+        if(!memo.has(templateId)) {
+            const getAppTemplate = (
+                /**
+                 * @type {*}
+                 */ (window)
+            )["getAppTemplate"];
+            const templateString = (
+                /**
+                 * @type {string}
+                 */
+                (getAppTemplate(templateId))
+            );
+            const templateFunction = safeCompileOnce(templateString);
+            memo.set(templateId, templateFunction);
+        }
+        return memo.get(templateId);
+    }
+};
+
+
+/**
+ * Get a template from its ID. This method performs a DOM look-up
+ * to extract the corresponding template text, and stores the compile
+ * result in memoized map.
+ * 
+ * @param {string} templateId 
+ * ------------------------------------------------------------------------
+ */
+function getTemplate(templateId) {
+    return Templates.getTemplate(templateId);
+}
+
+
+export { getTemplate };

@@ -1,4 +1,5 @@
 import { backend } from './backend.js';
+import { getTemplate } from './template-engine.js';
 
 import './components/LongFrenchDate.js';
 import './components/LongFrenchTime.js';
@@ -31,6 +32,20 @@ import {
 } from './pages/AuthenticationPage.js';
 
 
+/**
+ * ----------------------------------------------------------------------------
+ */
+
+function getAnchorElement() {
+    return document.getElementById("anchor-content");
+}
+
+
+/**
+ * ----------------------------------------------------------------------------
+ */
+
+
 customElements.define("app-route-listener", class extends HTMLElement {
     constructor() {
         super();
@@ -39,10 +54,10 @@ customElements.define("app-route-listener", class extends HTMLElement {
     
     connectedCallback() {
         window.addEventListener("popstate",
-            e => this.handleHistoryChange({ state: e.state })
+            e => this.#handleHistoryChange({ state: e.state })
         );
         window.addEventListener("app-navigate",
-            ({ detail }) => this.handleNavigation(detail)
+            ({ detail }) => this.#handleNavigation(detail)
         );
 
         (async () => {
@@ -57,13 +72,13 @@ customElements.define("app-route-listener", class extends HTMLElement {
                 ['/authentication/', new AuthenticationPage()]
             ]);
 
-            this.handleHistoryChange({});
+            this.#handleHistoryChange({});
         })();
     }
     
-    handleHistoryChange({ state, hash }) {
+    #handleHistoryChange({ state, hash }) {
         if(state) {
-            this.handleNavigation(state);
+            this.#handleNavigation(state);
         } else if(hash == null) {
             let nextHash;
             try {
@@ -71,19 +86,18 @@ customElements.define("app-route-listener", class extends HTMLElement {
             } catch(error) {
                 nextHash = '';
             }
-            return this.handleHistoryChange({ hash: nextHash });
+            return this.#handleHistoryChange({ hash: nextHash });
         } else {
             let url = hash.substring(0, hash.indexOf('?'));
             let queryParser = new URLSearchParams(
                 hash.substring(url.length+1, hash.length)
                 );
             let parameters = Object.fromEntries(queryParser);
-            this.handleHistoryChange({ state: { url, parameters } });
+            this.#handleHistoryChange({ state: { url, parameters } });
         }
     }
 
-    handleNavigation({ url, parameters }) {
-        console.log("NAVIGATION", url, parameters);
+    #handleNavigation({ url, parameters }) {
         navigate: {
             onResolvedUrl: {
                 if(!url) {
@@ -94,11 +108,11 @@ customElements.define("app-route-listener", class extends HTMLElement {
                         break onResolvedUrl;
                     } else {
                         this.currentRouteURL = url;
-                        this.clearPage();
+                        getAnchorElement().innerHTML = "";
                         (
                             url == '/authentication/'
-                                ? this.patchAuthenticationPrototype(strategy)
-                                : this.patchPrototype(strategy)
+                                ? this.#patchAuthenticationPrototype(strategy)
+                                : this.#patchPrototype(strategy)
                         ).paint(parameters).catch(console.error
                             /* We silent the error here,
                             because likely it is a auth error
@@ -109,28 +123,28 @@ customElements.define("app-route-listener", class extends HTMLElement {
                 }
             }
             // If we are here, resolution failed. fallback
-            this.emitNavigation({
+            this.#emitNavigation({
                 url: '/calendar-grid/',
                 parameters: {}
             });
         }
     }
 
-    emitNavigation({ url, parameters }) {
+    #emitNavigation({ url, parameters }) {
         dispatchEvent(new CustomEvent(
             "app-navigate",
             { detail : { url, parameters } }
         ));
     }
 
-    handleAuthenticationError(anyAction) {
+    #handleAuthenticationError(anyAction) {
         return (async function() {
             try {
                 return await anyAction(...arguments);
             } catch(error) {
                 let { errorCode, errorMessage } = error;
                 if([401,403,429].includes(errorCode)) {
-                    this.emitNavigation({
+                    this.#emitNavigation({
                         url: '/authentication/',
                         parameters: {
                             errorMessage
@@ -142,82 +156,53 @@ customElements.define("app-route-listener", class extends HTMLElement {
         }).bind(this);
     }
 
-    patchPrototype(strategy) {
-        let self = this;
-        let _backendAdapter = {
+    #patchPrototype(strategy) {
+        const basePage = this.#patchBasePagePrototype(strategy);
+        const self = this;
+        const _backendAdapter = {
             get state() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     () => backend.state
                 )();
             },
         
             get authentify() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     backend.authentify
                 );
             },
         
             get createEvent() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     backend.createEvent
                 );
             },
             
             get cancelEvent() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     backend.cancelEvent
                 );
             },
             
             get editEvent() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     backend.editEvent
                 );
             },
             
             get markRead() {
-                return self.handleAuthenticationError(
+                return self.#handleAuthenticationError(
                     backend.markRead
                 );
-            },
-
-            get navigateTo() {
-                return function({ url, parameters }) {
-                    const currentState = history.state;
-                    {
-                        const sp = new URLSearchParams();
-                        for(const [key, value] of Object.entries(parameters)) {
-                            sp.append(key, value);
-                        }
-                        const queryString = `${url}?${sp.toString()}`;
-                        const hash = `#${btoa(queryString)}`;
-                        const state = { url, parameters };
-
-                        if(currentState && currentState.url === state.url) {
-                            history.replaceState(state, '', hash);
-                        } else {
-                            history.pushState(state, '', hash);
-                        }
-                    }
-                    return self.emitNavigation({url, parameters });
-                };
-            },
-
-            get anchorElement() {
-                return document.getElementById("anchor-content");
             }
         };
-        Object.setPrototypeOf(_backendAdapter, strategy);
+        Object.setPrototypeOf(_backendAdapter, basePage);
         return _backendAdapter;
     }
 
-    clearPage() {
-        document.getElementById("anchor-content").innerHTML = "";
-    }
-
-    patchAuthenticationPrototype(strategy) {
-        let self = this;
-        let _backendAdapter = {
+    #patchAuthenticationPrototype(strategy) {
+        const basePage = this.#patchBasePagePrototype(strategy);
+        const _backendAdapter = {
             get state() {
                 throw "Property not available in Authentication process";
             },
@@ -244,36 +229,45 @@ customElements.define("app-route-listener", class extends HTMLElement {
             
             get markRead() {
                 throw "Property not available in Authentication process";
-            },
+            }
+        };
+        Object.setPrototypeOf(_backendAdapter, basePage);
+        return _backendAdapter;
+    }
 
-            get navigateTo() {
-                return function({ url, parameters }) {
-                    const currentState = history.state;
-                    {
-                        const sp = new URLSearchParams();
-                        for(const [key, value] of Object.entries(parameters)) {
-                            sp.append(key, value);
-                        }
-                        const queryString = `${url}?${sp.toString()}`;
-                        const hash = `#${btoa(queryString)}`;
-                        const state = { url, parameters };
-
-                        if(currentState && currentState.url === state.url) {
-                            history.replaceState(state, '', hash);
-                        } else {
-                            history.pushState(state, '', hash);
-                        }
+    #patchBasePagePrototype(strategy) {
+        const self = this;
+        const pagePrototype = {
+            navigateTo: function({ url, parameters }) {
+                const currentState = history.state;
+                {
+                    const sp = new URLSearchParams();
+                    for(const [key, value] of Object.entries(parameters)) {
+                        sp.append(key, value);
                     }
-                    return self.emitNavigation({url, parameters });
-                };
+                    const queryString = `${url}?${sp.toString()}`;
+                    const hash = `#${btoa(queryString)}`;
+                    const state = { url, parameters };
+
+                    if(currentState && currentState.url === state.url) {
+                        history.replaceState(state, '', hash);
+                    } else {
+                        history.pushState(state, '', hash);
+                    }
+                }
+                return self.#emitNavigation({url, parameters });
             },
 
             get anchorElement() {
-                return document.getElementById("anchor-content");
+                return getAnchorElement();
+            },
+
+            getTemplate: function(templateId) {
+                return getTemplate(templateId);
             }
         };
-        Object.setPrototypeOf(_backendAdapter, strategy);
-        return _backendAdapter;
+        Object.setPrototypeOf(pagePrototype, strategy);
+        return pagePrototype;
     }
     
 });

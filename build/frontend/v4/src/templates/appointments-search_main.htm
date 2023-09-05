@@ -1,0 +1,37 @@
+<nav>
+    <menu>
+        {# menu}
+            {# back}
+                <li><a
+                    {#}
+                        {% click}
+                    {/}
+                >&#128197;</a></li>
+            {/}
+        {/}
+    </menu>
+</nav>
+
+<h1>Rechercher un rendez-vous</h1>
+
+<form class="text-centered"
+    {#}
+        {% submit }
+    {/}
+>
+    <input type="text" name="search"
+        {#}
+            { defaultSearchQuery | value }
+        {/}
+    >
+
+    <button>Rechercher</button>
+</form>
+
+<div data-id="appointments_list"></div>
+
+<hr>
+
+<p class="text-centered"><small>Pour le moment, la recherche ne cible que les événements futurs<br>et
+    présente les dix meilleurs résultats.<br>Ces résultats pourraient ne pas tous
+    être pertinents.</small></p>

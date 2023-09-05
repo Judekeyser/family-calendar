@@ -392,7 +392,6 @@ class Backend {
      * ------------------------------------------------------------------------
      */
     #deleteEvent(_1) {
-        console.log("DELETE", _1);
         const [strDate, strTime] = _1;
 
         const timeMap = this.view.get(strDate);

@@ -1,5 +1,3 @@
-
-import { safeCompileOnce } from '../../template-engine.js';
 import { AppointmentList } from './AppointmentList.js';
 
 
@@ -19,9 +17,6 @@ function* generateEntries(source, strDate) {
 
 const TEMPLATE_ID = "day-appointments_main";
 function AppointmentDayList() {
-    this.__templates = safeCompileOnce(
-        document.getElementById(TEMPLATE_ID).innerText
-    );
     this.__listHandler = new AppointmentList();
 }
 AppointmentDayList.prototype = {
@@ -32,7 +27,7 @@ AppointmentDayList.prototype = {
         let source = view.get(strDate);
         let hasAppointments = source && source.size;
 
-        this.__templates(
+        this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
             {
                 strDate,
@@ -53,13 +48,15 @@ AppointmentDayList.prototype = {
                     }
                 },
                 hasAppointments
-            }
+            },
+            "0"
         );
 
         if(hasAppointments) {
             this.__listHandler.hydrate(
-                this, generateEntries(source, strDate),
-                {sort: true}
+                this,
+                generateEntries(source, strDate),
+                { sort: true, prefix: "1" }
             );
         }
 

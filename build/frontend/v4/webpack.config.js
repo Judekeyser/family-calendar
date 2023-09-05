@@ -1,9 +1,8 @@
 const path = require('path');
-const child_process = require('child_process');
 
 
 module.exports = {
-  mode: 'production',
+  mode: 'development',
   entry: path.resolve(__dirname, 'src', 'js', 'main.js'),
   output: {
     filename: 'main.js',

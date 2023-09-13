@@ -1,8 +1,12 @@
-import { now } from './date-utils';
+import {
+    now,
+    glueTemporalKey, unglueTemporalKey,
+    validateDateString, validateTimeString
+} from './date-utils';
 
 /**
  * ============================================================================
- * ===  EVENT STRUCTURES AND VERSIONING  ======================================
+ * ======================================  EVENT STRUCTURES AND VERSIONING  ===
  * ============================================================================
  * 
  * @typedef {{
@@ -53,7 +57,7 @@ import { now } from './date-utils';
 
 /**
  * ============================================================================
- * ===  CALENDAR EFFECTS  =====================================================
+ * =====================================================  CALENDAR EFFECTS  ===
  * ============================================================================
  * 
  * Calendar effects refer to how events (as typed through `CalendarEvent`)
@@ -63,20 +67,17 @@ import { now } from './date-utils';
  * ----------------------------------------------------------------------------
  * 
  * @callback CreateEventEffect
- * @param {[
- *  strDate: string,
- *  strTime: string
- * ]} temporalKey - [strDate, strTime]
+ * @param {TemporalKey} temporalKey - [strDate, strTime]
  * @param {{
  *  description: string,
  *  details: string | undefined,
  *  isDayOff: boolean,
- *  time: number
+ *  hitTime: number
  * }} details - event details
  * ----------------------------------------------------------------------------
  * 
  * @callback DeleteEventEffect
- * @param {[string, string]} temporalKey - [strDate, strTime]
+ * @param {TemporalKey} temporalKey - [strDate, strTime]
  * ----------------------------------------------------------------------------
  * 
  * @typedef {{
@@ -93,12 +94,12 @@ import { now } from './date-utils';
 
 /**
  * @param {EventV1_CursorMove | EventV1_Cancel | EventV1_Create} event
- * @param {number} time
+ * @param {number | undefined} hitTime
  * @param {string} [currentUser]
  * @returns {CalendarEffect | undefined} - A side effect on the calendar
  * ----------------------------------------------------------------------------
  */
-function eventV1Handle(event, time, currentUser) {
+function eventV1Handle(event, hitTime, currentUser) {
     const { kind, userInitiator } = event;
     if (kind === 'cursor_move') {
         const { cursor } = event;
@@ -109,10 +110,11 @@ function eventV1Handle(event, time, currentUser) {
             return undefined;
         }
     } else {
-        const { strDate, strTime } = event;
-        const jsDayDate = Date.parse(strDate);
+        const date = validateDateString(event.strDate);
+        const time = validateTimeString(event.strTime);
 
-        if (isNaN(jsDayDate) || !strTime) {
+
+        if(!date || !time) {
             return undefined;
         } else {
             if (kind === 'create') {
@@ -122,20 +124,20 @@ function eventV1Handle(event, time, currentUser) {
                 } else {
                     const reportTime = (
                         userInitiator && userInitiator !== currentUser
-                    ) ? time : 0;
+                    ) ? (hitTime || 0) : 0;
 
                     return ({ createEvent }) => createEvent(
-                        [strDate, strTime],
+                        { date, time },
                         {
                             description: strDescription,
                             details: strDetails || undefined,
                             isDayOff: isDayOff || false,
-                            time: reportTime
+                            hitTime: reportTime
                         }
                     );
                 }
             } else if (kind === 'cancel') {
-                return ({ deleteEvent }) => deleteEvent([strDate, strTime]);
+                return ({ deleteEvent }) => deleteEvent({ date, time });
             } else {
                 return undefined;
             }
@@ -169,6 +171,7 @@ function eventV2Handle(event, time, currentUser) {
  * @param {number} time 
  * @param {string} [currentUser] 
  * @returns {CalendarEffect | undefined}
+ *-----------------------------------------------------------------------------
  */
 function eventHandler(event, time, currentUser) {
     if (event) {
@@ -271,24 +274,19 @@ async function sendEvent(x, calendar) {
      * @param {Iterable<
      *  [CalendarEvent | undefined, number] | undefined
      * >} content
+     * @returns {unknown}
      */
     function consumeContent(content) {
-        if (!content) {
-            return undefined;
-        } else {
-            const currentUser = window.localStorage.getItem('userName') ||
-                undefined;
+        if (content) {
+            const currentUser = window.localStorage.getItem('userName');
 
-            /**
-             * @type {Array<CalendarEffect>}
-             */
             const effects = [];
             for (const record of content) {
                 if (record) {
                     const [eventData, time] = record;
                     if (time) {
                         const effect = eventHandler(
-                            eventData, time, currentUser
+                            eventData, time, currentUser || undefined
                         );
                         if (effect) {
                             effects.push(effect);
@@ -300,11 +298,13 @@ async function sendEvent(x, calendar) {
                 effect(calendar);
             }
         }
+        return undefined;
     }
 
     /**
      * @param {Response} response 
      * @returns {Promise<number | undefined>}
+     * ------------------------------------------------------------------------
      */
     async function continuationOf(response) {
         let from;
@@ -334,30 +334,15 @@ async function sendEvent(x, calendar) {
 }
 
 
-/** The invariance of this type is to maintain a comprehensive state about the
- * calendar.
- * 
- * @typedef {{
- *  strDate: string,
- *  strTime: string
- * }} TemporalKey
- * 
- * @typedef {{
- *  description: string,
- *  details: string | undefined,
- *  unread: boolean | undefined
- * }}CalendarTimedRecord
- * ----------------------------------------------------------------------------
- */
 class Backend {
     constructor() {
         /**
-         * @type {Map<string, Map<string, CalendarTimedRecord>>}
+         * @type {Map<DateString, Map<TimeString, EventData>>}
          */
         this.view = new Map();
 
         /**
-         * @type {Array<{time: number} & TemporalKey>}
+         * @type {Array<{hitTime: number} & TemporalKey>}
          */
         this.newEvents = [];
         this.userCursor = 0;
@@ -374,74 +359,71 @@ class Backend {
         }
         return {
             view: this.view,
-            newEvents: [... new Set(
-                [...this.newEvents]
-                    .map(({ strTime, strDate }) => (`${strDate} ${strTime}`))
-            )].map(expression => {
-                const index = expression.indexOf(" ");
+            newEvents: [
+                ... new Set(this.newEvents.map(glueTemporalKey))
+            ].map(expression => {
+                const { date, time } = unglueTemporalKey(expression);
                 return {
-                    strDate: expression.substring(0, index),
-                    strTime: expression.substring(index + 1)
+                    strDate: date,
+                    strTime: time
                 };
             })
         };
     }
 
     /**
-     * @param {[strDate: string, strTime: string]} _1 
+     * @param {TemporalKey} _1 
      * ------------------------------------------------------------------------
      */
     #deleteEvent(_1) {
-        const [strDate, strTime] = _1;
+        const { date, time } = _1;
 
-        const timeMap = this.view.get(strDate);
+        const timeMap = this.view.get(date);
         if (timeMap) {
-            timeMap.delete(strTime);
+            timeMap.delete(time);
 
             if (!timeMap.size) {
-                this.view.delete(strDate);
+                this.view.delete(date);
             }
         }
     }
 
     /**
-     * @param {[strDate: string, strTime: string]} _1
+     * @param {TemporalKey} _1
      * @param {{
      *  description: string,
      *  details: string | undefined,
-     *  time: number,
+     *  hitTime: number,
      *  isDayOff: boolean
      * }} _2 
      * ------------------------------------------------------------------------
      */
     #createEvent(_1, _2) {
-        const [strDate, strTime] = _1;
-        const { description, details, time, isDayOff } = _2;
+        const { date, time } = _1;
+        const { description, details, hitTime, isDayOff } = _2;
 
         const entry = {
             description, details, isDayOff,
-            unread: time && time > this.userCursor ? true : false
+            unread: hitTime && hitTime > this.userCursor ? true : false
         };
 
-        if (!this.view.has(strDate)) {
-            this.view.set(strDate, new Map());
-        }
-        const timeMap = (
-            /**
-             * @type{Map<string, CalendarTimedRecord>}
-             */ (this.view.get(strDate))
-        );
-        timeMap.set(strTime, entry);
+        this.view.set(date, (
+            this.view.get(date) || new Map()
+        ).set(time, entry));
 
         if (entry.unread) {
-            this.newEvents.push({ time, strDate, strTime });
+            this.newEvents.push({
+                hitTime,
+                time,
+                date
+            });
         }
     }
 
     /**
      * 
      * @callback IsReadPredicate
-     * @param {{time: number | undefined, strDate: string | undefined}} _
+     * @param {{hitTime: number | undefined, date: DateString | undefined}} _
      * @returns {boolean}
      */
 
@@ -452,8 +434,8 @@ class Backend {
         const newEvents = [];
 
         for (const elem of this.newEvents) {
-            const { strDate, strTime } = elem;
-            const mapEntry = new Map(this.view.get(strDate)).get(strTime);
+            const { date, time } = elem;
+            const mapEntry = new Map(this.view.get(date)).get(time);
             if(mapEntry) {
                 if(isReadPredicate(elem)) {
                     mapEntry.unread = false;
@@ -473,7 +455,7 @@ class Backend {
             const effectiveCursor = Math.max(this.userCursor, cursor);
 
             this.#markEventsAsRead(
-                ({ time }) => (time || -1) <= effectiveCursor
+                ({ hitTime }) => (hitTime || -1) <= effectiveCursor
             );
         }
     }
@@ -511,7 +493,7 @@ class Backend {
                     // to filter it only after the batch process
                     const todayDate = now();
                     this.#markEventsAsRead(
-                        ({ strDate }) => (strDate || '') < todayDate
+                        ({ date }) => (date || '') < todayDate
                     );
                     return true;
                 } finally {
@@ -586,14 +568,16 @@ class Backend {
      */
     createEvent = async (appointmentRecord) => {
         const {
-            strTime, strDate,
+            time, date,
             strDescription, strDetails, isDayOff
         } = appointmentRecord;
         /**
          * @type {EventV1_Create}
          */
         const newEvent = {
-            strTime, strDate, strDescription, strDetails, isDayOff,
+            strTime: time,
+            strDate: date,
+            strDescription, strDetails, isDayOff,
             userInitiator: (
                 window.localStorage.getItem('userName') || undefined
             ),
@@ -608,12 +592,13 @@ class Backend {
      * @returns {Promise<boolean>}
      */
     cancelEvent = async (temporalKey) => {
-        const { strDate, strTime } = temporalKey;
+        const { date, time } = temporalKey;
         /**
          * @type {EventV1_Cancel}
          */
         const newEvent = {
-            strDate, strTime,
+            strDate: date,
+            strTime: time,
             userInitiator: (
                 window.localStorage.getItem('userName') || undefined
             ),
@@ -633,7 +618,7 @@ class Backend {
      *  },
      *  toCancel: TemporalKey
      * }} modification 
-     * @returns 
+     * @returns {Promise<boolean>}
      */
     editEvent = async (modification) => {
         const { toCancel, toCreate } = modification;
@@ -645,10 +630,12 @@ class Backend {
          * @type {EventV1_Create}
          */
         const createEvent = (({
-            strTime, strDate,
+            date, time,
             strDescription, strDetails, isDayOff
         }) => ({
-            strTime, strDate, strDescription, strDetails, isDayOff,
+            strTime: time,
+            strDate: date,
+            strDescription, strDetails, isDayOff,
             userInitiator,
             version: 1,
             kind: "create"
@@ -657,8 +644,9 @@ class Backend {
         /**
          * @type {EventV1_Cancel}
          */
-        const cancelEvent = (({ strTime, strDate }) => ({
-            strTime, strDate,
+        const cancelEvent = (({ date, time }) => ({
+            strTime: time,
+            strDate: date,
             version: 1,
             kind: "cancel",
             userInitiator

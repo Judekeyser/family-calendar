@@ -1,3 +1,9 @@
+/**
+ * @callback AuthenticationFormSubmit
+ * @param {SubmitFormAction<CredentialsInput>} action
+ * @returns {Promise<unknown>}
+ */
+
 customElements.define("app-authentication-form", class extends HTMLElement {
     static get observedAttributes()
         { return ['username']; }
@@ -22,10 +28,13 @@ customElements.define("app-authentication-form", class extends HTMLElement {
          * @param {SubmitEvent} event 
          */
         const submitListener = event => {
+            /**
+             * @type {AppEvent.<AuthenticationFormSubmit>}
+             */
+            const appEvent = { detail: this.submit };
+
             event.preventDefault();
-            this.dispatchEvent(new CustomEvent("app-authentify", {
-                detail: this.submit
-            }));
+            this.dispatchEvent(new CustomEvent("app-authentify", appEvent));
             return undefined;
         };
 

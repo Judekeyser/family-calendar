@@ -1,11 +1,12 @@
 import { strTimeOverlap } from '../date-utils.js';
-import { AppointmentList } from './appointment-list/AppointmentList.js';
+import {
+    forgeTemplateScope, forgeData
+} from '../components/appointments-list/AbstractAppointmentsList.js';
+import { MonadicIteratorMap } from '../algebra/MonadicIteratorMap.js';
 
 
 const TEMPLATE_ID = "calendar-mutation-form";
-function CalendarMutationPage() {
-    this.__listHandler = new AppointmentList();
-}
+function CalendarMutationPage() {}
 CalendarMutationPage.prototype = {
     paint: async function({ preferredDate, preferredTime }) {
         let { view } = await this.state;
@@ -67,36 +68,48 @@ CalendarMutationPage.prototype = {
 
     showConflicts: function(
         { strTime, strDate },
-        { preferredDate, preferredTime },
+        { preferredTime },
         view
     ) {
-        let conflicts = [];
-        if(strDate && strTime) {
-            if(preferredDate != strDate || preferredTime != strTime) {
-                conflicts = [...new Map(view.get(strDate)).entries()]
-                    .filter(([_strTime]) => strTimeOverlap(strTime, _strTime))
-                    .filter(([_strTime]) => preferredTime !== _strTime)
-                    .map(([_strTime, record]) => ({
-                        strTime: _strTime,
-                        strDate,
-                        strDescription: record.description,
-                        strDetails: undefined,
-                        markUnread: record.unread,
-                    }));
-            }
-        }
+        const conflicts = [...new MonadicIteratorMap().debug()
+            .filter(
+                ([date, time]) => date && time && preferredTime != time
+            ).map(
+                ([date, time]) => ([view.get(date), date, time])
+            ).filter(
+                ([view]) => !!view
+            ).flatMap(
+                ([view, date, time]) => new MonadicIteratorMap().debug().filter(
+                    ([timeEntry]) => time != timeEntry &&
+                                        strTimeOverlap(time, timeEntry)
+                ).map(
+                    ([timeEntry, recordEntry]) => forgeData({
+                        strDate: date,
+                        strTime: timeEntry,
+                        eventData: recordEntry
+                    })
+                ).apply(view.entries())
+            )
+        .apply([[strDate, strTime]])];
 
-        let maskContainer = this.anchorElement.querySelector(
+        console.log(conflicts);
+
+        const maskContainer = this.anchorElement.querySelector(
             "*[data-id=conflicts_container]"
         );
-        this.__listHandler.clear(this);
         if(conflicts.length) {
-            this.__listHandler.hydrate(
-                this, conflicts, { sort: true, prefix: "1" }
+            this.getTemplate("appointment_list")(
+                maskContainer,
+                forgeTemplateScope(
+                    conflicts,
+                    { sorted: true }
+                ),
+                "1"
             );
             maskContainer.classList.remove("hidden");
         } else {
             maskContainer.classList.add("hidden");
+            maskContainer.innerHTML = "";
         }
     },
 
@@ -105,8 +118,8 @@ CalendarMutationPage.prototype = {
             const { cancel } = formData;
             if(cancel) {
                 await this.cancelEvent({
-                    strDate: preferredDate,
-                    strTime: preferredTime
+                    date: preferredDate,
+                    time: preferredTime
                 });
             } else {
                 const {
@@ -117,8 +130,8 @@ CalendarMutationPage.prototype = {
                     preferredDate === strDate && preferredTime === strTime
                 )) {
                     await this.createEvent({
-                        strDate,
-                        strTime,
+                        date: strDate,
+                        time: strTime,
                         strDescription,
                         strDetails,
                         isDayOff
@@ -126,15 +139,15 @@ CalendarMutationPage.prototype = {
                 } else {
                     await this.editEvent({
                         toCreate: {
-                            strDate,
-                            strTime,
+                            date: strDate,
+                            time: strTime,
                             strDescription,
                             strDetails,
                             isDayOff
                         },
                         toCancel: {
-                            strDate: preferredDate,
-                            strTime: preferredTime
+                            date: preferredDate,
+                            time: preferredTime
                         }
                     });
                 }

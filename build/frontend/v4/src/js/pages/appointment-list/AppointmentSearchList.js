@@ -1,39 +1,20 @@
 import { SearchEngine } from '../../search-engine.js';
-import { AppointmentList } from './AppointmentList.js';
-
-
-function* generateEntries(searchResult, view) {
-    for(let { key } of searchResult) {
-        let strDate = key.substring(0, key.indexOf(' '));
-        let strTime = key.substring(strDate.length + 1);
-        let {
-            unread,
-            description, details,
-            isDayOff
-        } = view.get(strDate).get(strTime);
-        yield {
-            strDate, strTime,
-            strDescription :description,
-            strDetails: details,
-            markUnread: unread,
-            isDayOff: isDayOff || false
-        };
-    }
-}
+import {
+    forgeTemplateScope, forgeData
+} from '../../components/appointments-list/AbstractAppointmentsList.js';
+import { MonadicIteratorMap } from '../../algebra/MonadicIteratorMap.js';
 
 
 const TEMPLATE_ID = "appointments-search_main";
 
-function AppointmentSearchList() {
-    this.__listHandler = new AppointmentList();
-}
+function AppointmentSearchList() {}
 AppointmentSearchList.prototype = {
     paint: async function({ defaultSearchQuery }) {
-        let { view } = await this.state;
+        const { view } = await this.state;
 
-        let searchEngine = new SearchEngine();
-        for(let [strDate, timeMap] of view) {
-            for(let [strTime, record] of timeMap) {
+        const searchEngine = new SearchEngine();
+        for(const [strDate, timeMap] of view) {
+            for(const [strTime, record] of timeMap) {
                 searchEngine.acceptAppointment({
                     strDate, strTime,
                     strDescription: record.description
@@ -42,30 +23,48 @@ AppointmentSearchList.prototype = {
         }
 
         this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
+        const self = this;
         this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
             {
-                handleSubmit: ((self) => function(e) {
+                handleSubmit: function(e) {
                     e.preventDefault();
-                    let button = this.querySelector("button");
-                    let searchQuery = this.search.value || '';
+                    const button = this.querySelector("button");
+                    const searchQuery = this.search.value || '';
                     if(searchQuery) {
                         button.disabled = true;
                         try {
-                            let searchResult = searchEngine.search(
+                            const searchResult = searchEngine.search(
                                 { maximalCount: 10, searchQuery, past: false }
                             );
-                            self.__listHandler.clear(self);
-                            self.__listHandler.hydrate(
-                                self,
-                                generateEntries(searchResult, view),
-                                { prefix: "1" }
+                            
+                            const templateData = (
+                                new MonadicIteratorMap().map(
+                                    ({ date, time }) => forgeData({
+                                        strDate: date,
+                                        strTime: time,
+                                        eventData: (
+                                            new Map(view.get(date)).get(time)
+                                        )
+                                    }, self.navigateTo)
+                                )
+                            ).apply(searchResult);
+                
+                            self.getTemplate("appointment_list")(
+                                self.anchorElement.querySelector(
+                                    "*[data-id=appointments_list]"
+                                ),
+                                forgeTemplateScope(
+                                    templateData,
+                                    { sorted: true }
+                                ),
+                                "1"
                             );
                         } finally {
                             button.disabled = false;
                         }
                     }
-                })(this),
+                },
                 hasAppointments: false,
                 defaultSearchQuery,
                 menu: {

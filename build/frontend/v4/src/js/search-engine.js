@@ -1,4 +1,4 @@
-import { now } from "./date-utils";
+import { glueTemporalKey, unglueTemporalKey } from "./date-utils";
 
 /**
  * @template T - The `yield` type of the base iterator
@@ -648,7 +648,7 @@ function levenshteinDistance(x, y, upperBound) {
 class SearchEngine {
     constructor() {
         /**
-         * @type {Map<string, Set<string>>}
+         * @type {Map<TemporalKeyString, Set<string>>}
          */
         this.documents = new Map();
         /**
@@ -656,15 +656,6 @@ class SearchEngine {
          */
         this.frequencies = new Map();
         this.documentCount = 0;
-    }
-
-    /**
-     * @param {{strDate: string, strTime: string }} _1
-     * @returns {string} - The data, as a key
-     */
-    #createKey(_1) {
-        const { strDate, strTime } = _1;
-        return `${strDate} ${strTime}`;
     }
     
     /**
@@ -748,8 +739,8 @@ class SearchEngine {
      * Accepts a calendar entry and process it in the engine internal state.
      * 
      * @param {{
-     *  strDate: string,
-     *  strTime: string,
+     *  strDate: DateString,
+     *  strTime: TimeString,
      *  strDescription: string
      * }} _1 
      * ------------------------------------------------------------------------
@@ -757,7 +748,10 @@ class SearchEngine {
     acceptAppointment = (_1) => {
         const { strDate, strTime, strDescription } = _1;
         const words = extractTokens(strDescription);
-        const key = this.#createKey({ strDate, strTime });
+        const key = glueTemporalKey({
+            date: strDate,
+            time: strTime
+        });
 
         this.documents.set(key, words);
         for(const word of words) {
@@ -771,17 +765,20 @@ class SearchEngine {
      * Cancels an appointment from the calendar. This means the deletion of
      * the corresponding entry in the engine internal state.
      * 
-     * @param {{strDate: string, strTime: string}} _1
+     * @param {{strDate: DateString, strTime: TimeString}} _1
      * ------------------------------------------------------------------------
      */
     cancelAppointment = (_1) => {
-        const key = this.#createKey(_1);
+        const key = glueTemporalKey({
+            date: _1.strDate,
+            time: _1.strTime
+        });
         this.documents.delete(key);
     };
 
     /**
      * @param {{maximalCount: number, searchQuery: string, past: boolean}} _1
-     * @returns
+     * @returns {Array.<TemporalKey>}
      * ------------------------------------------------------------------------
      */
     search = (_1) => {
@@ -804,25 +801,19 @@ class SearchEngine {
                                 ? b.idf - a.idf
                                 : b.distance - a.distance;
         
-        const todayDate = now();
-
         /**
-         * @type {Array<QueueEntry & {key: string}>}
+         * @type {Array<QueueEntry & {key: TemporalKeyString}>}
          */
         let queue = [];
         let threshold = 0.;
 
         for(const entries of new BatchedIterator(self.documents.entries())) {
             for(const [key, words] of entries) {
-                if(key < todayDate) {
-                    continue;
-                } else {
-                    const  { distance, idf } = self.#distanceToDocument(
-                        tokens, expansion, words
-                    );
-                    if(distance >= threshold) {
-                        queue.push({ distance, key, idf });
-                    }
+                const  { distance, idf } = self.#distanceToDocument(
+                    tokens, expansion, words
+                );
+                if(distance > 0 && distance >= threshold) {
+                    queue.push({ distance, key, idf });
                 }
             }
             queue.sort(sortFunction);
@@ -831,12 +822,12 @@ class SearchEngine {
                 threshold = (
                     /**
                      * @type{{distance: number}}
-                     * */(queue[0])
+                     * */(queue[maximalCount - 1])
                 ).distance;
             }
         }
 
-        return queue;
+        return queue.map(({ key }) => unglueTemporalKey(key));
     };
 }
 

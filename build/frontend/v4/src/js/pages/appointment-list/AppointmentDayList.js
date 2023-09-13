@@ -1,31 +1,26 @@
-import { AppointmentList } from './AppointmentList.js';
+import {
+    forgeTemplateScope, forgeData
+} from '../../components/appointments-list/AbstractAppointmentsList.js';
+import { MonadicIteratorMap } from '../../algebra/MonadicIteratorMap.js';
+import { validateDateString } from '../../date-utils';
 
 
-function* generateEntries(source, strDate) {
-    for(let [strTime, record] of source) {
-        yield {
-            strDate,
-            strTime,
-            strDescription: record.description,
-            strDetails: record.details,
-            markUnread: record.unread || false,
-            isDayOff: record.isDayOff || false
-        };
-    }
-}
+/**
+ * @this {AppPage}
+ * @param {{ strDate: string }} _ 
+ * @returns {Promise.<unknown>}
+ */
+async function paintAppointmentDayList({ strDate }) {
+    let { view } = await this.state;
 
-
-const TEMPLATE_ID = "day-appointments_main";
-function AppointmentDayList() {
-    this.__listHandler = new AppointmentList();
-}
-AppointmentDayList.prototype = {
-    paint: async function({ strDate }) {
-        let { view } = await this.state;
+    const date = validateDateString(strDate);
+    if(date) {
         this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
 
-        let source = view.get(strDate);
-        let hasAppointments = source && source.size;
+        /**
+         * @type {Map.<TimeString,EventData>}
+         */
+        let source = view.get(date) || new Map();
 
         this.getTemplate(TEMPLATE_ID)(
             this.anchorElement,
@@ -47,21 +42,51 @@ AppointmentDayList.prototype = {
                         }),
                     }
                 },
-                hasAppointments
+                hasAppointments: source.size
             },
             "0"
         );
 
-        if(hasAppointments) {
-            this.__listHandler.hydrate(
-                this,
-                generateEntries(source, strDate),
-                { sort: true, prefix: "1" }
+        const targetListContainer = this.anchorElement.querySelector(
+            "*[data-id=appointments_list]"
+        );
+        if(targetListContainer) {
+            const templateData = (
+                (
+                    /**
+                     * @type {MonadicIteratorMap.<
+                     *  [TimeString, EventData],
+                     *  [TimeString, EventData]
+                     * >}
+                     */ (new MonadicIteratorMap())
+                ).map(
+                    ([strTime, eventData]) => forgeData({
+                        strDate: date,
+                        strTime,
+                        eventData
+                    }, this.navigateTo)
+                )
+            ).apply(source.entries());
+
+            this.getTemplate("appointment_list")(
+                targetListContainer,
+                forgeTemplateScope(
+                    templateData,
+                    { sort: true }
+                ),
+                "1"
             );
         }
-
     }
+    return undefined;
+}
+
+
+const TEMPLATE_ID = "day-appointments_main";
+function AppointmentDayList() {}
+AppointmentDayList.prototype = {
+    paint: paintAppointmentDayList
 };
 
 
-export { AppointmentDayList };
+export { AppointmentDayList, paintAppointmentDayList };

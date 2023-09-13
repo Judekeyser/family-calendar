@@ -111,15 +111,23 @@
     "date-utils.js",
     "search-engine.js",
     "template-engine.js",
+
+    "algebra/MonadicIteratorMap.js",
+
     "components/DayTwoDigits.js",
     "components/FrenchMonth.js",
     "components/LongFrenchDate.js",
     "components/LongFrenchTime.js",
     "components/MonthTwoDigits.js",
     "components/YearFourDigits.js",
+
+    "components/appointments-list/AbstractAppointmentsList.js",
     
     "components/forms/AuthenticationForm.js",
-    "components/forms/CalendarMutationForm.js"
+    "components/forms/CalendarMutationForm.js",
+
+    "pages/AuthenticationPage.js",
+    "pages/appointment-list/AppointmentDayList.js"
   ],
   "include": [
     "__documented_types.js"

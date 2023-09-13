@@ -11,6 +11,7 @@ Utility file to deal with dates and times.
  * @typedef {number & ((_0: undefined & null) => 'Timestamp')} Timestamp
  * @param {number} _ - Timestamp from Epoch
  * @returns {Timestamp}
+ * ----------------------------------------------------------------------------
  */
 function castTimestamp(_) {
     return (
@@ -21,8 +22,9 @@ function castTimestamp(_) {
 }
 
 /**
- * @param {string} _ - The input to check as a string
+ * @param {string} _ - The input to cast as a string
  * @returns {DateString}
+ * ----------------------------------------------------------------------------
  */
 function castDate(_) {
     return (
@@ -33,13 +35,27 @@ function castDate(_) {
 }
 
 /**
- * @param {string} _ - The input to check as a string
+ * @param {string} _ - The input to cast as a string
  * @returns {TimeString}
+ * ----------------------------------------------------------------------------
  */
 function castTime(_) {
     return (
         /**
          * @type {TimeString}
+         */ (_)
+    );
+}
+
+/**
+ * @param {string} _ - The input to cast as a string
+ * @returns {TemporalKeyString}
+ * ----------------------------------------------------------------------------
+ */
+function castTemporalKeyString(_) {
+    return (
+        /**
+         * @type {TemporalKeyString}
          */ (_)
     );
 }
@@ -50,11 +66,15 @@ const DAY_PATTERN = /^([0-2][0-9]|3[0-1])$/;
 const HOUR_PATTERN = /^([0-1][0-9]|2[0-4])$/;
 const MINUTE_PATTERN = /^[0-5][0-9]$/;
 /**
- * @param {string} input - The expected date string
+ * @param {unknown} input - The expected date string
  * @returns {DateString | null} - As a date string, or nothing if invalid
+ * ----------------------------------------------------------------------------
  */
 function validateDateString(input) {
     valid: {
+        if(typeof input != "string") {
+            break valid;
+        }
         const yearSegment = input.substring(0, 4);
         const monthSegment = input.substring(5, 7);
         const daySegment = input.substring(8, 10);
@@ -117,20 +137,24 @@ function validateDateString(input) {
 }
 
 /**
- * @param {string} input - The expected time string
+ * @param {unknown} input - The expected time string
  * @returns {TimeString | null} - As a time string, or nothing if invalid
+ * ----------------------------------------------------------------------------
  */
 function validateTimeString(input) {
-    switch(input) {
-        case "fullday":
-        case "morning":
-        case "afternoon":
-            return castTime(input);
-        default: {
-            const hourSegment = input.substring(0, 2);
-            const minuteSegment = input.substring(3, 5);
-        
-            valid: {
+    valid: {
+        if(typeof input != "string") {
+            break valid;
+        }
+        switch(input) {
+            case "fullday":
+            case "morning":
+            case "afternoon":
+                return castTime(input);
+            default: {
+                const hourSegment = input.substring(0, 2);
+                const minuteSegment = input.substring(3, 5);
+            
                 if(!hourSegment.match(HOUR_PATTERN)) {
                     break valid;
                 }
@@ -139,15 +163,48 @@ function validateTimeString(input) {
                 }
                 return castTime([hourSegment, minuteSegment].join(':'));
             }
-            return null;
         }
     }
+    return null;
+}
+
+/**
+ * 
+ * @param {TemporalKey} temporalKey - The temporal key, unglued
+ * @returns {TemporalKeyString} - The temporal key string
+ * ----------------------------------------------------------------------------
+ */
+function glueTemporalKey(temporalKey) {
+    const { date, time } = temporalKey;
+    return castTemporalKeyString(`${date} ${time}`);
+}
+
+/**
+ * @param {TemporalKeyString} temporaleyString - the temporal key as a string
+ * @returns {TemporalKey} - The unglued key
+ * ----------------------------------------------------------------------------
+ */
+function unglueTemporalKey(temporaleyString) {
+    const strDate = temporaleyString.substring(
+        0, temporaleyString.indexOf(" ")
+    );
+    const strTime = temporaleyString.substring(strDate.length + 1);
+
+    const date = validateDateString(strDate);
+    const time = validateTimeString(strTime);
+    return (
+        /**
+         * @type {TemporalKey}
+         */
+        ({ date, time })
+    );
 }
 
 /**
  * Gets the current date, as a string. This is wrapped for coherency reasons.
  * 
  * @returns {DateString} - The date, as a string
+ * ----------------------------------------------------------------------------
  */
 function now()
 {
@@ -168,6 +225,7 @@ function now()
  * 
  * @param {Timestamp} datetime - The datetime, as a timestamp from Epoch
  * @returns {number} - The UTC day of week
+ * ----------------------------------------------------------------------------
  */
 function __dayOfWeek(datetime)
 {
@@ -375,23 +433,6 @@ function strTimeSorting(a, b)
 }
 
 /**
- * Compares two records that both contain a string-date and a string-time.
- * The date is always checked first, and only in case of equality, this method
- * compares the times using the {@link strTimeSorting} method.
- * 
- * @param {{strDate: DateString, strTime: TimeString}} a - The first record
- * @param {{strDate: DateString, strTime: TimeString}} b - The second record 
- * @returns {-1 | 1 | 0} - The result of the comparison
- * ----------------------------------------------------------------------------
- */
-function recordSorting(a, b)
-{
-    return a.strDate === b.strDate
-        ? strTimeSorting(a.strTime, b.strTime)
-        : a.strDate <= b.strDate ? -1 : 1;
-}
-
-/**
  * Computes if two times (as string, in the general sense) overlap each
  * others.
  * 
@@ -514,6 +555,7 @@ function computeGrid(focusDate, numberOfWeeks, coverLastMonthEntirely) {
     return blocks;
 }
 
+
 export {
     now,
     dateTimeToString,
@@ -525,8 +567,9 @@ export {
     yearOfDate,
     strTimeSorting,
     strTimeOverlap,
-    recordSorting,
     validateDateString,
     validateTimeString,
-    computeGrid
+    computeGrid,
+    glueTemporalKey,
+    unglueTemporalKey
 };

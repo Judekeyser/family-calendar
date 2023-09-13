@@ -13,7 +13,7 @@ module.exports = {
         "block-scoped-var": "error",
         "guard-for-in": "error",
         "curly": "error",
-        "max-len": ["error", { "code": 80 }],
+        "max-len": ["error", { "code": 120 }],
         "semi": ["error", "always"]
     }
   }

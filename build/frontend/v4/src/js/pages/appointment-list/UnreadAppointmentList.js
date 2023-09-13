@@ -1,32 +1,17 @@
 import { now } from '../../date-utils.js';
-import { AppointmentList } from './AppointmentList.js';
-
-
-function* unreadEntriesGenerator(newEvents, view) {
-    for(let { strDate, strTime } of newEvents) {
-        const entry = view.get(strDate).get(strTime);
-        const strDescription = entry.description;
-        const strDetails = entry.details;
-        const isDayOff = entry.isDayOff || false;
-        yield {
-            strDate, strTime,
-            strDescription,
-            strDetails,
-            isDayOff
-        };
-    }
-}
+import {
+    forgeTemplateScope, forgeData
+} from '../../components/appointments-list/AbstractAppointmentsList.js';
+import { MonadicIteratorMap } from '../../algebra/MonadicIteratorMap.js';
 
 
 const TEMPLATE_ID = "unread-appointments_main";
-function UnreadAppointmentList() {
-    this.__listHandler = new AppointmentList();
-}
+function UnreadAppointmentList() {}
 UnreadAppointmentList.prototype = {
     paint: async function() {
-        let { view, newEvents } = await this.state;
+        const { view, newEvents } = await this.state;
 
-        let hasAppointments = !!newEvents.length;
+        const hasAppointments = !!newEvents.length;
 
         this.anchorElement.setAttribute("data-id", TEMPLATE_ID);
         this.getTemplate(TEMPLATE_ID)(
@@ -65,10 +50,24 @@ UnreadAppointmentList.prototype = {
         );
 
         if(hasAppointments) {
-            this.__listHandler.hydrate(
-                this,
-                unreadEntriesGenerator(newEvents, view),
-                { sort: true, prefix: "1" }
+            const templateData = (
+                new MonadicIteratorMap().map(
+                    ({ strDate, strTime }) => forgeData({
+                        strDate, strTime,
+                        eventData: new Map(view.get(strDate)).get(strTime)
+                    }, this.navigateTo)
+                )
+            ).apply(newEvents);
+
+            this.getTemplate("appointment_list")(
+                this.anchorElement.querySelector(
+                    "*[data-id=appointments_list]"
+                ),
+                forgeTemplateScope(
+                    templateData,
+                    { sorted: true }
+                ),
+                "1"
             );
         }
 

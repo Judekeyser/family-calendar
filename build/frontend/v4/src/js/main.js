@@ -45,6 +45,12 @@ function getAnchorElement() {
  * ----------------------------------------------------------------------------
  */
 
+const DISALLOW_RELOAD_ON_403 = 'disallow403Reload';
+
+/**
+ * ----------------------------------------------------------------------------
+ */
+
 
 customElements.define("app-route-listener", class extends HTMLElement {
     constructor() {
@@ -140,9 +146,18 @@ customElements.define("app-route-listener", class extends HTMLElement {
     #handleAuthenticationError(anyAction) {
         return (async function() {
             try {
-                return await anyAction(...arguments);
+                const result = await anyAction(...arguments);
+                window.sessionStorage.removeItem(DISALLOW_RELOAD_ON_403);
+                return result;
             } catch(error) {
                 let { errorCode, errorMessage } = error;
+                if(
+                    errorCode == 403 &&
+                    !window.sessionStorage.getItem(DISALLOW_RELOAD_ON_403)
+                ) {
+                    window.sessionStorage.setItem(DISALLOW_RELOAD_ON_403, true);
+                    window.location.reload();
+                }
                 if([401,403,429].includes(errorCode)) {
                     this.#emitNavigation({
                         url: '/authentication/',

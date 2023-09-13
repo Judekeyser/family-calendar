@@ -519,13 +519,13 @@ function* it(plant, scope) {
         } break;
         case "textContent": {
             const textContent = _getProperty(scope, plant.variable) || '';
-            if(typeof textContent != 'string') {
+            if(!["string", "number"].includes(typeof textContent)) {
                 throw `Property ${plant.variable} used for textContent `
                     + `must be a string`;
             } else {
                 yield asDOMEffect(
                     '',
-                    _ => (_.textContent = textContent),
+                    _ => (_.textContent = String(textContent)),
                     _ => (_.textContent = '')
                 );
             }
@@ -775,7 +775,7 @@ function compile(template)
  * The result might contain an extra `div` container.
  * 
  * @param {string} template 
- * @returns 
+ * @returns {HydrateMethod}
  */
 function safeCompileOnce(template)
 {
@@ -788,12 +788,9 @@ function safeCompileOnce(template)
         throw "DOMPurify library is required to use this method.";
     } else {
         const BaseHydrate = compile(template);
+
         /**
-         * @param {*} domRoot 
-         * @param {*} scope 
-         * @param {string} prefix
-         * @yields {undefined}
-         * @returns {*}
+         * @type {HydrateMethod}
          */
         const Hydrate = (domRoot, scope, prefix) => {
             const phantom = document.createElement("div");
@@ -819,8 +816,10 @@ function safeCompileOnce(template)
                     allowCustomizedBuiltInElements: true, 
                 }
             });
-            domRoot.innnerHTML = "";
+            domRoot.innerHTML = "";
             domRoot.appendChild(phantom);
+
+            return undefined;
         };
 
         return Hydrate;
@@ -837,6 +836,7 @@ const Templates =
      * result in memoized map.
      * 
      * @param {string} templateId 
+     * @returns {HydrateMethod}
      * ------------------------------------------------------------------------
      */
     getTemplate: function(templateId)
@@ -866,9 +866,11 @@ const Templates =
  * Get a template from its ID. This method performs a DOM look-up
  * to extract the corresponding template text, and stores the compile
  * result in memoized map.
- * 
- * @param {string} templateId 
  * ------------------------------------------------------------------------
+ */
+
+/**
+ * @type {TemplateGetter}
  */
 function getTemplate(templateId) {
     return Templates.getTemplate(templateId);

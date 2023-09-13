@@ -71,34 +71,29 @@ CalendarMutationPage.prototype = {
         { preferredTime },
         view
     ) {
-        const conflicts = [...new MonadicIteratorMap().debug()
-            .filter(
-                ([date, time]) => date && time && preferredTime != time
-            ).map(
-                ([date, time]) => ([view.get(date), date, time])
-            ).filter(
-                ([view]) => !!view
-            ).flatMap(
-                ([view, date, time]) => new MonadicIteratorMap().debug().filter(
-                    ([timeEntry]) => time != timeEntry &&
-                                        strTimeOverlap(time, timeEntry)
+        let conflicts = [];
+        if(strDate && strTime && preferredTime != strTime) {
+            const entries = (view.get(strDate) || new Map()).entries();
+            conflicts = [...(
+                new MonadicIteratorMap().filter(
+                    ([candidateTime]) => strTime != preferredTime ? true : candidateTime != preferredTime
+                ).filter(
+                    ([candidateTime]) => strTimeOverlap(candidateTime, strTime)
                 ).map(
-                    ([timeEntry, recordEntry]) => forgeData({
-                        strDate: date,
-                        strTime: timeEntry,
-                        eventData: recordEntry
+                    ([candidateTime, eventData]) => forgeData({
+                        strDate,
+                        strTime: candidateTime,
+                        eventData
                     })
-                ).apply(view.entries())
-            )
-        .apply([[strDate, strTime]])];
-
-        console.log(conflicts);
+                ).apply(entries)
+            )]
+        }
 
         const maskContainer = this.anchorElement.querySelector(
             "*[data-id=conflicts_container]"
         );
         if(conflicts.length) {
-            this.getTemplate("appointment_list")(
+            this.getTemplate("calendar-mutation-form_conflicts")(
                 maskContainer,
                 forgeTemplateScope(
                     conflicts,

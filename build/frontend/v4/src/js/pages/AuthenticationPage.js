@@ -28,7 +28,10 @@ async function paintAuthenticationPage() {
 
     this.getTemplate(TEMPLATE_ID)(
         this.anchorElement,
-        { handleAppAuthentify },
+        {
+            username: this.authentifiedUser.userName,
+            handleAppAuthentify
+        },
         "0"
     );
 

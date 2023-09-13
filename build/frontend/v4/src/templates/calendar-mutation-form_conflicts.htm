@@ -1,28 +1,18 @@
-<div
-    {#}
-        {: appointments}
-            { "hidden | class }
-        {/}
-    {/}
->
-    <hr>
+<p>Les rendez-vous suivants sont en conflit horaire:</p>
 
-    <p>Les rendez-vous suivants sont en conflit horaire:</p>
-
-    <dl>
-        {# appointments}
-            <dt
-                ><app-long-french-time
-                    {#}
-                        { strTime | strTime }
-                    {/}
-                ></app-long-french-time
-            ></dt>
-            <dd
+<dl>
+    {# appointments}
+        <dt
+            ><app-long-french-time
                 {#}
-                    {$ strDescription}
+                    { strTime | strTime }
                 {/}
-            ></dd>
-        {/}
-    </dl>
-</div>
+            ></app-long-french-time
+        ></dt>
+        <dd
+            {#}
+                {$ strDescription}
+            {/}
+        ></dd>
+    {/}
+</dl>

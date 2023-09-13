@@ -446,15 +446,16 @@ function strTimeSorting(a, b)
  */
 function strTimeOverlap(a, b)
 {
-    return (
+    const overlap = (
            a == b
         || a == "fullday"
         || b == "fullday"
-        || (a == "afternoon" && b >= "12:00")
-        || (b == "afternoon" && a >= "12:00")
+        || (a == "afternoon" && b >= "12:00" && b != "morning")
+        || (b == "afternoon" && a >= "12:00" && b != "morning")
         || (a == "morning" &&  b < "12:00")
         || (b == "morning" && a < "12:00")
     );
+    return overlap;
 }
 
 /**

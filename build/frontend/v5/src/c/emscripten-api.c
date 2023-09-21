@@ -1,5 +1,4 @@
-//#include <emscripten.h>
-//#include <stdlib.h>
+#include <emscripten.h>
 
 #include "./ioserver.h"
 #include "./request.h"
@@ -7,7 +6,7 @@
 #include "./dynamic/series.h"
 
 
-__attribute__((visibility("default"))) int accept(char* start, const unsigned int capacity)
+int accept(char* start, const unsigned int capacity)
 {
   struct SeriesStruct _series;
   Series series = &_series;

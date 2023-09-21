@@ -1,11 +1,10 @@
 #include "./request.h"
 
-#include <string.h>
-
-#include "./shared/debug.h"
+#include "./shared/string_length.h"
+#include "./shared/string_index_of.h"
 #include "./shared/string_startsWith.h"
 #include "./route_calendar/route_calendar.h"
-
+#include "./shared/assert.h"
 #include "./ioserver.h"
 
 
@@ -28,14 +27,14 @@ const struct RouteHandler route_handlers[] = {
         .terminate = route_calendar_terminate
     },
     {
-        .guard = NULL
+        .guard = 0
     }
 };
 
 
 static void fragment_url(const char* source_url, char* url_segments, const int size)
 {
-    const int source_size = strlen(source_url);
+    const int source_size = string_length(source_url);
     if(source_size < size - 1) {
         int i;
         for(i = 0; i < source_size; i++) {
@@ -50,7 +49,7 @@ static void fragment_url(const char* source_url, char* url_segments, const int s
 
 static void find_handler(const char* url_segments, const struct RouteHandler** resolved_handler)
 {
-    *resolved_handler = NULL;
+    *resolved_handler = 0;
     for(
         const struct RouteHandler* cursor = route_handlers;
         cursor -> guard;
@@ -80,7 +79,7 @@ int request_accept(void)
      */
     ioserver_read_string(working_memory, MEM_SIZE);
 
-    const struct RouteHandler* current_route_handler = NULL;
+    const struct RouteHandler* current_route_handler = 0;
     if(string_startsWith("GET ", working_memory)) {
         fragment_url(working_memory + 4, working_memory, MEM_SIZE);
         find_handler(working_memory, &current_route_handler);
@@ -95,34 +94,21 @@ int request_accept(void)
             */
             for(int N = 100;--N;) {
                 ioserver_read_string(working_memory, MEM_SIZE);
-                if(strlen(working_memory)) {
-                    {
-                        char* equalSign = strchr(working_memory, ':');
-                        assert(equalSign);
-                        *equalSign = '\0';
-                    }
+                if(string_length(working_memory)) {
+                    char* equalSign = (char*)string_index_of(working_memory, ':');
+                    *equalSign = '\0';
+                    
                     const char* key = working_memory;
-                    const char* value = working_memory + strlen(working_memory) + 1;
-
-                    LOG(
-                        "Query parameter:"
-                        "\n\tKey: %s"
-                        "\n\tValue: %s"
-                        ,key
-                        ,value
-                    ) LOG_FLUSH
+                    const char* value = equalSign + 1;
 
                     current_route_handler -> handle_query_parameter(key, value);
                 } else {
-                    LOG("%s","End of streaming");
-
                     /**
                      * STEP 3:
                      * -------
                      * Terminate the process
                      */
                     current_route_handler -> terminate();
-                    ioserver_write_string("RESPONSE: OK");
                     
                     /**
                      * Notify success and escape
@@ -130,13 +116,6 @@ int request_accept(void)
                     return 1;
                 }
             }
-            LOG("%s", "Max iteration reached") LOG_FLUSH
-        } else {
-            LOG(
-                "Unable to find route handler"
-                "\n\tWorking memory status: %s"
-                ,working_memory
-            ) LOG_FLUSH
         }
     }
 

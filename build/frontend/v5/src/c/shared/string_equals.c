@@ -1,9 +1,13 @@
 #include "./string_equals.h"
 
-#include <string.h>
 
-
-inline int string_equals(const char* a, const char* b)
+int string_equals(const char* a, const char* b)
 {
-    return strcmp(a,b) == 0 ? 1 : 0;
+    char c1, c2;
+    do {
+        c1 = *(a++);
+        c2 = *(b++);
+    } while((c1 || c2) && (c1 == c2));
+    
+    return (c1 || c2) ? 0 : 1;
 }

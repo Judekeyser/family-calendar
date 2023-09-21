@@ -1,0 +1,33 @@
+<table>
+    <thead>
+        <tr>
+            <th><abbr>Lun.</abbr></th>
+            <th><abbr>Mar.</abbr></th>
+            <th><abbr>Mer.</abbr></th>
+            <th><abbr>Jeu.</abbr></th>
+            <th><abbr>Ven.</abbr></th>
+            <th><abbr>Sam.</abbr></th>
+            <th><abbr>Dim.</abbr></th>
+        </tr>
+    </thead>
+    {# blocks}
+        <tbody>
+            <tr class="bar">
+                <th colspan="7"
+                    ><app-french-month strmonth="{! strmonth}"></app-french-month>
+                </th>
+            </tr>
+            {# rows}
+                <tr>
+                    {# cols}
+                        <td
+                            {#}
+                                { "hidden | class }
+                            {/}
+                        >{! strdate}</td>
+                    {/}
+                </tr>
+            {/}
+        </tbody>
+    {/}
+</table>

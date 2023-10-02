@@ -1,5 +1,5 @@
-#ifndef __APP_SHARED_SMALL_INT_FROM_STRING__
-#define __APP_SHARED_SMALL_INT_FROM_STRING__
+#ifndef APP_SHARED_SMALL_INT_FROM_STRING
+#define APP_SHARED_SMALL_INT_FROM_STRING
 
 /**
  * Converts a C-string, that represents a non negative number

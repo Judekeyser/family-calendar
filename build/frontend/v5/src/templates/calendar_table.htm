@@ -1,0 +1,36 @@
+<table>
+    <thead>
+        <tr>
+            <th><abbr>Lun.</abbr></th>
+            <th><abbr>Mar.</abbr></th>
+            <th><abbr>Mer.</abbr></th>
+            <th><abbr>Jeu.</abbr></th>
+            <th><abbr>Ven.</abbr></th>
+            <th><abbr>Sam.</abbr></th>
+            <th><abbr>Dim.</abbr></th>
+        </tr>
+    </thead>
+    {# blocks}
+        <tbody>
+            <tr class="monthTitle">
+                <th colspan="7">{! strmonth}</th>
+            </tr>
+            {# rows}
+                <tr>
+                    {# cols}
+                        <td class="
+                            {? has_appointments}hasAppointments{/}
+                            {? is_today}isToday{/}
+                            {? is_focus}isFocus{/}
+                        ">
+                            <form is="app-hyperlink-trait" action="appointments/day">
+                                <input name="focus_date" value="{! strdate}">
+                            </form>
+                            {: is_day_off}{! strday}{/}{? is_day_off}&#9969;{/}{? has_unread}*{/}
+                        </td>
+                    {/}
+                </tr>
+            {/}
+        </tbody>
+    {/}
+</table>

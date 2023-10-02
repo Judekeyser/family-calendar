@@ -1,24 +1,19 @@
-import { WasmSocketInputStream } from './wasm-socket-input-stream'
-import { WasmSocketOutputStream } from './wasm-socket-output-stream';
+import { WasmSocketInputStream } from './wasm-socket-input-stream.js';
+import { WasmSocketOutputStream } from './wasm-socket-output-stream.js';
 
 
 class WasmSocket
 {
-    #inputStream;
-    #outputStream;
-
-    constructor(inputStreamSpecification, outputStreamSpecification) {
-        {
-            const { preamble, queryParametersIterator } = inputStreamSpecification;
-            this.#inputStream = new WasmSocketInputStream(preamble, queryParametersIterator);
-        }
-        {
-            this.#outputStream = new WasmSocketOutputStream();
-        }
+    __inputStream;
+    __outputStream;
+    
+    constructor(inputStreamSpecification) {
+        this.__inputStream = new WasmSocketInputStream(inputStreamSpecification);
+        this.__outputStream = new WasmSocketOutputStream();
     }
     
-    read = () => {
-        const { done, value } = this.#inputStream.next();
+    read() {
+        const { done, value } = this.__inputStream.next();
         if(done) {
             return null;
         } else {
@@ -26,14 +21,12 @@ class WasmSocket
         }
     }
 
-    write = someLine => void this.#outputStream.accept(someLine);
-
-    get output() {
-        return this.#outputStream.output;
+    write(someLine) {
+        this.__outputStream.accept(someLine);
     }
 
-    rebindInputStream(newInputStream) {
-        this.#inputStream = newInputStream;
+    get output() {
+        return this.__outputStream.output;
     }
 }
 

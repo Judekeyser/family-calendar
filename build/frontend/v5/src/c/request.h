@@ -1,5 +1,5 @@
-#ifndef __APP_REQUEST__
-#define __APP_REQUEST__
+#ifndef APP_REQUEST
+#define APP_REQUEST
 
 int request_accept(void);
 

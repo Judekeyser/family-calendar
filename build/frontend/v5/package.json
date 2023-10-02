@@ -1,18 +1,12 @@
 {
-  "name": "v5",
+  "name": "54",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "npx webpack --config webpack.config.js",
-    "start": "npx webpack serve --open",
-    "check": "npx eslint src"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "main": "main.js",
   "devDependencies": {
     "eslint": "^8.47.0",
+    "eslint-webpack-plugin": "^4.0.1",
+    "typescript": "^5.1.6",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",
     "webpack-dev-server": "^4.11.1"

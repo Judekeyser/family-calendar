@@ -1,5 +1,5 @@
-#ifndef __APP_TEMPLATE__
-#define __APP_TEMPLATE__
+#ifndef APP_TEMPLATE
+#define APP_TEMPLATE
 
 /** Factory helpers **/
 

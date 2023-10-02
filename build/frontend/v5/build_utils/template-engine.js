@@ -27,7 +27,7 @@ const SECTION_MARKER = '#';
 const IF_BLOCK_MARKER = '?';
 const ELSE_BLOCK_MARKER = ':';
 const TEXT_CONTENT_MARKER = '$';
-const EVENT_MARKER = '%';
+const INCLUDE_MARKER = '%';
 const FLUSH_MARKER = '!';
 const PIPE_DELIMITER = '|';
 const HARD_CODED_MARKER = '"';
@@ -70,7 +70,7 @@ function generateTreeFromExpression(template)
         }
         
         if(openingIndex >= 0) {
-            if(cursor + 1 < openingIndex) {
+            if(cursor + 1 <= openingIndex) {
                 const slice = template.substring(
                     cursor, openingIndex
                 ).replace(BLANK_PATTERN, ' ');
@@ -153,9 +153,9 @@ function generateTreeFromExpression(template)
                     ancestorChain.push(plant);
                     ancestorChain.push(nextPlant);
                 } break;
-                case EVENT_MARKER: {
+                case INCLUDE_MARKER: {
                     const leaf = {
-                        symbol: 'event',
+                        symbol: 'include',
                         variable
                     };
                     plant.children.push(leaf);
@@ -251,7 +251,7 @@ function processBranch(branch, { templateName, types, slices, Clines, depth, ele
         } break;
         case "fragment": {
             const sliceIndex = slices.length;
-            Clines.push(`template_emit_fragment("${templateName}:${sliceIndex}");`);
+            Clines.push(`template_emit(${templateName}_${sliceIndex});`);
             slices.push(branch.slice);
         } break;
         case "section": {
@@ -271,6 +271,22 @@ for(
                 processBranch(child, { templateName, types, slices, Clines, depth });
             }
             Clines.push(`} }`);
+        } break;
+        case "if": {
+            const variable = branch.variable;
+            Clines.push(`if(!!(n${depth} -> ${variable}(n${depth}))) {`);
+            for(const child of branch.children) {
+                processBranch(child, { templateName, types, slices, Clines, depth });
+            }
+            Clines.push(`}`);
+        } break;
+        case "else": {
+            const variable = branch.variable;
+            Clines.push(`if(!(n${depth} -> ${variable}(n${depth}))) {`);
+            for(const child of branch.children) {
+                processBranch(child, { templateName, types, slices, Clines, depth });
+            }
+            Clines.push(`}`);
         } break;
         case "uuid": {
             const elementUuid = branch.elementUuid;
@@ -324,6 +340,14 @@ for(
                 Clines.push(`template_emit((n${depth} -> ${variable})(n${depth}));`);
             }
         } break;
+        case "include": {
+            const variable = branch.variable;
+            if(!variable) {
+                throw "Variable unset for include";
+            } else {
+                Clines.push(`(n${depth} -> ${variable})(n${depth});`);
+            }
+        } break;
         case "textContent":default: {
             throw JSON.stringify(branch);
             break;
@@ -336,6 +360,8 @@ function checkIfAtLeastOneId(branch) {
     switch(branch.symbol) {
         case "root":
         case "section":
+        case "if":
+        case "else":
             for(const child of branch.children) {
                 if(checkIfAtLeastOneId(child))
                     return true;
@@ -347,6 +373,7 @@ function checkIfAtLeastOneId(branch) {
         case "hardAttribute":
         case "dynamicAttribute":
         case "flush":
+        case "include":
         case "textContent":
             return false;
         default:
@@ -355,7 +382,7 @@ function checkIfAtLeastOneId(branch) {
 }
 
 
-function wrapClines(types, Clines, atLeastOneId) {
+function wrapClines(types, Clines, slices, templateName, atLeastOneId) {
     const id_chunk_preamble = atLeastOneId ? (
 `    char id_chunk[96];
 #   ifdef NDEBUG
@@ -371,6 +398,10 @@ function wrapClines(types, Clines, atLeastOneId) {
 `
     )).join('\n');
 
+    const slice_declarations = slices.map((slice, index) => (
+        `static const char* const ${templateName}_${index} = ${JSON.stringify(slice)};`
+    )).join("\n");
+
     return (
 `
 #include "../template.h"
@@ -380,6 +411,8 @@ function wrapClines(types, Clines, atLeastOneId) {
 
 ${macroDeclarations}
 
+${slice_declarations}
+
 static void run(TMPL_T_ROOT n0)
 {
 ${id_chunk_preamble}
@@ -387,23 +420,6 @@ ${id_chunk_preamble}
 ${Clines.join(' ')}
 
 }
-`
-    );
-}
-
-function wrapSlices(templateName, slices) {
-    const mapPushes = slices.map((slice, index) => (
-`map.set(${index}, ${JSON.stringify(slice)});`
-    )).join("\n");
-    return (
-`
-export default function init(templateMap) {
-const map = new Map();
-templateMap.set("${templateName}", map);
-
-${mapPushes}
-
-};
 `
     );
 }
@@ -418,7 +434,7 @@ function compile(templateName, templateContent) {
 
     processBranch(tree, { templateName, types, slices, Clines, depth: 0 });
 
-    return [wrapClines(types, Clines, checkIfAtLeastOneId(tree)), wrapSlices(templateName, slices)];
+    return wrapClines(types, Clines, slices, templateName, checkIfAtLeastOneId(tree));
 }
 
 module.exports = { compile };

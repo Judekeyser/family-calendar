@@ -1,5 +1,5 @@
-#ifndef __APP_SHARED_STRING_LENGTH__
-#define __APP_SHARED_STRING_LENGTH__
+#ifndef APP_SHARED_STRING_LENGTH
+#define APP_SHARED_STRING_LENGTH
 
 /**
  * Returns the length of the C-string.

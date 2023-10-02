@@ -3,9 +3,11 @@
 #include "./shared/string_length.h"
 #include "./shared/string_index_of.h"
 #include "./shared/string_startsWith.h"
-#include "./route_calendar/route_calendar.h"
 #include "./shared/assert.h"
 #include "./ioserver.h"
+
+#include "./route_calendar/route_calendar.h"
+#include "./route_appointment_list_day/route_appointment_list_day.h"
 
 
 typedef int(*route_handler)(const char* url_segments, const char* query_parameters);
@@ -20,11 +22,16 @@ struct RouteHandler {
     route_terminate terminate;
 };
 
-const struct RouteHandler route_handlers[] = {
+static const struct RouteHandler route_handlers[] = {
     {
         .guard = route_calendar_guard,
         .handle_query_parameter = route_calendar_handle_query_parameter,
         .terminate = route_calendar_terminate
+    },
+    {
+        .guard = route_appointment_list_day_guard,
+        .handle_query_parameter = route_appointment_list_day_handle_query_parameter,
+        .terminate = route_appointment_list_day_terminate
     },
     {
         .guard = 0
@@ -32,11 +39,11 @@ const struct RouteHandler route_handlers[] = {
 };
 
 
-static void fragment_url(const char* source_url, char* url_segments, const int size)
+static void fragment_url(const char* source_url, char* url_segments, const unsigned int size)
 {
-    const int source_size = string_length(source_url);
+    const unsigned int source_size = string_length(source_url);
     if(source_size < size - 1) {
-        int i;
+        unsigned int i;
         for(i = 0; i < source_size; i++) {
             const char letter = source_url[i];
             url_segments[i] = letter == '/' ? '\0' : letter;
@@ -95,7 +102,7 @@ int request_accept(void)
             for(int N = 100;--N;) {
                 ioserver_read_string(working_memory, MEM_SIZE);
                 if(string_length(working_memory)) {
-                    char* equalSign = (char*)string_index_of(working_memory, ':');
+                    char* equalSign = string_index_of(working_memory, ':');
                     *equalSign = '\0';
                     
                     const char* key = working_memory;

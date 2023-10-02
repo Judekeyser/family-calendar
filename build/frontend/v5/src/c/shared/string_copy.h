@@ -1,5 +1,5 @@
-#ifndef __APP_SHARED_STRING_COPY__
-#define __APP_SHARED_STRING_COPY__
+#ifndef APP_SHARED_STRING_COPY
+#define APP_SHARED_STRING_COPY
 
 /**
  * Copy blocks of memory, à la `strcpy`

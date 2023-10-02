@@ -1,54 +1,84 @@
 class Series {
-    #data;
-
     constructor(data) {
-        this.#data = data;
+        this.__data = data;
+        this[Symbol.iterator] = () => this.__data[Symbol.iterator]();
     }
 
     get size() {
-        return this.#data.length;
+        return this.__data.length;
     }
 
     get(index) {
-        return this.#data[index];
+        return this.__data[index];
     }
 
     set(index, value) {
         if(index < this.size && 0 <= index)
-            this.#data[index] = value;
+            {this.__data[index] = value;}
+    }
+
+    slice(startInclusive, endExclusive) {
+        return new ReadonlySeries(this.__data.slice(startInclusive, endExclusive));
     }
 
     push(value) {
-        this.#data.push(value);
+        this.__data.push(value);
     }
 }
 
 
-class DynamicMemory {
-    #series;
+class ReadonlySeries extends Series {
+    constructor(data) {
+        super(data);
+    }
 
+    set() {
+        throw "Readonly Series cannot be updated";
+    }
+
+    push() {
+        throw "Readonly Series cannot be updated";
+    }
+}
+
+
+class SeriesDynamicMemory {
     constructor() {
-        this.#series = new Map();
+        this.__series = new Map();
     }
     
     getSeries(seriesPointer) {
-        return this.#series.get(seriesPointer);
+        return this.__series.get(seriesPointer);
     }
 
     createEmptySeries() {
+        return this._createSeries([]);
+    }
+
+    createBlanksSeries(size) {
+        return this._createSeries([...Array(size)].map(() => ""));
+    }
+
+    createZerosSeries(size) {
+        return this._createSeries([...Array(size)].map(() => 0));
+    }
+
+    _createSeries(data, options) {
+        const readOnly = options && options.readOnly;
+        const series = new (readOnly ? ReadonlySeries : Series)(data);
+
         let index = 0;
         do {
             index += 1;
-        } while(this.#series.has(index));
-
-        this.#series.set(index, new Series([]));
+        } while(this.__series.has(index));
+        this.__series.set(index, series);
         return index;
     }
 
-    disposeSeries(seriesPointer) {
-        this.#series.delete(seriesPointer);
+    clear() {
+        this.__series.clear();
     }
 }
 
 
-export { DynamicMemory, Series };
+export { SeriesDynamicMemory };

@@ -10,55 +10,26 @@
 # endif
 
 
-# ifndef TMPL_T_BLOCKS
-#    error Symbol `TMPL_T_BLOCKS` undefined
-# endif
-
-
-# ifndef TMPL_T_ROWS
-#    error Symbol `TMPL_T_ROWS` undefined
-# endif
-
-
-# ifndef TMPL_T_COLS
-#    error Symbol `TMPL_T_COLS` undefined
-# endif
-
+static const char* const calendar_grid_0 = "<main> <nav> <menu> <li> <form is=\"app-hyperlink-trait\" action=\"search\"></form> &#128270; </li> <li> <form is=\"app-hyperlink-trait\" action=\"appointments/unread\"></form> &#128276; (";
+static const char* const calendar_grid_1 = ") </li> </menu> </nav> <section> <header> <nav> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_2 = "\"> <input name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_3 = "\"> <input name=\"today_date\" value=\"";
+static const char* const calendar_grid_4 = "\"> </form> Prec. </div> <div> <app-form-balancer data-source-bind=\"focus-date-controller\" data-source-on=\"formdata\" data-sink-bind=\"hyperlink\" data-sink-on=\"app-navigation-required\" > <label> Date d'intérêt&#160;: <app-form-value-to-data data-id=\"focus-date-controller\"> <input type=\"date\" name=\"focus_date\" value=\"";
+static const char* const calendar_grid_5 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-id=\"hyperlink\" data-on=\"app-navigation-required\" data-bind=\"hyperlink\" > <input name=\"focus_date\" value=\"\"> <input name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_6 = "\"> <input name=\"today_date\" value=\"";
+static const char* const calendar_grid_7 = "\"> </form> </app-form-balancer> </div> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_8 = "\"> <input name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_9 = "\"> <input name=\"today_date\" value=\"";
+static const char* const calendar_grid_10 = "\"> </form> Suiv. </div> </nav> <div> <app-form-balancer data-source-bind=\"slider\" data-source-on=\"formdata\" data-sink-bind=\"hyperlink\" data-sink-on=\"app-patch-values\" > <label> Taille de la vue:<br> <app-form-value-to-data data-id=\"slider\"> <input type=\"range\" min=\"3\" max=\"6\" name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_11 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-on=\"app-patch-values\" data-id=\"hyperlink\" data-bind=\"hyperlink\" > <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_12 = "\"> <input name=\"weeks_count\" value=\"\"> <input name=\"today_date\" value=\"";
+static const char* const calendar_grid_13 = "\"> </form> </app-form-balancer> </div> </header> ";
+static const char* const calendar_grid_14 = " </section> </main> ";
 
 static void run(TMPL_T_ROOT n0)
 {
-    char id_chunk[96];
-#   ifdef NDEBUG
-    for(int i = 0; i < 64; i++) id_chunk[i] = '!';
-#   endif
 
 
-template_emit_fragment("calendar_grid:0"); {
-TMPL_T_BLOCKS n1;
-for(
- int i1 = 1;
- i1 < 95 && (n1 = n0 -> blocks(n0));
- i1++
-) {
-             template_emit_fragment("calendar_grid:1"); {
-TMPL_T_ROWS n2;
-for(
- int i2 = 1;
- i2 < 95 && (n2 = n1 -> rows(n1));
- i2++
-) {
-             template_emit_fragment("calendar_grid:2"); {
-TMPL_T_COLS n3;
-for(
- int i3 = 1;
- i3 < 95 && (n3 = n2 -> cols(n2));
- i3++
-) {
-             template_emit_fragment("calendar_grid:3"); {
-    template_id_footprint(id_chunk, "50686", 3, i1, i2, i3);
-    assert(string_length(id_chunk) < 50, "ID overflows 50 characters");
-    id_chunk[95] = '\0';
-    template_emit_uuid(id_chunk);
-} template_emit_class(id_chunk, "hidden"); template_emit_fragment("calendar_grid:4"); template_emit((n3 -> strdate)(n3)); template_emit_fragment("calendar_grid:5"); } } template_emit_fragment("calendar_grid:6"); } } template_emit_fragment("calendar_grid:7"); } } template_emit_fragment("calendar_grid:8");
+template_emit(calendar_grid_0); template_emit((n0 -> unread_size)(n0)); template_emit(calendar_grid_1); template_emit((n0 -> previous_focus_strdate)(n0)); template_emit(calendar_grid_2); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_3); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_4); template_emit((n0 -> focus_strdate)(n0)); template_emit(calendar_grid_5); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_6); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_7); template_emit((n0 -> next_focus_strdate)(n0)); template_emit(calendar_grid_8); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_9); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_10); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_11); template_emit((n0 -> next_focus_strdate)(n0)); template_emit(calendar_grid_12); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_13); (n0 -> calendar_table)(n0); template_emit(calendar_grid_14);
 
 }

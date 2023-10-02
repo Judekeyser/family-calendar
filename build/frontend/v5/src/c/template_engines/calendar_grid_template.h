@@ -1,0 +1,19 @@
+# ifndef APP_ROUTE_CALENDAR_GRID_TEMPLATE
+# define APP_ROUTE_CALENDAR_GRID_TEMPLATE
+
+# include "../shared/days_since_epoch.h"
+# include "../dynamic/series.h"
+
+
+int calendar_grid_template(
+    DaysFromEpoch focus_date,
+    DaysFromEpoch today_date,
+    const unsigned int weeks_count,
+    const StringSeries* days_to_display,
+    const NumericSeries* has_appointments,
+    const NumericSeries* unreads,
+    const NumericSeries* isdayoffs,
+    const unsigned int number_of_unreads
+);
+
+# endif 

@@ -1,5 +1,5 @@
-#ifndef __APP_IOSERVER__
-#define __APP_IOSERVER__
+#ifndef APP_IOSERVER
+#define APP_IOSERVER
 
 
 /**

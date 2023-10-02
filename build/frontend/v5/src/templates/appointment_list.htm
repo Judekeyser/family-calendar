@@ -1,0 +1,14 @@
+<dl>
+    {# appointments}
+        <dt>
+            <form is="app-hyperlink-trait">
+                <input name="strdate" value="{! strdate}">
+            </form>
+            {? is_day_off}
+                &#9969;&#160;
+            {/}{! french_temporal_marker}{? unread}*{/}
+        </dt>
+        <dd><app-unsafe-text data-text="{! b64_strdescription}"></app-unsafe-text></dd>
+        <dd><app-unsafe-text data-text="{! b64_strdetails}"></app-unsafe-text></dd>
+    {/}
+</dl>

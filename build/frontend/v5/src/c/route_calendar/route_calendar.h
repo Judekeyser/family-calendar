@@ -1,5 +1,5 @@
-#ifndef __APP_ROUTE_CALENDAR__
-#define __APP_ROUTE_CALENDAR__
+#ifndef APP_ROUTE_CALENDAR
+#define APP_ROUTE_CALENDAR
 
 int route_calendar_guard(const char* url_segments);
 

@@ -1,6 +1,7 @@
 #include "./route_appointment_list_day.h"
 
 #include "../shared/assert.h"
+#include "../shared/date_string.h"
 #include "../shared/days_since_epoch_from_string.h"
 #include "../shared/time_slot_of_day_from_string.h"
 #include "../shared/time_slot_of_day_to_string.h"
@@ -39,8 +40,10 @@ int route_appointment_list_day_guard(const char* url_segments)
 int route_appointment_list_day_handle_query_parameter(const char* key, const char* value)
 {
     if(string_equals(key, "focus_date")) {
+        DateString date_string;
+        date_string_initialize_from_buffer(&date_string, value);
         route_qp.focus_flag = 1;
-        route_qp.focus_date = days_since_epoch_from_string(value);
+        route_qp.focus_date = days_since_epoch_from_string(&date_string);
         return 1;
     }
     return 0;
@@ -53,11 +56,11 @@ void route_appointment_list_day_terminate(void)
         Dataframe df;
         {
             {
-                char strdate[11];
+                DateString date_string;
+                days_since_epoch_to_string(route_qp.focus_date, &date_string);
                 StringSeries date_to_display; // Series of 1 date to display
                 series_create(&date_to_display);
-                days_since_epoch_to_string(route_qp.focus_date, strdate);
-                series_push(&date_to_display, strdate);
+                series_push(&date_to_display, date_string_open_buffer(&date_string));
                 assert(series_size(&date_to_display) == 1, "Inserting series of one element but size does not match");
                 dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &date_to_display, &df);
             }

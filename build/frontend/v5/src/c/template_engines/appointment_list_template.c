@@ -19,7 +19,7 @@ struct Appointment {
     unsigned int _unread;
 
     char buffer[1];
-    char __buffer_strdate[11];
+    DateString __date_string;
     char __buffer_french_temporal_marker[TIME_SLOT_TO_FRENCH_TARGET_BUFFER_UPPER_BOUND];
     char __buffer_b64_description[512];
 
@@ -32,7 +32,7 @@ struct Appointment {
 };
 
 static const char* strdate(struct Appointment* self) {
-    return self -> __buffer_strdate;
+    return date_string_open_buffer(&(self -> __date_string));
 }
 
 static const char* french_temporal_marker(struct Appointment* self) {
@@ -146,7 +146,7 @@ int appointment_list_template(
     root._appointment.b64_strdescription = b64_strdescription;
     root._appointment.b64_strdetails = b64_strdetails;
 
-    days_since_epoch_to_string(_focus_date, root._appointment.__buffer_strdate);
+    days_since_epoch_to_string(_focus_date, &root._appointment.__date_string);
 
     run(&root);
 

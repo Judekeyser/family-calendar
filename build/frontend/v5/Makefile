@@ -8,7 +8,7 @@ wasm:
 	cd build_utils && node template-server.js
 	docker run --rm -v ${PWD}:/home -u $(id -u):$(id -g) silkeh/clang \
 		clang \
-		-Wextra -Os -Wall -Werror -std=c11 -pedantic-errors -nostdlib \
+		-Wextra -Os -DNDEBUG -Wall -Werror -std=c11 -pedantic-errors -nostdlib \
 		-fno-stack-protector -Wsign-conversion -Wmissing-variable-declarations -Wcast-qual \
 		--target=wasm32 -fvisibility=hidden \
 		-Wl,-allow-undefined-file home/src/c/js_library/wasm.syms \
@@ -16,14 +16,16 @@ wasm:
 		-Wl,--strip-all \
 		-Wl,--export-dynamic \
 		-Wl,--import-memory \
+		-Wl,--lto-O3 \
 		-Wl,--export=__heap_base \
 		home/src/c/api.c \
 			home/src/c/shared/unsafe/memset.c \
 			home/src/c/shared/string_index_of.c \
+			home/src/c/shared/buffer_copy.c \
 			home/src/c/shared/string_copy.c \
 			home/src/c/shared/string_length.c \
 			home/src/c/shared/string_equals.c \
-			home/src/c/shared/string_startsWith.c \
+			home/src/c/shared/string_starts_with.c \
 			home/src/c/shared/b64_encode_string_to_string.c \
 			home/src/c/shared/date_string.c \
 			home/src/c/shared/days_since_epoch_from_string.c \

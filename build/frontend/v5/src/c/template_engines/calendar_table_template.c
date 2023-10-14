@@ -7,6 +7,7 @@
 #include "../shared/days_since_epoch.h"
 #include "../shared/days_since_epoch_to_string.h"
 #include "../shared/days_since_epoch_from_string.h"
+#include "../shared/date_string.h"
 #include "../shared/month_to_french.h"
 #include "../shared/small_int_on_two_digits.h"
 #include "../dynamic/series.h"
@@ -54,7 +55,7 @@ struct Cooperation {
 
     unsigned int displayed_days_so_far;
     unsigned int opened_month;
-    char current_str_date[11];
+    char current_date_string[11];
     char current_str_month[3];
     char current_str_day[3];
     unsigned char current_has_appointments;
@@ -99,17 +100,20 @@ static struct Col* open_column(struct Row* row) {
 
     const unsigned int counter = cooperation_ref -> displayed_days_so_far;
 
-    series_get(
-        cooperation_ref -> days_to_display, counter,
-        cooperation_ref -> current_str_date, 11
-    );
-    assert(string_length(cooperation_ref -> current_str_date) == 10, "cooperation.current_str_date from series whould be of length 10");
-
-    DaysFromEpoch fetched_date = days_since_epoch_from_string(cooperation_ref -> current_str_date);
+    DaysFromEpoch fetched_date; {
+        series_get(
+            cooperation_ref -> days_to_display, counter,
+            cooperation_ref -> current_date_string, 11
+        );
+        assert(string_length(cooperation_ref -> current_date_string) == 10, "cooperation.current_date_string from series whould be of length 10");
+        DateString date_string;
+        date_string_initialize_from_buffer(&date_string, cooperation_ref -> current_date_string);
+        fetched_date = days_since_epoch_from_string(&date_string);
+    }
     const unsigned int fetched_month = days_since_epoch_get_month(fetched_date);
 
     if(fetched_month != cooperation_ref -> opened_month) {
-        (cooperation_ref -> current_str_date)[0] = '\0';
+        (cooperation_ref -> current_date_string)[0] = '\0';
         (cooperation_ref -> current_str_day)[0] = '\0';
         cooperation_ref -> current_has_unread = 0;
         cooperation_ref -> current_is_day_off = 0;
@@ -128,7 +132,7 @@ static struct Col* open_column(struct Row* row) {
         );
         cooperation_ref -> current_is_focus = days_since_epoch_equals(fetched_date, cooperation_ref -> focus_date);
         cooperation_ref -> current_is_today = days_since_epoch_equals(fetched_date, cooperation_ref -> today_date);
-        string_copy(cooperation_ref -> current_str_day, (cooperation_ref -> current_str_date) + 8);
+        string_copy(cooperation_ref -> current_str_day, (cooperation_ref -> current_date_string) + 8);
     }
 
     if(days_since_epoch_get_wday(fetched_date) == 6 /* Sunday */) {
@@ -200,7 +204,7 @@ static const char* strmonth(const struct Block* block) {
 }
 
 static const char* strdate(const struct Col* col) {
-    return col -> cooperation_ref -> current_str_date;
+    return col -> cooperation_ref -> current_date_string;
 }
 
 static const char* strday(const struct Col* col) {

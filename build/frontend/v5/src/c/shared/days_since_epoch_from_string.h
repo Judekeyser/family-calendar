@@ -12,8 +12,9 @@
 #define APP_SHARED_DATE_FROM_STRING
 
 #include "./days_since_epoch.h"
+#include "./date_string.h"
 
 
-DaysFromEpoch days_since_epoch_from_string(const char* str_date);
+DaysFromEpoch days_since_epoch_from_string(DateString* str_date);
 
 #endif

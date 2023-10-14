@@ -16,13 +16,9 @@
 struct Root;
 
 static const unsigned int UNREAD_SLICE_START = 0;                   // L = 3 + 1
-static const unsigned int FOCUS_DATE_SLICE_START = 4;               // L = 10 + 1
-static const unsigned int NEXT_FOCUS_DATE_SLICE_START = 15;         // L = 10 + 1
-static const unsigned int PREVIOUS_FOCUS_DATE_SLICE_START = 26;     // L = 10 + 1
-static const unsigned int TODAY_DATE_SLICE_START = 37;              // L = 10 + 1
-static const unsigned int WEEKS_COUNT_SLICE_START = 48;             // L = 2 + 1
+static const unsigned int WEEKS_COUNT_SLICE_START = 4;              // L = 2 + 1
 
-#define BUFFER_TOTAL_LENGTH 51 // Index of last 0 is good
+#define BUFFER_TOTAL_LENGTH 7 // Index of last 0 is good
 
 struct UnreadNavigation {
     const char*(*size)(const struct UnreadNavigation* self);
@@ -38,6 +34,10 @@ struct Root {
     const NumericSeries* isdayoffs;
 
     char _buffer[BUFFER_TOTAL_LENGTH];
+    DateString focus_date_string;
+    DateString today_date_string;
+    DateString next_focus_date_string;
+    DateString previous_focus_date_string;
 
     void(*calendar_table)(const struct Root* self);
     const char*(*unread_size)(const struct Root* self);
@@ -63,24 +63,24 @@ static const char* unread_size(const struct Root* self) {
     return (self -> _buffer) + UNREAD_SLICE_START;
 }
 
+static const char* str_weeks_count(const struct Root* self) {
+    return (self -> _buffer) + WEEKS_COUNT_SLICE_START;
+}
+
 static const char* today_strdate(const struct Root* self) {
-    return (self -> _buffer) + TODAY_DATE_SLICE_START;
+    return date_string_open_buffer(&(self -> today_date_string));
 }
 
 static const char* next_focus_strdate(const struct Root* self) {
-    return (self -> _buffer) + NEXT_FOCUS_DATE_SLICE_START;
+    return date_string_open_buffer(&(self -> next_focus_date_string));
 }
 
 static const char* focus_strdate(const struct Root* self) {
-    return (self -> _buffer) + FOCUS_DATE_SLICE_START;
+    return date_string_open_buffer(&(self -> focus_date_string));
 }
 
 static const char* previous_focus_strdate(const struct Root* self) {
-    return (self -> _buffer) + PREVIOUS_FOCUS_DATE_SLICE_START;
-}
-
-static const char* str_weeks_count(const struct Root* self) {
-    return (self -> _buffer) + WEEKS_COUNT_SLICE_START;
+    return date_string_open_buffer(&(self -> previous_focus_date_string));
 }
 
 # ifdef TMPL_T_ROOT
@@ -147,26 +147,18 @@ int calendar_grid_template(
         unreads_buffer[3] = '\0';
     }
     { // Initializes buffer for focus date
-        char* const focus_date_buffer = root._buffer + FOCUS_DATE_SLICE_START;
-        days_since_epoch_to_string(root._focus_date, focus_date_buffer);
-        focus_date_buffer[11] = '\0';
+        days_since_epoch_to_string(root._focus_date, &root.focus_date_string);
     }
     { // Initializes buffer for next focus date
-        char* const next_focus_date_buffer = root._buffer + NEXT_FOCUS_DATE_SLICE_START;
         DaysFromEpoch next_date = days_since_epoch_add_days(root._focus_date, 7);
-        days_since_epoch_to_string(next_date, next_focus_date_buffer);
-        next_focus_date_buffer[11] = '\0';
+        days_since_epoch_to_string(next_date, &root.next_focus_date_string);
     }
     { // Initializes buffer for previous focus date
-        char* const previous_focus_date_buffer = root._buffer + PREVIOUS_FOCUS_DATE_SLICE_START;
         DaysFromEpoch previous_date = days_since_epoch_add_days(root._focus_date, -7);
-        days_since_epoch_to_string(previous_date, previous_focus_date_buffer);
-        previous_focus_date_buffer[11] = '\0';
+        days_since_epoch_to_string(previous_date, &root.previous_focus_date_string);
     }
     { // Initializes buffer for today date
-        char* const today_date_buffer = root._buffer + TODAY_DATE_SLICE_START;
-        days_since_epoch_to_string(root._today_date, today_date_buffer);
-        today_date_buffer[11] = '\0';
+        days_since_epoch_to_string(root._today_date, &root.today_date_string);
     }
     { // Initializes buffer for weeks_count date
         char* const weeks_count_buffer = root._buffer + WEEKS_COUNT_SLICE_START;

@@ -1,7 +1,7 @@
-#include "./string_startsWith.h"
+#include "./string_starts_with.h"
 
 
-int string_startsWith(const char* prefix, const char* source)
+int string_starts_with(const char* prefix, const char* source)
 {
     char c1, c2;
     do {

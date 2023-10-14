@@ -2,7 +2,7 @@
 
 #include "./shared/string_length.h"
 #include "./shared/string_index_of.h"
-#include "./shared/string_startsWith.h"
+#include "./shared/string_starts_with.h"
 #include "./shared/assert.h"
 #include "./ioserver.h"
 
@@ -87,7 +87,7 @@ int request_accept(void)
     ioserver_read_string(working_memory, MEM_SIZE);
 
     const struct RouteHandler* current_route_handler = 0;
-    if(string_startsWith("GET ", working_memory)) {
+    if(string_starts_with("GET ", working_memory)) {
         fragment_url(working_memory + 4, working_memory, MEM_SIZE);
         find_handler(working_memory, &current_route_handler);
 

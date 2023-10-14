@@ -3,6 +3,7 @@
 #include "../shared/assert.h"
 #include "../shared/string_length.h"
 #include "../shared/string_equals.h"
+#include "../shared/date_string.h"
 #include "../shared/days_since_epoch.h"
 #include "../shared/days_since_epoch_from_string.h"
 #include "../shared/days_since_epoch_to_string.h"
@@ -66,12 +67,16 @@ int route_calendar_guard(const char* url_segments)
 int route_calendar_handle_query_parameter(const char* key, const char* value)
 {
     if(string_equals(key, "focus_date")) {
+        DateString date_string;
+        date_string_initialize_from_buffer(&date_string, value);
         route_qp.focus_flag = 1;
-        route_qp.focus_date = days_since_epoch_from_string(value);
+        route_qp.focus_date = days_since_epoch_from_string(&date_string);
         return 1;
     } else if(string_equals(key, "today_date")) {
+        DateString date_string;
+        date_string_initialize_from_buffer(&date_string, value);
         route_qp.today_flag = 1;
-        route_qp.today_date = days_since_epoch_from_string(value);
+        route_qp.today_date = days_since_epoch_from_string(&date_string);
         return 1;
     } else if(string_equals(key, "weeks_count")) {
         route_qp.weeks_count = small_int_from_string(value);
@@ -120,11 +125,10 @@ void route_calendar_terminate(void)
             assert(days_since_epoch_get_wday(cursor_date) == 0, "grid_template grid_template_flush rectified day is not a Monday");
 
             // Fill the series to have number_of_weeks dates to print
-            char strdate_buffer[11];
+            DateString date_string;
             for(unsigned int counter = number_of_days_to_display; counter--;) {
-                days_since_epoch_to_string(cursor_date, strdate_buffer);
-                strdate_buffer[10] = '\0';
-                series_push(&dates_to_display, strdate_buffer);
+                days_since_epoch_to_string(cursor_date, &date_string);
+                series_push(&dates_to_display, date_string_open_buffer(&date_string));
                 cursor_date = days_since_epoch_add_days(cursor_date, 1);
             }
         }

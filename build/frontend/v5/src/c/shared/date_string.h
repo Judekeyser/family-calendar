@@ -18,11 +18,14 @@
 
 
 #include "./days_since_epoch.h"
+#include "./assert.h"
 
 
 typedef struct {
     char _1[11];
 } DateString;
+
+#define DATE_STRING_SPREAD(var) UNWRAP(var), 11
 
 
 DaysFromEpoch date_string_to_days_from_epoch(DateString* date_string);

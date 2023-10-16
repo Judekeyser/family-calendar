@@ -24,7 +24,7 @@ struct Root {
     const DaysFromEpoch _focus_date;
     const DaysFromEpoch _today_date;
 
-    const StringSeries* days_to_display;
+    const DateStringSeries* days_to_display;
     const NumericSeries* has_appointments;
     const NumericSeries* unreads;
     const NumericSeries* isdayoffs;
@@ -102,7 +102,7 @@ int calendar_grid_template(
     DaysFromEpoch focus_date,
     DaysFromEpoch today_date,
     const unsigned int weeks_count,
-    const StringSeries* days_to_display,
+    const DateStringSeries* days_to_display,
     const NumericSeries* has_appointments_series,
     const NumericSeries* unreads,
     const NumericSeries* isdayoffs

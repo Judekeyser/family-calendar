@@ -12,8 +12,6 @@ int numeric_series_create(NumericSeries* series);
 
 int numeric_series_zeros(NumericSeries* series, const unsigned int size);
 
-void numeric_series_dispose(const NumericSeries* series);
-
 int numeric_series_get(const NumericSeries* series, const unsigned int index);
 
 void numeric_series_set(const NumericSeries* series, const unsigned int index, const int value);

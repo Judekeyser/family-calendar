@@ -40,6 +40,7 @@ wasm:
 			home/src/c/shared/unsafe/positive_int_to_unsigned_int.c \
 			home/src/c/dynamic/numeric_series.c \
 			home/src/c/dynamic/string_series.c \
+			home/src/c/dynamic/date_string_series.c \
 			home/src/c/dynamic/dataframe.c \
 			home/src/c/template.c \
 			home/src/c/ioserver.c \

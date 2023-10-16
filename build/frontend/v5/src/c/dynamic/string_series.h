@@ -12,8 +12,6 @@ int string_series_create(StringSeries* series);
 
 int string_series_blanks(StringSeries* series, const unsigned int size);
 
-void string_series_dispose(const StringSeries* series);
-
 int string_series_get(const StringSeries* series, const unsigned int index, char* target, const unsigned int capacity);
 
 void string_series_set(const StringSeries* series, const unsigned int index, const char* string);

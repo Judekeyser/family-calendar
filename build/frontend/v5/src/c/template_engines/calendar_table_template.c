@@ -46,14 +46,14 @@ struct Cooperation {
     const DaysFromEpoch focus_date;
     const DaysFromEpoch today_date;
 
-    const StringSeries* days_to_display;
+    const DateStringSeries* days_to_display;
     const NumericSeries* has_appointments;
     const NumericSeries* unreads;
     const NumericSeries* isdayoffs;
 
     unsigned int displayed_days_so_far;
     unsigned int opened_month;
-    char current_date_string[11];
+    DateString current_date_string;
     char current_str_month[3];
     char current_str_day[3];
     unsigned char current_has_appointments;
@@ -95,23 +95,19 @@ static struct Col* open_column(struct Row* row) {
      * because of the counter dynamic.
      */
     struct Cooperation* cooperation_ref = row -> cooperation_ref;
-
     const unsigned int counter = cooperation_ref -> displayed_days_so_far;
 
     DaysFromEpoch fetched_date; {
         series_get(
             cooperation_ref -> days_to_display, counter,
-            cooperation_ref -> current_date_string, 11
+            &(cooperation_ref -> current_date_string)
         );
-        assert(string_length(cooperation_ref -> current_date_string) == 10, "cooperation.current_date_string from series whould be of length 10");
-        DateString date_string;
-        date_string_initialize_from_buffer(cooperation_ref -> current_date_string, &date_string);
-        fetched_date = date_string_to_days_from_epoch(&date_string);
+        fetched_date = date_string_to_days_from_epoch(&(cooperation_ref -> current_date_string));
     }
     const unsigned int fetched_month = days_since_epoch_get_month(fetched_date);
 
     if(fetched_month != cooperation_ref -> opened_month) {
-        (cooperation_ref -> current_date_string)[0] = '\0';
+        UNWRAP(cooperation_ref -> current_date_string)[0] = '\0';
         (cooperation_ref -> current_str_day)[0] = '\0';
         cooperation_ref -> current_has_unread = 0;
         cooperation_ref -> current_is_day_off = 0;
@@ -130,7 +126,9 @@ static struct Col* open_column(struct Row* row) {
         );
         cooperation_ref -> current_is_focus = days_since_epoch_equals(fetched_date, cooperation_ref -> focus_date);
         cooperation_ref -> current_is_today = days_since_epoch_equals(fetched_date, cooperation_ref -> today_date);
-        string_copy(cooperation_ref -> current_str_day, (cooperation_ref -> current_date_string) + 8);
+
+        small_int_on_two_digits(days_since_epoch_get_mday(fetched_date), cooperation_ref -> current_str_day);
+        (cooperation_ref -> current_str_day)[2] = '\0';
     }
 
     if(days_since_epoch_get_wday(fetched_date) == 6 /* Sunday */) {
@@ -202,7 +200,7 @@ static const char* strmonth(const struct Block* block) {
 }
 
 static const char* strdate(const struct Col* col) {
-    return col -> cooperation_ref -> current_date_string;
+    return date_string_open_buffer(&(col -> cooperation_ref -> current_date_string));
 }
 
 static const char* strday(const struct Col* col) {
@@ -260,7 +258,7 @@ static unsigned char is_today(const struct Col* col) {
 int calendar_table_template(
     DaysFromEpoch focus_date,
     DaysFromEpoch today_date,
-    const StringSeries* days_to_display,
+    const DateStringSeries* days_to_display,
     const NumericSeries* has_appointments_series,
     const NumericSeries* unreads,
     const NumericSeries* isdayoffs

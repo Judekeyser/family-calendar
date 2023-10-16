@@ -111,10 +111,8 @@ void route_calendar_terminate(void)
         NumericSeries has_appointments;
         series_init(&has_appointments, number_of_days_to_display);
 
-        StringSeries dates_to_display;
-        series_create(&dates_to_display);
-        
-        {
+        DateStringSeries dates_to_display; {
+            series_create(&dates_to_display);
             // Prepare date cursor to Monday
             DaysFromEpoch cursor_date = days_since_epoch_add_days(
                 route_qp.focus_date,
@@ -126,14 +124,16 @@ void route_calendar_terminate(void)
             DateString date_string;
             for(unsigned int counter = number_of_days_to_display; counter--;) {
                 date_string_from_days_from_epoch(cursor_date, &date_string);
-                series_push(&dates_to_display, date_string_open_buffer(&date_string));
+                series_push(&dates_to_display, &date_string);
                 cursor_date = days_since_epoch_add_days(cursor_date, 1);
             }
         }
 
         {
-            Dataframe df;
-            dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_to_display, &df);
+            Dataframe df; {
+                StringSeries dates_as_string_series = { .resource = dates_to_display.resource };
+                dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_as_string_series, &df);
+            }
 
             NumericSeries source_dates_indices;
             dataframe_get_column_at_index(&df, STRDATE_COLUMN_INDEX, &source_dates_indices);

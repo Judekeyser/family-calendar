@@ -57,11 +57,13 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
         {
             DateString date_string;
             date_string_from_days_from_epoch(focus_date, &date_string);
-            StringSeries date_to_display; // Series of 1 date to display
-            series_create(&date_to_display);
-            series_push(&date_to_display, date_string_open_buffer(&date_string));
-            assert(series_size(&date_to_display) == 1, "Inserting series of one element but size does not match");
-            dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &date_to_display, &df);
+            DateStringSeries dates_to_display; // Series of 1 date to display
+            series_create(&dates_to_display);
+            series_push(&dates_to_display, &date_string);
+            assert(series_size(&dates_to_display) == 1, "Inserting series of one element but size does not match");
+
+            StringSeries string_series = { .resource = dates_to_display.resource };
+            dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &string_series, &df);
         }
         {
             StringSeries sortable_times;

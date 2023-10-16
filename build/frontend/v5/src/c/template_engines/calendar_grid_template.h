@@ -9,7 +9,7 @@ int calendar_grid_template(
     DaysFromEpoch focus_date,
     DaysFromEpoch today_date,
     const unsigned int weeks_count,
-    const StringSeries* days_to_display,
+    const DateStringSeries* days_to_display,
     const NumericSeries* has_appointments,
     const NumericSeries* unreads,
     const NumericSeries* isdayoffs

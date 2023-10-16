@@ -17,26 +17,19 @@
 #define APP_SHARED_DATE_STRING
 
 
+#include "./days_since_epoch.h"
+
+
 typedef struct {
     char _1[11];
 } DateString;
 
 
-unsigned int date_string_get_year(DateString* date_string);
+DaysFromEpoch date_string_to_days_from_epoch(DateString* date_string);
 
-unsigned int date_string_get_month(DateString* date_string);
+void date_string_initialize_from_buffer(const char* buffer, DateString* date_string);
 
-unsigned int date_string_get_mday(DateString* date_string);
-
-void date_string_from_triple(
-    unsigned int year, unsigned int month, unsigned int day,
-    DateString* date_string
-);
-
-void date_string_initialize_from_buffer(
-    DateString* date_string,
-    const char* buffer
-);
+void date_string_from_days_from_epoch(DaysFromEpoch datetime, DateString* date_string);
 
 const char* date_string_open_buffer(const DateString* date_string);
 

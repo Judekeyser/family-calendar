@@ -13,4 +13,6 @@
 #define WRAP(x) {._1 = (x)}
 #define UNWRAP(x) (x)._1
 
+#define UNUSED(x) {if(0) (void)(x); }
+
 #endif

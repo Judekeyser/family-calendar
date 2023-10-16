@@ -5,7 +5,7 @@
 
 
 static const char* const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static inline char letter_at(const int value) {
+static char letter_at(const int value) {
     assert(value <= 63, "Single Base 64 value on 6 bits exceeds 63");
     assert(value >= 0, "Single Base 64 value on 6 bits is actually negative");
     return ALPHABET[value];

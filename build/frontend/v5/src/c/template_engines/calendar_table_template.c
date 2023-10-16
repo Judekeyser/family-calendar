@@ -5,8 +5,6 @@
 #include "../shared/string_length.h"
 #include "../shared/string_copy.h"
 #include "../shared/days_since_epoch.h"
-#include "../shared/days_since_epoch_to_string.h"
-#include "../shared/days_since_epoch_from_string.h"
 #include "../shared/date_string.h"
 #include "../shared/month_to_french.h"
 #include "../shared/small_int_on_two_digits.h"
@@ -107,8 +105,8 @@ static struct Col* open_column(struct Row* row) {
         );
         assert(string_length(cooperation_ref -> current_date_string) == 10, "cooperation.current_date_string from series whould be of length 10");
         DateString date_string;
-        date_string_initialize_from_buffer(&date_string, cooperation_ref -> current_date_string);
-        fetched_date = days_since_epoch_from_string(&date_string);
+        date_string_initialize_from_buffer(cooperation_ref -> current_date_string, &date_string);
+        fetched_date = date_string_to_days_from_epoch(&date_string);
     }
     const unsigned int fetched_month = days_since_epoch_get_month(fetched_date);
 

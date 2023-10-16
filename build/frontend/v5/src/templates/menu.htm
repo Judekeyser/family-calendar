@@ -1,0 +1,28 @@
+<nav>
+    <menu>
+        {? calendar_grid}
+            <li>
+                <form is="app-hyperlink-trait" action="calendar"></form>
+                &#128197;
+            </li>
+        {/}
+        {? create_appointment}
+            <li>
+                <form is="app-hyperlink-trait" action="calendar/new-appointment"></form>
+                &#10133;
+            </li>
+        {/}
+        {? search}
+            <li>
+                <form is="app-hyperlink-trait" action="search"></form>
+                &#128270;
+            </li>
+        {/}
+        {? unread}
+            <li>
+                <form is="app-hyperlink-trait" action="appointments/unread"></form>
+                &#128276; ({! unread_size})
+            </li>
+        {/}
+    </menu>
+</nav>

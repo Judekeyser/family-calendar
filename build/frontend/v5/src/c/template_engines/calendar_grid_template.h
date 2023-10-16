@@ -12,8 +12,7 @@ int calendar_grid_template(
     const StringSeries* days_to_display,
     const NumericSeries* has_appointments,
     const NumericSeries* unreads,
-    const NumericSeries* isdayoffs,
-    const unsigned int number_of_unreads
+    const NumericSeries* isdayoffs
 );
 
 # endif 

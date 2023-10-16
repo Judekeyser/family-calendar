@@ -18,7 +18,7 @@ static const unsigned int DAYS_IN_CYCLE = 365*3 + 366;
 /**
  * We can easily infer what cycle contains the date, starting the count at 0.
  */
-static inline unsigned int __get_cycle_of(days_since_epoch_T days_since_epoch) {
+static unsigned int __get_cycle_of(days_since_epoch_T days_since_epoch) {
     return days_since_epoch / DAYS_IN_CYCLE;
 }
 
@@ -27,12 +27,12 @@ static inline unsigned int __get_cycle_of(days_since_epoch_T days_since_epoch) {
  * Knowing the day from the cycle start, is therefore easy to compute
  * and can be used to simplify some computations.
  */
-static inline unsigned int __get_cycle_day(days_since_epoch_T days_since_epoch) {
+static unsigned int __get_cycle_day(days_since_epoch_T days_since_epoch) {
     return days_since_epoch % DAYS_IN_CYCLE;
 }
 
 
-inline static unsigned int __truncate(const unsigned int x) {
+static unsigned int __truncate(const unsigned int x) {
     static const unsigned int UPPER_BOUND = DAYS_IN_CYCLE * NUMBER_OF_CYCLES;
     return x > UPPER_BOUND ? UPPER_BOUND : x;
 }

@@ -3,22 +3,18 @@
 #include "../shared/assert.h"
 #include "../shared/string_length.h"
 #include "../shared/string_copy.h"
+#include "../shared/date_string.h"
 #include "../shared/days_since_epoch.h"
-#include "../shared/days_since_epoch_to_string.h"
 #include "../shared/small_int_on_two_digits.h"
 #include "../shared/small_int_on_one_digit.h"
 #include "../dynamic/series.h"
 
 #include "./calendar_table_template.h"
+#include "./menu_template.h"
 
 
 // Views structure
 struct Root;
-
-static const unsigned int UNREAD_SLICE_START = 0;                   // L = 3 + 1
-static const unsigned int WEEKS_COUNT_SLICE_START = 4;              // L = 2 + 1
-
-#define BUFFER_TOTAL_LENGTH 7 // Index of last 0 is good
 
 struct UnreadNavigation {
     const char*(*size)(const struct UnreadNavigation* self);
@@ -33,14 +29,14 @@ struct Root {
     const NumericSeries* unreads;
     const NumericSeries* isdayoffs;
 
-    char _buffer[BUFFER_TOTAL_LENGTH];
+    char _weeks_count_buffer[3];
     DateString focus_date_string;
     DateString today_date_string;
     DateString next_focus_date_string;
     DateString previous_focus_date_string;
 
     void(*calendar_table)(const struct Root* self);
-    const char*(*unread_size)(const struct Root* self);
+    void(*menu)(const struct Root* self);
     const char*(*today_strdate)(const struct Root* self);
     const char*(*focus_strdate)(const struct Root* self);
     const char*(*next_focus_strdate)(const struct Root* self);
@@ -59,12 +55,15 @@ static void calendar_table(const struct Root* self) {
     );
 }
 
-static const char* unread_size(const struct Root* self) {
-    return (self -> _buffer) + UNREAD_SLICE_START;
+static void menu(const struct Root* self) {
+    UNUSED(self);
+    menu_template(
+        MENU_TEMPLATE_HYPERLINK__SEARCH | MENU_TEMPLATE_HYPERLINK__NEW_APPOINTMENTS
+    );
 }
 
 static const char* str_weeks_count(const struct Root* self) {
-    return (self -> _buffer) + WEEKS_COUNT_SLICE_START;
+    return self -> _weeks_count_buffer;
 }
 
 static const char* today_strdate(const struct Root* self) {
@@ -106,8 +105,7 @@ int calendar_grid_template(
     const StringSeries* days_to_display,
     const NumericSeries* has_appointments_series,
     const NumericSeries* unreads,
-    const NumericSeries* isdayoffs,
-    const unsigned int number_of_unreads
+    const NumericSeries* isdayoffs
 )
 {
     assert(days_to_display, "table_template `days_to_display` series undefined");
@@ -125,7 +123,7 @@ int calendar_grid_template(
         .isdayoffs = isdayoffs,
 
         .calendar_table = calendar_table,
-        .unread_size = unread_size,
+        .menu = menu,
         .today_strdate = today_strdate,
         .focus_strdate = focus_strdate,
         .next_focus_strdate = next_focus_strdate,
@@ -133,35 +131,22 @@ int calendar_grid_template(
         .str_weeks_count = str_weeks_count
     };
 
-    { // Initializes buffer for unreads count
-        char* const unreads_buffer = root._buffer + UNREAD_SLICE_START;
-        if(number_of_unreads >= 100) {
-            string_copy(unreads_buffer, "99+"); 
-        } else if(number_of_unreads >= 10) {
-            small_int_on_two_digits(number_of_unreads, unreads_buffer);
-            unreads_buffer[2] = '\0';
-        } else {
-            small_int_on_one_digit(number_of_unreads, unreads_buffer);
-            unreads_buffer[1] = '\0';
-        }
-        unreads_buffer[3] = '\0';
-    }
     { // Initializes buffer for focus date
-        days_since_epoch_to_string(root._focus_date, &root.focus_date_string);
+        date_string_from_days_from_epoch(root._focus_date, &root.focus_date_string);
     }
     { // Initializes buffer for next focus date
         DaysFromEpoch next_date = days_since_epoch_add_days(root._focus_date, 7);
-        days_since_epoch_to_string(next_date, &root.next_focus_date_string);
+        date_string_from_days_from_epoch(next_date, &root.next_focus_date_string);
     }
     { // Initializes buffer for previous focus date
         DaysFromEpoch previous_date = days_since_epoch_add_days(root._focus_date, -7);
-        days_since_epoch_to_string(previous_date, &root.previous_focus_date_string);
+        date_string_from_days_from_epoch(previous_date, &root.previous_focus_date_string);
     }
     { // Initializes buffer for today date
-        days_since_epoch_to_string(root._today_date, &root.today_date_string);
+        date_string_from_days_from_epoch(root._today_date, &root.today_date_string);
     }
     { // Initializes buffer for weeks_count date
-        char* const weeks_count_buffer = root._buffer + WEEKS_COUNT_SLICE_START;
+        char* const weeks_count_buffer = root._weeks_count_buffer;
         if(weeks_count < 10) {
             small_int_on_one_digit(weeks_count, weeks_count_buffer);
             weeks_count_buffer[1] = '\0';
@@ -171,11 +156,7 @@ int calendar_grid_template(
         }
     }
 
-    root._buffer[BUFFER_TOTAL_LENGTH-1] = '\0';
-
     run(&root);
 
     return 1;
 }
-
-#undef BUFFER_TOTAL_LENGTH

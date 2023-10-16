@@ -10,8 +10,8 @@
 # endif
 
 
-static const char* const calendar_grid_0 = "<main> <nav> <menu> <li> <form is=\"app-hyperlink-trait\" action=\"search\"></form> &#128270; </li> <li> <form is=\"app-hyperlink-trait\" action=\"appointments/unread\"></form> &#128276; (";
-static const char* const calendar_grid_1 = ") </li> </menu> </nav> <section> <header> <nav> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_0 = "<main> ";
+static const char* const calendar_grid_1 = " <section> <header> <nav> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
 static const char* const calendar_grid_2 = "\"> <input name=\"weeks_count\" value=\"";
 static const char* const calendar_grid_3 = "\"> <input name=\"today_date\" value=\"";
 static const char* const calendar_grid_4 = "\"> </form> Prec. </div> <div> <app-form-balancer data-source-bind=\"focus-date-controller\" data-source-on=\"formdata\" data-sink-bind=\"hyperlink\" data-sink-on=\"app-navigation-required\" > <label> Date d'intérêt&#160;: <app-form-value-to-data data-id=\"focus-date-controller\"> <input type=\"date\" name=\"focus_date\" value=\"";
@@ -30,6 +30,6 @@ static void run(TMPL_T_ROOT n0)
 {
 
 
-template_emit(calendar_grid_0); template_emit((n0 -> unread_size)(n0)); template_emit(calendar_grid_1); template_emit((n0 -> previous_focus_strdate)(n0)); template_emit(calendar_grid_2); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_3); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_4); template_emit((n0 -> focus_strdate)(n0)); template_emit(calendar_grid_5); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_6); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_7); template_emit((n0 -> next_focus_strdate)(n0)); template_emit(calendar_grid_8); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_9); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_10); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_11); template_emit((n0 -> next_focus_strdate)(n0)); template_emit(calendar_grid_12); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_13); (n0 -> calendar_table)(n0); template_emit(calendar_grid_14);
+template_emit(calendar_grid_0); (n0 -> menu)(n0); template_emit(calendar_grid_1); template_emit((n0 -> previous_focus_strdate)(n0)); template_emit(calendar_grid_2); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_3); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_4); template_emit((n0 -> focus_strdate)(n0)); template_emit(calendar_grid_5); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_6); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_7); template_emit((n0 -> next_focus_strdate)(n0)); template_emit(calendar_grid_8); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_9); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_10); template_emit((n0 -> str_weeks_count)(n0)); template_emit(calendar_grid_11); template_emit((n0 -> focus_strdate)(n0)); template_emit(calendar_grid_12); template_emit((n0 -> today_strdate)(n0)); template_emit(calendar_grid_13); (n0 -> calendar_table)(n0); template_emit(calendar_grid_14);
 
 }

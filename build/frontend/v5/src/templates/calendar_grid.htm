@@ -1,16 +1,5 @@
 <main>
-    <nav>
-        <menu>
-            <li>
-                <form is="app-hyperlink-trait" action="search"></form>
-                &#128270;
-            </li>
-            <li>
-                <form is="app-hyperlink-trait" action="appointments/unread"></form>
-                &#128276; ({! unread_size})
-            </li>
-        </menu>
-    </nav>
+    {% menu}
 
     <section>
         <header>
@@ -76,7 +65,7 @@
                         data-id="hyperlink"
                         data-bind="hyperlink"
                     >
-                        <input name="focus_date" value="{! next_focus_strdate}">
+                        <input name="focus_date" value="{! focus_strdate}">
                         <input name="weeks_count" value="">
                         <input name="today_date" value="{! today_strdate}">
                     </form>

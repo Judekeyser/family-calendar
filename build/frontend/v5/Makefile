@@ -8,7 +8,7 @@ wasm:
 	cd build_utils && node template-server.js
 	docker run --rm -v ${PWD}:/home -u $(id -u):$(id -g) silkeh/clang \
 		clang \
-		-Wextra -Os -DNDEBUG -Wall -Werror -std=c11 -pedantic-errors -nostdlib \
+		-Wextra -Os -Wall -Werror -std=c11 -pedantic-errors -nostdlib \
 		-fno-stack-protector -Wsign-conversion -Wmissing-variable-declarations -Wcast-qual \
 		--target=wasm32 -fvisibility=hidden \
 		-Wl,-allow-undefined-file home/src/c/js_library/wasm.syms \
@@ -21,15 +21,13 @@ wasm:
 		home/src/c/api.c \
 			home/src/c/shared/unsafe/memset.c \
 			home/src/c/shared/string_index_of.c \
-			home/src/c/shared/buffer_copy.c \
 			home/src/c/shared/string_copy.c \
 			home/src/c/shared/string_length.c \
 			home/src/c/shared/string_equals.c \
 			home/src/c/shared/string_starts_with.c \
 			home/src/c/shared/b64_encode_string_to_string.c \
 			home/src/c/shared/date_string.c \
-			home/src/c/shared/days_since_epoch_from_string.c \
-			home/src/c/shared/days_since_epoch_to_string.c \
+			home/src/c/shared/time_slot_string.c \
 			home/src/c/shared/days_since_epoch.c \
 			home/src/c/shared/time_slot_of_day.c \
 			home/src/c/shared/time_slot_of_day_from_string.c \
@@ -46,9 +44,11 @@ wasm:
 			home/src/c/template.c \
 			home/src/c/ioserver.c \
 			home/src/c/request.c \
+			home/src/c/template_engines/menu_template.c \
 			home/src/c/template_engines/calendar_table_template.c \
 			home/src/c/template_engines/calendar_grid_template.c \
 			home/src/c/template_engines/appointment_list_template.c \
+			home/src/c/template_engines/appointments_of_day_template.c \
 			home/src/c/route_calendar/route_calendar.c \
 			home/src/c/route_appointment_list_day/route_appointment_list_day.c \
 		-o home/dist/next-app-module.wasm

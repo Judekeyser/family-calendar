@@ -2,7 +2,7 @@
 
 #include "../shared/assert.h"
 #include "../dynamic/series.h"
-#include "../shared/days_since_epoch_to_string.h"
+#include "../shared/date_string.h"
 #include "../shared/time_slot_of_day_from_string.h"
 #include "../shared/time_slot_to_french.h"
 #include "../shared/b64_encode_string_to_string.h"
@@ -146,7 +146,7 @@ int appointment_list_template(
     root._appointment.b64_strdescription = b64_strdescription;
     root._appointment.b64_strdetails = b64_strdetails;
 
-    days_since_epoch_to_string(_focus_date, &root._appointment.__date_string);
+    date_string_from_days_from_epoch(_focus_date, &root._appointment.__date_string);
 
     run(&root);
 

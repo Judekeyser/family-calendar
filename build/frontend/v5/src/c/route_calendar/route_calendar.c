@@ -5,8 +5,6 @@
 #include "../shared/string_equals.h"
 #include "../shared/date_string.h"
 #include "../shared/days_since_epoch.h"
-#include "../shared/days_since_epoch_from_string.h"
-#include "../shared/days_since_epoch_to_string.h"
 #include "../shared/small_int_from_string.h"
 #include "../dynamic/series.h"
 #include "../dynamic/dataframe.h"
@@ -68,15 +66,15 @@ int route_calendar_handle_query_parameter(const char* key, const char* value)
 {
     if(string_equals(key, "focus_date")) {
         DateString date_string;
-        date_string_initialize_from_buffer(&date_string, value);
+        date_string_initialize_from_buffer(value, &date_string);
         route_qp.focus_flag = 1;
-        route_qp.focus_date = days_since_epoch_from_string(&date_string);
+        route_qp.focus_date = date_string_to_days_from_epoch(&date_string);
         return 1;
     } else if(string_equals(key, "today_date")) {
         DateString date_string;
-        date_string_initialize_from_buffer(&date_string, value);
+        date_string_initialize_from_buffer(value, &date_string);
         route_qp.today_flag = 1;
-        route_qp.today_date = days_since_epoch_from_string(&date_string);
+        route_qp.today_date = date_string_to_days_from_epoch(&date_string);
         return 1;
     } else if(string_equals(key, "weeks_count")) {
         route_qp.weeks_count = small_int_from_string(value);
@@ -127,7 +125,7 @@ void route_calendar_terminate(void)
             // Fill the series to have number_of_weeks dates to print
             DateString date_string;
             for(unsigned int counter = number_of_days_to_display; counter--;) {
-                days_since_epoch_to_string(cursor_date, &date_string);
+                date_string_from_days_from_epoch(cursor_date, &date_string);
                 series_push(&dates_to_display, date_string_open_buffer(&date_string));
                 cursor_date = days_since_epoch_add_days(cursor_date, 1);
             }
@@ -160,19 +158,6 @@ void route_calendar_terminate(void)
             }
         }
 
-        unsigned int number_of_unreads;
-        {
-            NumericSeries series_of_true;
-            series_create(&series_of_true);
-            series_push(&series_of_true, 1);
-
-            Dataframe df;
-            dataframe_select_isin(0, 2 /* unread */, &series_of_true, &df);
-
-            dataframe_get_column_at_index(&df, 2 /* unread */, &series_of_true);
-            number_of_unreads = series_size(&series_of_true);
-        }
-
         calendar_grid_template(
             route_qp.focus_date,
             route_qp.today_date,
@@ -180,8 +165,7 @@ void route_calendar_terminate(void)
             &dates_to_display,
             &has_appointments,
             &unreads,
-            &isdayoffs,
-            number_of_unreads
+            &isdayoffs
         );
     }
 }

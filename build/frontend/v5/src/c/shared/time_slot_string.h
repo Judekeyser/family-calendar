@@ -11,6 +11,8 @@ typedef struct {
 
 TimeSlotOfDay time_slot_string_to_time_slot_of_day(TimeSlotString* time_slot_string);
 
+void time_slot_string_from_time_slot_of_day(const TimeSlotOfDay time_slot_of_day, TimeSlotString* time_slot_string);
+
 void time_slot_string_initialize_from_buffer(const char* buffer, TimeSlotString* time_slot_string);
 
 const char* time_slot_string_open_buffer(const TimeSlotString* time_slot_string);

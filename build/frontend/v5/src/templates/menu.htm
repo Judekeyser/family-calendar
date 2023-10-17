@@ -2,25 +2,25 @@
     <menu>
         {? calendar_grid}
             <li>
-                <form is="app-hyperlink-trait" action="calendar"></form>
+                <form is="app-hyperlink-trait" action="calendar" data-bind="^:click"></form>
                 &#128197;
             </li>
         {/}
         {? create_appointment}
             <li>
-                <form is="app-hyperlink-trait" action="calendar/new-appointment"></form>
+                <form is="app-hyperlink-trait" action="calendar/new-appointment" data-bind="^:click"></form>
                 &#10133;
             </li>
         {/}
         {? search}
             <li>
-                <form is="app-hyperlink-trait" action="search"></form>
+                <form is="app-hyperlink-trait" action="search" dtaa-bind="^:click"></form>
                 &#128270;
             </li>
         {/}
         {? unread}
             <li>
-                <form is="app-hyperlink-trait" action="appointments/unread"></form>
+                <form is="app-hyperlink-trait" action="appointments/unread" data-bind="^:click"></form>
                 &#128276; ({! unread_size})
             </li>
         {/}

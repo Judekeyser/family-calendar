@@ -3,7 +3,7 @@
 #include "../shared/assert.h"
 #include "../dynamic/series.h"
 #include "../shared/date_string.h"
-#include "../shared/time_slot_of_day_from_string.h"
+#include "../shared/time_slot_string.h"
 #include "../shared/time_slot_to_french.h"
 #include "../shared/b64_encode_string_to_string.h"
 
@@ -85,8 +85,10 @@ static struct Appointment* appointments(struct Root* self) {
             series_get(self -> appointment_times, index,
                     (self -> _appointment).__buffer_french_temporal_marker, 10
             );
-            TimeSlotOfDay time = time_slot_of_day_from_string((self -> _appointment).__buffer_french_temporal_marker);
-            time_slot_to_french(time, 1, (self -> _appointment).__buffer_french_temporal_marker);
+            TimeSlotString time_string;
+            time_slot_string_initialize_from_buffer((self -> _appointment).__buffer_french_temporal_marker, &time_string);
+            TimeSlotOfDay time_slot = time_slot_string_to_time_slot_of_day(&time_string);
+            time_slot_to_french(time_slot, 1, (self -> _appointment).__buffer_french_temporal_marker);
         }
         {
             char buffer[360];

@@ -11,17 +11,17 @@
 
 
 static const char* const calendar_grid_0 = "<main> ";
-static const char* const calendar_grid_1 = " <section> <header> <nav> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_1 = " <section> <header> <nav> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-bind=\"^:click\"> <input name=\"focus_date\" value=\"";
 static const char* const calendar_grid_2 = "\"> <input name=\"weeks_count\" value=\"";
 static const char* const calendar_grid_3 = "\"> <input name=\"today_date\" value=\"";
-static const char* const calendar_grid_4 = "\"> </form> Prec. </div> <div> <app-form-balancer data-source-bind=\"focus-date-controller\" data-source-on=\"formdata\" data-sink-bind=\"hyperlink\" data-sink-on=\"app-navigation-required\" > <label> Date d'intérêt&#160;: <app-form-value-to-data data-id=\"focus-date-controller\"> <input type=\"date\" name=\"focus_date\" value=\"";
-static const char* const calendar_grid_5 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-id=\"hyperlink\" data-on=\"app-navigation-required\" data-bind=\"hyperlink\" > <input name=\"focus_date\" value=\"\"> <input name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_4 = "\"> </form> Prec. </div> <div> <app-form-balancer data-source-bind=\"focus-date-controller:formdata\" data-sink-element=\"hyperlink\" > <label> Date d'intérêt&#160;: <app-form-value-to-data data-id=\"focus-date-controller\"> <input type=\"date\" name=\"focus_date\" value=\"";
+static const char* const calendar_grid_5 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-id=\"hyperlink\"> <input name=\"focus_date\" value=\"\"> <input name=\"weeks_count\" value=\"";
 static const char* const calendar_grid_6 = "\"> <input name=\"today_date\" value=\"";
-static const char* const calendar_grid_7 = "\"> </form> </app-form-balancer> </div> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_7 = "\"> </form> </app-form-balancer> </div> <div> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-bind=\"^:click\"> <input name=\"focus_date\" value=\"";
 static const char* const calendar_grid_8 = "\"> <input name=\"weeks_count\" value=\"";
 static const char* const calendar_grid_9 = "\"> <input name=\"today_date\" value=\"";
-static const char* const calendar_grid_10 = "\"> </form> Suiv. </div> </nav> <div> <app-form-balancer data-source-bind=\"slider\" data-source-on=\"formdata\" data-sink-bind=\"hyperlink\" data-sink-on=\"app-patch-values\" > <label> Taille de la vue:<br> <app-form-value-to-data data-id=\"slider\"> <input type=\"range\" min=\"3\" max=\"6\" name=\"weeks_count\" value=\"";
-static const char* const calendar_grid_11 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-on=\"app-patch-values\" data-id=\"hyperlink\" data-bind=\"hyperlink\" > <input name=\"focus_date\" value=\"";
+static const char* const calendar_grid_10 = "\"> </form> Suiv. </div> </nav> <div> <app-form-balancer data-source-bind=\"slider:formdata\" data-sink-element=\"hyperlink\" > <label> Taille de la vue:<br> <app-form-value-to-data data-id=\"slider\"> <input type=\"range\" min=\"3\" max=\"6\" name=\"weeks_count\" value=\"";
+static const char* const calendar_grid_11 = "\"> </app-form-value-to-data> </label> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-id=\"hyperlink\"> <input name=\"focus_date\" value=\"";
 static const char* const calendar_grid_12 = "\"> <input name=\"weeks_count\" value=\"\"> <input name=\"today_date\" value=\"";
 static const char* const calendar_grid_13 = "\"> </form> </app-form-balancer> </div> </header> ";
 static const char* const calendar_grid_14 = " </section> </main> ";

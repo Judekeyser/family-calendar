@@ -1,7 +1,7 @@
 <dl>
     {# appointments}
         <dt>
-            <form is="app-hyperlink-trait">
+            <form is="app-hyperlink-trait" data-bind="^:click">
                 <input name="strdate" value="{! strdate}">
             </form>
             {? is_day_off}

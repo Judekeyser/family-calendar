@@ -2,7 +2,9 @@
 
 #include "./assert.h"
 #include "./string_equals.h"
+#include "./string_copy.h"
 #include "./time_slot_of_day.h"
+#include "./small_int_on_two_digits.h"
 #include "./unsafe/positive_int_to_unsigned_int.h"
 
 
@@ -30,6 +32,25 @@ TimeSlotOfDay time_slot_string_to_time_slot_of_day(TimeSlotString* time_slot_str
             int_value_of_digit(buffer[3]) * 10 + int_value_of_digit(buffer[4])
         );
         return time_slot_of_day_create_time(numeric_hour, numeric_minute);
+    }
+}
+
+void time_slot_string_from_time_slot_of_day(const TimeSlotOfDay time_slot_of_day, TimeSlotString* time_slot_string) {
+    char* buffer = UNWRAP(*time_slot_string);
+    if(time_slot_of_day_is_fullday(time_slot_of_day)) {
+        string_copy(buffer, "fullday");
+    } else if(time_slot_of_day_is_morning(time_slot_of_day)) {
+        string_copy(buffer, "morning");
+    } else if(time_slot_of_day_is_afternoon(time_slot_of_day)) {
+        string_copy(buffer, "afternoon");
+    } else {
+        const unsigned int minute = time_slot_of_day_get_minute(time_slot_of_day);
+        const unsigned int hour = time_slot_of_day_get_hour(time_slot_of_day);
+
+        small_int_on_two_digits(hour, buffer);
+        small_int_on_two_digits(minute, buffer+3);
+        buffer[2] = ':';
+        buffer[5] = '\0';
     }
 }
 

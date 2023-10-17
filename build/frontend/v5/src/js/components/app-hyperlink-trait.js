@@ -7,17 +7,22 @@ customElements.define("app-hyperlink-trait", class extends HTMLFormElement {
         if(this.isConnected) {
             this.style.display = "none";
 
-            const parentElement = this.parentElement;
-            const targetElement = parentElement && this.hasAttribute("data-bind")
-                ? parentElement.querySelector(`*[data-id=${this.getAttribute("data-bind")}]`)
-                : parentElement;
-            
-            const action = e => {
+            const binding = this.getAttribute("data-bind");
+            if(binding) {
+                const targetReference = binding.substring(0, binding.indexOf(':'));
+                const channel = binding.substring(1+targetReference.length);
+
+                const targetElement = targetReference == '^' ? this.parentElement : (
+                    this.parentElement.querySelector(`*[data-id=${targetReference}]`)
+                );
+
+                targetElement.addEventListener(channel, () => this.dispatchEvent(new Event("submit")));
+            }
+
+            this.addEventListener("submit", e => {
                 e.preventDefault();
                 this.__doSubmit();
-            };
-            const channel = this.getAttribute("data-on") || "click";
-            targetElement.addEventListener(channel, action);
+            });
         }
     }
 

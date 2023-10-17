@@ -23,7 +23,7 @@
                             {? is_today}isToday{/}
                             {? is_focus}isFocus{/}
                         ">
-                            <form is="app-hyperlink-trait" action="appointments/day">
+                            <form is="app-hyperlink-trait" action="appointments/day" data-bind="^:click">
                                 <input name="focus_date" value="{! strdate}">
                             </form>
                             {: is_day_off}{! strday}{/}{? is_day_off}&#9969;{/}{? has_unread}*{/}

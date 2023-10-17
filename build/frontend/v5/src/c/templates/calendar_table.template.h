@@ -35,7 +35,7 @@ static const char* const calendar_table_6 = " ";
 static const char* const calendar_table_7 = "isToday";
 static const char* const calendar_table_8 = " ";
 static const char* const calendar_table_9 = "isFocus";
-static const char* const calendar_table_10 = " \"> <form is=\"app-hyperlink-trait\" action=\"appointments/day\"> <input name=\"focus_date\" value=\"";
+static const char* const calendar_table_10 = " \"> <form is=\"app-hyperlink-trait\" action=\"appointments/day\" data-bind=\"^:click\"> <input name=\"focus_date\" value=\"";
 static const char* const calendar_table_11 = "\"> </form> ";
 static const char* const calendar_table_12 = "&#9969;";
 static const char* const calendar_table_13 = "*";

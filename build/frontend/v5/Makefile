@@ -30,8 +30,6 @@ wasm:
 			home/src/c/shared/time_slot_string.c \
 			home/src/c/shared/days_since_epoch.c \
 			home/src/c/shared/time_slot_of_day.c \
-			home/src/c/shared/time_slot_of_day_from_string.c \
-			home/src/c/shared/time_slot_of_day_to_string.c \
 			home/src/c/shared/time_slot_to_french.c \
 			home/src/c/shared/month_to_french.c \
 			home/src/c/shared/small_int_from_string.c \

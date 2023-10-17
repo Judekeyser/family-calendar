@@ -11,13 +11,13 @@
 
 
 static const char* const menu_0 = "<nav> <menu> ";
-static const char* const menu_1 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar\"></form> &#128197; </li> ";
+static const char* const menu_1 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-bind=\"^:click\"></form> &#128197; </li> ";
 static const char* const menu_2 = " ";
-static const char* const menu_3 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar/new-appointment\"></form> &#10133; </li> ";
+static const char* const menu_3 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar/new-appointment\" data-bind=\"^:click\"></form> &#10133; </li> ";
 static const char* const menu_4 = " ";
-static const char* const menu_5 = " <li> <form is=\"app-hyperlink-trait\" action=\"search\"></form> &#128270; </li> ";
+static const char* const menu_5 = " <li> <form is=\"app-hyperlink-trait\" action=\"search\" dtaa-bind=\"^:click\"></form> &#128270; </li> ";
 static const char* const menu_6 = " ";
-static const char* const menu_7 = " <li> <form is=\"app-hyperlink-trait\" action=\"appointments/unread\"></form> &#128276; (";
+static const char* const menu_7 = " <li> <form is=\"app-hyperlink-trait\" action=\"appointments/unread\" data-bind=\"^:click\"></form> &#128276; (";
 static const char* const menu_8 = ") </li> ";
 static const char* const menu_9 = " </menu> </nav> ";
 

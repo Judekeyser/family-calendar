@@ -5,7 +5,7 @@
         <header>
             <nav>
                 <div>
-                    <form is="app-hyperlink-trait" action="calendar">
+                    <form is="app-hyperlink-trait" action="calendar" data-bind="^:click">
                         <input name="focus_date" value="{! previous_focus_strdate}">
                         <input name="weeks_count" value="{! str_weeks_count}">
                         <input name="today_date" value="{! today_strdate}">
@@ -14,10 +14,8 @@
                 </div>
                 <div>
                     <app-form-balancer
-                        data-source-bind="focus-date-controller"
-                        data-source-on="formdata"
-                        data-sink-bind="hyperlink"
-                        data-sink-on="app-navigation-required"
+                        data-source-bind="focus-date-controller:formdata"
+                        data-sink-element="hyperlink"
                     >
                         <label>
                             Date d'intérêt&#160;:
@@ -25,11 +23,7 @@
                                 <input type="date" name="focus_date" value="{! focus_strdate}">
                             </app-form-value-to-data>
                         </label>
-                        <form is="app-hyperlink-trait" action="calendar"
-                            data-id="hyperlink"
-                            data-on="app-navigation-required"
-                            data-bind="hyperlink"
-                        >
+                        <form is="app-hyperlink-trait" action="calendar" data-id="hyperlink">
                             <input name="focus_date" value="">
                             <input name="weeks_count" value="{! str_weeks_count}">
                             <input name="today_date" value="{! today_strdate}">
@@ -37,7 +31,7 @@
                     </app-form-balancer>
                 </div>
                 <div>
-                    <form is="app-hyperlink-trait" action="calendar">
+                    <form is="app-hyperlink-trait" action="calendar" data-bind="^:click">
                         <input name="focus_date" value="{! next_focus_strdate}">
                         <input name="weeks_count" value="{! str_weeks_count}">
                         <input name="today_date" value="{! today_strdate}">
@@ -48,10 +42,8 @@
 
             <div>
                 <app-form-balancer
-                    data-source-bind="slider"
-                    data-source-on="formdata"
-                    data-sink-bind="hyperlink"
-                    data-sink-on="app-patch-values"
+                    data-source-bind="slider:formdata"
+                    data-sink-element="hyperlink"
                 >
                     <label>
                         Taille de la vue:<br>
@@ -60,11 +52,7 @@
                         </app-form-value-to-data>
                     </label>
 
-                    <form is="app-hyperlink-trait" action="calendar"
-                        data-on="app-patch-values"
-                        data-id="hyperlink"
-                        data-bind="hyperlink"
-                    >
+                    <form is="app-hyperlink-trait" action="calendar" data-id="hyperlink">
                         <input name="focus_date" value="{! focus_strdate}">
                         <input name="weeks_count" value="">
                         <input name="today_date" value="{! today_strdate}">

@@ -5,15 +5,24 @@ customElements.define("app-form-balancer", class extends HTMLElement {
 
     connectedCallback() {
         if(this.isConnected) {
-            const sourceBind = this.getAttribute("data-source-bind");
-            const sourceOn = this.getAttribute("data-source-on");
-            const sinkBind = this.getAttribute("data-sink-bind");
-            const sinkOn = this.getAttribute("data-sink-on");
+            let sourceElement, sourceChannel; {
+                const sourceBinding = this.getAttribute("data-source-bind");
+                const targetReference = sourceBinding.substring(0, sourceBinding.indexOf(':'));
 
-            const source = sourceBind ? this.querySelector(`*[data-id=${sourceBind}]`) : this;
-            const sink = sinkBind ? this.querySelector(`*[data-id=${sinkBind}]`) : this;
+                sourceChannel = sourceBinding.substring(1+targetReference.length);
+                sourceElement = targetReference == '^' ? this.parentElement : (
+                    this.parentElement.querySelector(`*[data-id=${targetReference}]`)
+                );
+            }
 
-            source.addEventListener(sourceOn, e => {
+            let sinkElement; {
+                const sinkReference = this.getAttribute("data-sink-element");
+                sinkElement = sinkReference == '^' ? this.parentElement : (
+                    this.parentElement.querySelector(`*[data-id=${sinkReference}]`)
+                );
+            }
+
+            sourceElement.addEventListener(sourceChannel, e => {
                 e.preventDefault();
                 let formData;
                 if(e instanceof FormDataEvent) {
@@ -22,9 +31,10 @@ customElements.define("app-form-balancer", class extends HTMLElement {
                     formData = e.detail.formData;
                 }
                 for(const [key, value] of formData.entries()) {
-                    sink[key].value = String(value);
+                    sinkElement[key].value = String(value);
                 }
-                sink.dispatchEvent(new CustomEvent(sinkOn));
+
+                sinkElement.dispatchEvent(new Event("submit"));
             });
         }
     }

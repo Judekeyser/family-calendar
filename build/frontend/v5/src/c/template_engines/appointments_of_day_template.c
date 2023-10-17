@@ -2,8 +2,7 @@
 
 #include "../shared/assert.h"
 #include "../shared/date_string.h"
-#include "../shared/time_slot_of_day_from_string.h"
-#include "../shared/time_slot_of_day_to_string.h"
+#include "../shared/time_slot_string.h"
 #include "../shared/string_copy.h"
 #include "../dynamic/series.h"
 #include "../dynamic/dataframe.h"
@@ -76,7 +75,9 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
                 char time_buffer[11];
                 series_get(&initial_times, i, time_buffer, 11);
 
-                TimeSlotOfDay time_slot = time_slot_of_day_from_string(time_buffer);
+                TimeSlotString time_string;
+                time_slot_string_initialize_from_buffer(time_buffer, &time_string);
+                TimeSlotOfDay time_slot = time_slot_string_to_time_slot_of_day(&time_string);
                 if(time_slot_of_day_is_afternoon(time_slot)) {
                     string_copy(time_buffer, "12:");
                 } else if (time_slot_of_day_is_morning(time_slot)) {
@@ -84,7 +85,8 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
                 } else if (time_slot_of_day_is_fullday(time_slot)) {
                     string_copy(time_buffer, "");
                 } else {
-                    time_slot_of_day_to_string(time_slot, time_buffer);
+                    time_slot_string_from_time_slot_of_day(time_slot, &time_string);
+                    string_copy(time_buffer, time_slot_string_open_buffer(&time_string));
                 }
 
                 series_push(&sortable_times, time_buffer);

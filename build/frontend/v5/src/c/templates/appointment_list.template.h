@@ -16,7 +16,7 @@
 
 
 static const char* const appointment_list_0 = "<dl> ";
-static const char* const appointment_list_1 = " <dt> <form is=\"app-hyperlink-trait\"> <input name=\"strdate\" value=\"";
+static const char* const appointment_list_1 = " <dt> <form is=\"app-hyperlink-trait\" data-bind=\"^:click\"> <input name=\"strdate\" value=\"";
 static const char* const appointment_list_2 = "\"> </form> ";
 static const char* const appointment_list_3 = " &#9969;&#160; ";
 static const char* const appointment_list_4 = "*";

@@ -5,51 +5,10 @@
 #include "./numeric_series.h"
 #include "./date_string_series.h"
 
-#define series_create(S) _Generic((S),\
-    NumericSeries* : numeric_series_create,\
-    StringSeries* : string_series_create,\
-    DateStringSeries* : date_string_series_create\
-)(S)
-
-#define series_init(S,s) _Generic((S),\
-    NumericSeries* : numeric_series_zeros,\
-    StringSeries* : string_series_blanks\
-)(S,s)
-
-#define series_get(S,...) _Generic((S),\
-    const NumericSeries* : numeric_series_get,\
-    NumericSeries* : numeric_series_get,\
-    const StringSeries* : string_series_get,\
-    StringSeries* : string_series_get,\
-    const DateStringSeries* : date_string_series_get,\
-    DateStringSeries* : date_string_series_get\
-)(S,__VA_ARGS__)
-
-#define series_set(S,...) _Generic((S),\
-    const NumericSeries* : numeric_series_set,\
-    const StringSeries* : string_series_set,\
-    const DateStringSeries* : date_string_series_set,\
-    NumericSeries* : numeric_series_set,\
-    StringSeries* : string_series_set,\
-    DateStringSeries* : date_string_series_set\
-)(S,__VA_ARGS__)
-
-#define series_push(S,...) _Generic((S),\
-    const NumericSeries* : numeric_series_push,\
-    const StringSeries* : string_series_push,\
-    const DateStringSeries* : date_string_series_push,\
-    NumericSeries* : numeric_series_push,\
-    StringSeries* : string_series_push,\
-    DateStringSeries* : date_string_series_push\
-)(S,__VA_ARGS__)
-
-#define series_size(S) _Generic((S),\
-    const NumericSeries* : numeric_series_size,\
-    const StringSeries* : string_series_size,\
-    const DateStringSeries* : date_string_series_size,\
-    NumericSeries* : numeric_series_size,\
-    StringSeries* : string_series_size,\
-    DateStringSeries* : date_string_series_size\
-)(S)
+#define series_get(S,...) ((S) -> __proto__ -> get(S,__VA_ARGS__))
+#define series_set(S,...) ((S) -> __proto__ -> set(S,__VA_ARGS__))
+#define series_push(S,...) ((S) -> __proto__ -> push(S,__VA_ARGS__))
+#define series_size(S) ((S) -> __proto__ -> size(S))
+#define series_as_column(S) ((S) -> __proto__ -> as_column(S))
 
 #endif

@@ -75,13 +75,6 @@ class WasmRuntime {
 
     /** SERIES */
 
-    app_series_create() {
-        try {
-            return this.__seriesDynamicMemory.createEmptySeries();
-        } catch(error) {console.error(error);}
-        return 0;
-    }
-
     app_series_blanks(size) {
         try {
             return this.__seriesDynamicMemory.createBlanksSeries(size);
@@ -200,7 +193,6 @@ class WasmRuntime {
             "app_log",
             "app_read_from_socket",
             "app_write_to_socket",
-            "app_series_create",
             "app_series_zeros",
             "app_series_blanks",
             "app_series_get_as_int",

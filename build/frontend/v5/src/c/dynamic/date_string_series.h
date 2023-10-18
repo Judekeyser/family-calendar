@@ -2,20 +2,24 @@
 #define APP_DYNAMIC_DATE_STRING_SERIES
 
 #include "../shared/date_string.h"
+typedef struct DateStringSeries DateStringSeries;
+
+struct DateStringPrototype {
+    int(*get)(const DateStringSeries* self, const unsigned int index, DateString* target);
+    void(*set)(const DateStringSeries* self, const unsigned int index, const DateString* string);
+    void(*push)(const DateStringSeries* self, const DateString* string);
+    unsigned int(*size)(const DateStringSeries* self);
+    struct ResourceStruct(*as_column)(const DateStringSeries* self);
+};
+
+
 #include "./__resource.h"
-typedef struct {
+struct DateStringSeries {
     struct ResourceStruct resource;
-} DateStringSeries;
+    const struct DateStringPrototype* __proto__;
+};
 
 
 int date_string_series_create(DateStringSeries* series);
-
-int date_string_series_get(const DateStringSeries* series, const unsigned int index, DateString* target);
-
-void date_string_series_set(const DateStringSeries* series, const unsigned int index, const DateString* string);
-
-void date_string_series_push(const DateStringSeries* series, const DateString* string);
-
-unsigned int date_string_series_size(const DateStringSeries* series);
 
 #endif

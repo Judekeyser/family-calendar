@@ -57,18 +57,17 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
             DateString date_string;
             date_string_from_days_from_epoch(focus_date, &date_string);
             DateStringSeries dates_to_display; // Series of 1 date to display
-            series_create(&dates_to_display);
+            date_string_series_create(&dates_to_display);
             series_push(&dates_to_display, &date_string);
             assert(series_size(&dates_to_display) == 1, "Inserting series of one element but size does not match");
 
-            StringSeries string_series = { .resource = dates_to_display.resource };
-            dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &string_series, &df);
+            dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_to_display, &df);
         }
         {
             StringSeries sortable_times;
+            string_series_create(&sortable_times);
             StringSeries initial_times;
-            series_create(&sortable_times);
-            dataframe_get_column_at_index(&df, STRTIME_COLUMN_INDEX, &initial_times);
+            string_series_from_column(&initial_times, &df, STRTIME_COLUMN_INDEX);
 
             const unsigned int series_size = series_size(&initial_times);
             for(unsigned int i = 0; i < series_size; i++) {
@@ -92,7 +91,7 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
                 series_push(&sortable_times, time_buffer);
             }
 
-            const unsigned int new_index = dataframe_append_string_column(&df, "__sortable_time__", &sortable_times);
+            const unsigned int new_index = dataframe_append_column(&df, "__sortable_time__", &sortable_times);
             dataframe_reindex(&df, new_index, &df);
         }
     }
@@ -100,11 +99,11 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
     NumericSeries unreads, isdayoffs;
     StringSeries appointment_times, descriptions, details;
 
-    dataframe_get_column_at_index(&df, UNREAD_COLUMN_INDEX, &unreads);
-    dataframe_get_column_at_index(&df, ISDAYOFF_COLUMN_INDEX, &isdayoffs);
-    dataframe_get_column_at_index(&df, STRTIME_COLUMN_INDEX, &appointment_times);
-    dataframe_get_column_at_index(&df, DESCRIPTION_COLUMN_INDEX, &descriptions);
-    dataframe_get_column_at_index(&df, DETAIL_COLUMN_INDEX, &details);
+    numeric_series_from_column(&unreads, &df, UNREAD_COLUMN_INDEX);
+    numeric_series_from_column(&isdayoffs, &df, ISDAYOFF_COLUMN_INDEX);
+    string_series_from_column(&appointment_times, &df, STRTIME_COLUMN_INDEX);
+    string_series_from_column(&descriptions, &df, DESCRIPTION_COLUMN_INDEX);
+    string_series_from_column(&details, &df, DETAIL_COLUMN_INDEX);
 
     struct Root root = {
         ._focus_date = focus_date,

@@ -8,7 +8,7 @@ wasm:
 	cd build_utils && node template-server.js
 	docker run --rm -v ${PWD}:/home -u $(id -u):$(id -g) silkeh/clang \
 		clang \
-		-Wextra -Os -Wall -Werror -std=c11 -pedantic-errors -nostdlib \
+		-Wextra -Os -DNDEBUG -Wall -Werror -std=c99 -pedantic-errors -nostdlib \
 		-fno-stack-protector -Wsign-conversion -Wmissing-variable-declarations -Wcast-qual \
 		--target=wasm32 -fvisibility=hidden \
 		-Wl,-allow-undefined-file home/src/c/js_library/wasm.syms \

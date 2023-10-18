@@ -105,7 +105,7 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
     );
 
     // Compile WASM module
-    const wasmMemory = new WebAssembly.Memory({'initial':2});
+    const wasmMemory = new WebAssembly.Memory({'initial': 2});
     const memoryBuffer = new Uint8Array(wasmMemory.buffer);
     // Create ambiant runtime
     const seriesDynamicMemory = new SeriesDynamicMemory();
@@ -134,6 +134,7 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
 
         const tic = Date.now();
         runtime.wasmSocket = new WasmSocket(protocol);
+
         accept(heapBase, 1024);
 
         const cleanedUp = window.DOMPurify.sanitize(runtime.wasmSocket.output, {

@@ -1,10 +1,6 @@
 #ifndef APP_DYNAMIC_DATAFRAME
 #define APP_DYNAMIC_DATAFRAME
 
-#include "./string_series.h"
-#include "./numeric_series.h"
-
-
 #define     STRDATE_COLUMN_INDEX 0
 #define     STRTIME_COLUMN_INDEX 1
 #define      UNREAD_COLUMN_INDEX 2
@@ -22,39 +18,17 @@ typedef struct Dataframe Dataframe;
 
 int dataframe_create_empty(Dataframe* dataframe);
 
-unsigned int dataframe_append_string_column(const Dataframe* dataframe, const char* column_name, const StringSeries* series);
+#define dataframe_append_column(self,cname,S) dataframe_append_column_series(self,cname, series_as_column(S))
+unsigned int dataframe_append_column_series(
+    const Dataframe* self,
+    const char* column_name,
+    const struct ResourceStruct series_resource
+);
 
-unsigned int dataframe_append_numeric_column(const Dataframe* dataframe, const char* column_name, const NumericSeries* series);
+int dataframe_get_resource_column_at_index(const Dataframe* dataframe, const unsigned int column_index, struct ResourceStruct* target);
 
-// This macro is for convenience and allows generic expression selection at compile-time
-#define dataframe_append_column(self,columnname,series) _Generic((series),\
-    const StringSeries*: dataframe_append_string_column,\
-    const NumericSeries*: dataframe_append_numeric_column\
-)(self,columnname,series)
-
-int dataframe_get_string_column_at_index(const Dataframe* dataframe, const unsigned int column_index, StringSeries* target);
-
-int dataframe_get_numeric_column_at_index(const Dataframe* dataframe, const unsigned int column_index, NumericSeries* target);
-
-// This macro is for convenience and allows generic expression selection at compile-time
-#define dataframe_get_column_at_index(self,columnindex,target) _Generic((target),\
-    const StringSeries*: dataframe_get_string_column_at_index,\
-    const NumericSeries*: dataframe_get_numeric_column_at_index,\
-    StringSeries*: dataframe_get_string_column_at_index,\
-    NumericSeries*: dataframe_get_numeric_column_at_index\
-)(self,columnindex,target)
-
-int dataframe_select_string_isin(const Dataframe* dataframe, const unsigned int column_index, const StringSeries* filter, Dataframe* target);
-
-int dataframe_select_numeric_isin(const Dataframe* dataframe, const unsigned int column_index, const NumericSeries* filter, Dataframe* target);
-
-// This macro is for convenience and allows generic expression selection at compile-time
-#define dataframe_select_isin(self,columnidx,filter,target) _Generic((filter),\
-    const StringSeries*: dataframe_select_string_isin,\
-    const NumericSeries*: dataframe_select_numeric_isin,\
-    StringSeries*: dataframe_select_string_isin,\
-    NumericSeries*: dataframe_select_numeric_isin\
-)(self,columnidx,filter,target)
+#define dataframe_select_isin(self,cidx,S,...) dataframe_select_isin_resource(self,cidx, series_as_column(S),__VA_ARGS__)
+int dataframe_select_isin_resource(const Dataframe* dataframe, const unsigned int column_index, const struct ResourceStruct filter, Dataframe* target);
 
 int dataframe_reindex(const Dataframe* dataframe, const unsigned int column_index, Dataframe* target);
 

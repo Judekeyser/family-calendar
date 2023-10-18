@@ -15,8 +15,6 @@ extern unsigned int app_write_to_socket(const char* readPtr);
 
 /** SERIES */
 
-extern int app_series_create(void);
-
 extern int app_series_zeros(const unsigned int size);
 
 extern int app_series_blanks(const unsigned int size);

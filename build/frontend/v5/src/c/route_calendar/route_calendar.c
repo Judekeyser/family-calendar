@@ -103,16 +103,16 @@ void route_calendar_terminate(void)
         const unsigned int number_of_days_to_display = route_qp.weeks_count * 7;
 
         NumericSeries unreads;
-        series_init(&unreads, number_of_days_to_display);
+        numeric_series_zeros(&unreads, number_of_days_to_display);
 
         NumericSeries isdayoffs;
-        series_init(&isdayoffs, number_of_days_to_display);
+        numeric_series_zeros(&isdayoffs, number_of_days_to_display);
 
         NumericSeries has_appointments;
-        series_init(&has_appointments, number_of_days_to_display);
+        numeric_series_zeros(&has_appointments, number_of_days_to_display);
 
         DateStringSeries dates_to_display; {
-            series_create(&dates_to_display);
+            date_string_series_create(&dates_to_display);
             // Prepare date cursor to Monday
             DaysFromEpoch cursor_date = days_since_epoch_add_days(
                 route_qp.focus_date,
@@ -131,18 +131,17 @@ void route_calendar_terminate(void)
 
         {
             Dataframe df; {
-                StringSeries dates_as_string_series = { .resource = dates_to_display.resource };
-                dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_as_string_series, &df);
+                dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_to_display, &df);
             }
 
             NumericSeries source_dates_indices;
-            dataframe_get_column_at_index(&df, STRDATE_COLUMN_INDEX, &source_dates_indices);
+            numeric_series_from_column(&source_dates_indices, &df, STRDATE_COLUMN_INDEX);
 
             const unsigned int subset_size = series_size(&source_dates_indices);
 
             NumericSeries source_unread, source_isdayoff;
-            dataframe_get_column_at_index(&df, UNREAD_COLUMN_INDEX, &source_unread);
-            dataframe_get_column_at_index(&df, ISDAYOFF_COLUMN_INDEX, &source_isdayoff);
+            numeric_series_from_column(&source_unread, &df, UNREAD_COLUMN_INDEX);
+            numeric_series_from_column(&source_isdayoff, &df, ISDAYOFF_COLUMN_INDEX);
             
             for(unsigned int i = 0; i < subset_size; i++) {
                 const unsigned int index = positive_int_to_unsigned_int(

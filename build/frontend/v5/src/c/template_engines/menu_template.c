@@ -61,13 +61,13 @@ int menu_template(const unsigned int hyperlinks) {
             unsigned int unread_size;
             {
                 NumericSeries series_of_true;
-                series_create(&series_of_true);
+                numeric_series_create(&series_of_true);
                 series_push(&series_of_true, 1);
 
                 Dataframe df;
                 dataframe_select_isin(0, UNREAD_COLUMN_INDEX, &series_of_true, &df);
 
-                dataframe_get_column_at_index(&df, UNREAD_COLUMN_INDEX, &series_of_true);
+                numeric_series_from_column(&series_of_true, &df, UNREAD_COLUMN_INDEX);
                 unread_size = series_size(&series_of_true);
             }
 

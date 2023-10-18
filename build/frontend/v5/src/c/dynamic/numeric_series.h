@@ -1,23 +1,28 @@
 #ifndef APP_DYNAMIC_NUMERIC_SERIES
 #define APP_DYNAMIC_NUMERIC_SERIES
 
+typedef struct NumericSeries NumericSeries;
+
+struct NumericSeriesPrototype {
+    int(*get)(const NumericSeries* self, const unsigned int index);
+    void(*set)(const NumericSeries* self, const unsigned int index, const int value);
+    void(*push)(const NumericSeries* sef, const int value);
+    unsigned int(*size)(const NumericSeries* series);
+    struct ResourceStruct(*as_column)(const NumericSeries* series);
+};
+
 #include "./__resource.h"
 struct NumericSeries {
     struct ResourceStruct resource;
+    const struct NumericSeriesPrototype* __proto__;
 };
-typedef struct NumericSeries NumericSeries;
-
 
 int numeric_series_create(NumericSeries* series);
 
 int numeric_series_zeros(NumericSeries* series, const unsigned int size);
 
-int numeric_series_get(const NumericSeries* series, const unsigned int index);
+#include "./dataframe.h"
 
-void numeric_series_set(const NumericSeries* series, const unsigned int index, const int value);
-
-void numeric_series_push(const NumericSeries* series, const int value);
-
-unsigned int numeric_series_size(const NumericSeries* series);
+int numeric_series_from_column(NumericSeries* series, const Dataframe* dataframe, const unsigned int column_index);
 
 #endif

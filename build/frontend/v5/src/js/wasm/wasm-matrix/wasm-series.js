@@ -51,10 +51,6 @@ class SeriesDynamicMemory {
         return this.__series.get(seriesPointer);
     }
 
-    createEmptySeries() {
-        return this._createSeries([]);
-    }
-
     createBlanksSeries(size) {
         return this._createSeries([...Array(size)].map(() => ""));
     }

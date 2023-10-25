@@ -3,6 +3,7 @@
 
 #include "../shared/date_string.h"
 typedef struct DateStringSeries DateStringSeries;
+#include "./__resource.h"
 
 struct DateStringPrototype {
     int(*get)(const DateStringSeries* self, const unsigned int index, DateString* target);
@@ -13,13 +14,12 @@ struct DateStringPrototype {
 };
 
 
-#include "./__resource.h"
 struct DateStringSeries {
     struct ResourceStruct resource;
     const struct DateStringPrototype* __proto__;
 };
 
-
+#define DateStringSeries_init(...) date_string_series_create(__VA_ARGS__)
 int date_string_series_create(DateStringSeries* series);
 
 #endif

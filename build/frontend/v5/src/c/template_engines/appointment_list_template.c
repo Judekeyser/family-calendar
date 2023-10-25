@@ -2,41 +2,33 @@
 
 #include "../shared/assert.h"
 #include "../dynamic/series.h"
+#include "../shared/string_length.h"
+#include "../shared/string_copy.h"
 #include "../shared/date_string.h"
 #include "../shared/time_slot_string.h"
-#include "../shared/time_slot_to_french.h"
+#include "../shared/french_format.h"
 #include "../shared/b64_encode_string_to_string.h"
 
 #include "../shared/unsafe/positive_int_to_unsigned_int.h"
 
 
 struct Appointment {
-    const StringSeries* appointment_times;
-    const StringSeries* descriptions;
-    const StringSeries* details;
-
     unsigned int _is_day_off;
     unsigned int _unread;
 
-    char buffer[1];
-    DateString __date_string;
-    char __buffer_french_temporal_marker[TIME_SLOT_TO_FRENCH_TARGET_BUFFER_UPPER_BOUND];
+    FrenchFormat french_format;
     char __buffer_b64_description[512];
+    char __buffer_b64_details[512];
 
-    const char*(*strdate)(struct Appointment* self);
-    const char*(*french_temporal_marker)(struct Appointment* self);
+    const char*(*french_datetime)(struct Appointment* self);
     const char*(*b64_strdescription)(struct Appointment* self);
     const char*(*b64_strdetails)(struct Appointment* self);
     unsigned int (*is_day_off)(struct Appointment* self);
     unsigned int (*unread)(struct Appointment* self);
 };
 
-static const char* strdate(struct Appointment* self) {
-    return date_string_open_buffer(&(self -> __date_string));
-}
-
-static const char* french_temporal_marker(struct Appointment* self) {
-    return self -> __buffer_french_temporal_marker;
+static const char* french_datetime(struct Appointment* self) {
+    return french_format_get(&(self -> french_format));
 }
 
 static const char* b64_strdescription(struct Appointment* self) {
@@ -44,7 +36,7 @@ static const char* b64_strdescription(struct Appointment* self) {
 }
 
 static const char* b64_strdetails(struct Appointment* self) {
-    return self -> buffer;
+    return self -> __buffer_b64_details;
 }
 
 static unsigned int is_day_off(struct Appointment* self) {
@@ -61,10 +53,12 @@ struct Root {
     const unsigned int element_count;
     struct Appointment _appointment;
 
+    const StringSeries* appointment_dates;
     const StringSeries* appointment_times;
     const NumericSeries* isdayoffs;
     const NumericSeries* unreads;
     const StringSeries* descriptions;
+    const StringSeries* details;
 
     struct Appointment*(*appointments)(struct Root* self);
 };
@@ -82,18 +76,35 @@ static struct Appointment* appointments(struct Root* self) {
             series_get(self -> unreads, index)
         );
         {
-            series_get(self -> appointment_times, index,
-                    (self -> _appointment).__buffer_french_temporal_marker, 10
-            );
-            TimeSlotString time_string;
-            time_slot_string_initialize_from_buffer((self -> _appointment).__buffer_french_temporal_marker, &time_string);
-            TimeSlotOfDay time_slot = time_slot_string_to_time_slot_of_day(&time_string);
-            time_slot_to_french(time_slot, 1, (self -> _appointment).__buffer_french_temporal_marker);
+            TimeSlotOfDay time_slot;
+            DaysFromEpoch days_from_epoch;
+            DaysFromEpoch* flagged_days_from_epoch;
+            if(self -> appointment_dates) {
+                DateString date_string;
+                series_get(self -> appointment_dates, index, DATE_STRING_SPREAD(date_string));
+                days_from_epoch = date_string_to_days_from_epoch(&date_string);
+                flagged_days_from_epoch = &days_from_epoch;
+            } else {
+                flagged_days_from_epoch = 0;
+            }
+
+            {
+                TimeSlotString time_slot_string;
+                series_get(self -> appointment_times, index, TIME_SLOT_STRING_SPREAD(time_slot_string));
+                time_slot = time_slot_string_to_time_slot_of_day(&time_slot_string);
+            }
+
+            french_format_set(&(self -> _appointment).french_format, flagged_days_from_epoch, &time_slot);
         }
         {
             char buffer[360];
             series_get(self -> descriptions, index, buffer, 360);
             b64_encode_string_to_string(buffer, (self -> _appointment).__buffer_b64_description);
+        }
+        {
+            char buffer[360];
+            series_get(self -> details, index, buffer, 360);
+            b64_encode_string_to_string(buffer, (self -> _appointment).__buffer_b64_details);
         }
         
         self -> current_index  += 1;
@@ -109,7 +120,7 @@ static struct Appointment* appointments(struct Root* self) {
 
 
 int appointment_list_template(
-    DaysFromEpoch _focus_date,
+    const StringSeries* _nullable_appointment_dates,
     const StringSeries* _appointment_times,
     const NumericSeries* _unreads,
     const NumericSeries* _isdayoffs,
@@ -117,38 +128,34 @@ int appointment_list_template(
     const StringSeries* _details
 ) {
     const unsigned int element_count = series_size(_appointment_times);
-    assert(series_size(_appointment_times) == series_size(_unreads),
-        "`appointment_list_template` _unreads series does not have same length than _appointment_times");
-    assert(series_size(_appointment_times) == series_size(_isdayoffs),
-        "`appointment_list_template` _isdayoffs series does not have same length than _appointment_times");
-    assert(series_size(_appointment_times) == series_size(_descriptions),
-        "`appointment_list_template` _descriptions series does not have same length than _appointment_times");
-    assert(series_size(_appointment_times) == series_size(_details),
-        "`appointment_list_template` _details series does not have same length than appointment_times");
 
     struct Root root = {
         .element_count = element_count,
         .current_index = 0,
 
+        ._appointment = {
+            .french_datetime = french_datetime,
+            .unread = unread,
+            .is_day_off = is_day_off,
+            .b64_strdescription = b64_strdescription,
+            .b64_strdetails = b64_strdetails
+        },
+
         .isdayoffs = _isdayoffs,
         .unreads = _unreads,
+        .appointment_dates = _nullable_appointment_dates,
         .appointment_times = _appointment_times,
         .descriptions = _descriptions,
+        .details = _details,
 
         .appointments = appointments
     };
 
-    root._appointment.appointment_times = _appointment_times;
-    root._appointment.details = _details;
-
-    root._appointment.strdate = strdate;
-    root._appointment.french_temporal_marker = french_temporal_marker;
-    root._appointment.unread = unread;
-    root._appointment.is_day_off = is_day_off;
-    root._appointment.b64_strdescription = b64_strdescription;
-    root._appointment.b64_strdetails = b64_strdetails;
-
-    date_string_from_days_from_epoch(_focus_date, &root._appointment.__date_string);
+    french_format_use_pattern(
+        &root._appointment.french_format,
+        _nullable_appointment_dates ? LONG_DATE_TIME_IDENTIFIER : LONG_TIME_IDENTIFIER,
+        1
+    );
 
     run(&root);
 

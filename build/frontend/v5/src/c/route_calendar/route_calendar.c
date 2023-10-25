@@ -1,5 +1,6 @@
 #include "./route_calendar.h"
 
+#include "../shared/prototypes.h"
 #include "../shared/assert.h"
 #include "../shared/string_length.h"
 #include "../shared/string_equals.h"
@@ -51,15 +52,16 @@ static int rectify_route_query_parameters(void)
 int route_calendar_guard(const char* url_segments)
 {
     const char* cursor = url_segments;
-    if(!string_equals(cursor, "calendar")) {
-        return 0;
-    } else {
+    if(string_equals(cursor, "calendar")) {
         cursor += 1 + string_length(cursor);
-        route_qp.weeks_count = 0;
-        route_qp.focus_flag = 0;
-        route_qp.today_flag = 0;
-        return 1;
+        if(string_length(cursor) == 0) {
+            route_qp.weeks_count = 0;
+            route_qp.focus_flag = 0;
+            route_qp.today_flag = 0;
+            return 1;
+        }
     }
+    return 0;
 }
 
 int route_calendar_handle_query_parameter(const char* key, const char* value)
@@ -102,17 +104,11 @@ void route_calendar_terminate(void)
          */
         const unsigned int number_of_days_to_display = route_qp.weeks_count * 7;
 
-        NumericSeries unreads;
-        numeric_series_zeros(&unreads, number_of_days_to_display);
+        series_create_empty(NumericSeries, unreads, number_of_days_to_display);
+        series_create_empty(NumericSeries, isdayoffs, number_of_days_to_display);
+        series_create_empty(NumericSeries, has_appointments, number_of_days_to_display);
 
-        NumericSeries isdayoffs;
-        numeric_series_zeros(&isdayoffs, number_of_days_to_display);
-
-        NumericSeries has_appointments;
-        numeric_series_zeros(&has_appointments, number_of_days_to_display);
-
-        DateStringSeries dates_to_display; {
-            date_string_series_create(&dates_to_display);
+        new(DateStringSeries, dates_to_display); {
             // Prepare date cursor to Monday
             DaysFromEpoch cursor_date = days_since_epoch_add_days(
                 route_qp.focus_date,
@@ -134,15 +130,11 @@ void route_calendar_terminate(void)
                 dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_to_display, &df);
             }
 
-            NumericSeries source_dates_indices;
-            numeric_series_from_column(&source_dates_indices, &df, STRDATE_COLUMN_INDEX);
-
-            const unsigned int subset_size = series_size(&source_dates_indices);
-
-            NumericSeries source_unread, source_isdayoff;
-            numeric_series_from_column(&source_unread, &df, UNREAD_COLUMN_INDEX);
-            numeric_series_from_column(&source_isdayoff, &df, ISDAYOFF_COLUMN_INDEX);
+            series_create_from_dataframe_column(NumericSeries, source_dates_indices, &df, STRDATE_COLUMN_INDEX);
+            series_create_from_dataframe_column(NumericSeries, source_unread, &df, UNREAD_COLUMN_INDEX);
+            series_create_from_dataframe_column(NumericSeries, source_isdayoff, &df, ISDAYOFF_COLUMN_INDEX);
             
+            const unsigned int subset_size = series_size(&source_dates_indices);
             for(unsigned int i = 0; i < subset_size; i++) {
                 const unsigned int index = positive_int_to_unsigned_int(
                     series_get(&source_dates_indices, i)

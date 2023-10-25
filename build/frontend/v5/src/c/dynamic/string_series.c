@@ -1,5 +1,6 @@
 #include "./string_series.h"
 
+#include "../shared/assert.h"
 #include "../js_library/js_library.h"
 
 static int string_series_get(const StringSeries* series, const unsigned int index, char* target, const unsigned int capacity) {
@@ -22,7 +23,21 @@ static struct ResourceStruct string_series_as_column(const StringSeries* series)
     return series -> resource;
 }
 
+static void string_series_wrap(StringSeries* series, const struct ResourceStruct resource) {
+    series -> resource = resource;
+}
+
+void string_series_blanks(StringSeries* series, const unsigned int size) {
+    const int pointer = app_series_blanks(size);
+    assert(pointer, "String series of blanks failed to initialize");
+    struct ResourceStruct resource = { .external_id = pointer };
+    string_series_wrap(series, resource);
+}
+
 static const struct StringSeriesPrototype JS_PROTOTYPE = {
+    .wrap = string_series_wrap,
+    .fill = string_series_blanks,
+
     .get = string_series_get,
     .set = string_series_set,
     .push = string_series_push,
@@ -31,35 +46,6 @@ static const struct StringSeriesPrototype JS_PROTOTYPE = {
 };
 
 
-static void string_series_wrap(StringSeries* series, const struct ResourceStruct resource) {
-    series -> resource = resource;
+void string_series_create(StringSeries* series) {
     series -> __proto__ = &JS_PROTOTYPE;
-}
-
-int string_series_blanks(StringSeries* series, const unsigned int size) {
-    const int pointer = app_series_blanks(size);
-    if(pointer) {
-        struct ResourceStruct resource = { .external_id = pointer };
-        string_series_wrap(series, resource);
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-int string_series_create(StringSeries* series) {
-    return string_series_blanks(series, 0);
-}
-
-#include "./dataframe.h"
-
-int string_series_from_column(StringSeries* series, const Dataframe* dataframe, const unsigned int column_index) {
-    struct ResourceStruct resource;
-    int error = dataframe_get_resource_column_at_index(dataframe, column_index, &resource);
-    if(error) {
-        return error;
-    } else {
-        string_series_wrap(series, resource);
-        return 0;
-    }
 }

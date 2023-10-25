@@ -8,7 +8,7 @@ wasm:
 	cd build_utils && node template-server.js
 	docker run --rm -v ${PWD}:/home -u $(id -u):$(id -g) silkeh/clang \
 		clang \
-		-Wextra -Os -DNDEBUG -Wall -Werror -std=c99 -pedantic-errors -nostdlib \
+		-Wextra -Os -Wall -Werror -std=c99 -pedantic-errors -nostdlib \
 		-fno-stack-protector -Wsign-conversion -Wmissing-variable-declarations -Wcast-qual \
 		--target=wasm32 -fvisibility=hidden \
 		-Wl,-allow-undefined-file home/src/c/js_library/wasm.syms \
@@ -30,8 +30,7 @@ wasm:
 			home/src/c/shared/time_slot_string.c \
 			home/src/c/shared/days_since_epoch.c \
 			home/src/c/shared/time_slot_of_day.c \
-			home/src/c/shared/time_slot_to_french.c \
-			home/src/c/shared/month_to_french.c \
+			home/src/c/shared/french_format.c \
 			home/src/c/shared/small_int_from_string.c \
 			home/src/c/shared/small_int_on_one_digit.c \
 			home/src/c/shared/small_int_on_two_digits.c \
@@ -39,6 +38,7 @@ wasm:
 			home/src/c/dynamic/numeric_series.c \
 			home/src/c/dynamic/string_series.c \
 			home/src/c/dynamic/date_string_series.c \
+			home/src/c/dynamic/time_slot_string_series.c \
 			home/src/c/dynamic/dataframe.c \
 			home/src/c/template.c \
 			home/src/c/ioserver.c \
@@ -48,9 +48,21 @@ wasm:
 			home/src/c/template_engines/calendar_grid_template.c \
 			home/src/c/template_engines/appointment_list_template.c \
 			home/src/c/template_engines/appointments_of_day_template.c \
+			home/src/c/template_engines/unread_appointments_template.c \
+			home/src/c/template_engines/appointment_form_template.c \
 			home/src/c/route_calendar/route_calendar.c \
 			home/src/c/route_appointment_list_day/route_appointment_list_day.c \
+			home/src/c/route_appointment_list_unread/route_appointment_list_unread.c \
+			home/src/c/route_appointment_form/route_appointment_form.c \
 		-o home/dist/next-app-module.wasm
+
+macro-test:
+	docker run --rm -v ${PWD}:/home -u $(id -u):$(id -g) silkeh/clang \
+		clang \
+		-Wextra -Os -Wall -Werror -std=c99 -pedantic-errors -nostdlib \
+		-fno-stack-protector -Wsign-conversion -Wmissing-variable-declarations -Wcast-qual \
+		--target=wasm32 \
+		home/test.c -E
 
 
 js:

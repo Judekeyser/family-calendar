@@ -8,6 +8,8 @@ typedef struct {
     char _1[10];
 } TimeSlotString;
 
+#define TIME_SLOT_STRING_SPREAD(var) UNWRAP(var), 10
+
 
 TimeSlotOfDay time_slot_string_to_time_slot_of_day(TimeSlotString* time_slot_string);
 

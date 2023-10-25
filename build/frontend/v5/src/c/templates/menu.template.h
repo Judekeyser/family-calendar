@@ -13,7 +13,7 @@
 static const char* const menu_0 = "<nav> <menu> ";
 static const char* const menu_1 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar\" data-bind=\"^:click\"></form> &#128197; </li> ";
 static const char* const menu_2 = " ";
-static const char* const menu_3 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar/new-appointment\" data-bind=\"^:click\"></form> &#10133; </li> ";
+static const char* const menu_3 = " <li> <form is=\"app-hyperlink-trait\" action=\"calendar/alter\" data-bind=\"^:click\"></form> &#10133; </li> ";
 static const char* const menu_4 = " ";
 static const char* const menu_5 = " <li> <form is=\"app-hyperlink-trait\" action=\"search\" dtaa-bind=\"^:click\"></form> &#128270; </li> ";
 static const char* const menu_6 = " ";

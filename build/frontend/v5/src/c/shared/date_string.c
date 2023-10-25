@@ -41,7 +41,8 @@ DaysFromEpoch date_string_to_days_from_epoch(DateString* date_string) {
     const unsigned int numeric_year = get_year(buffer);
     const unsigned int numeric_month = get_month(buffer);
     const unsigned int numeric_day = get_mday(buffer);
-    return days_since_epoch_from_triple(numeric_year, numeric_month, numeric_day);
+    const DaysFromEpoch result =  days_since_epoch_from_triple(numeric_year, numeric_month, numeric_day);
+    return result;
 }
 
 void date_string_from_days_from_epoch(DaysFromEpoch days_from_epoch, DateString* date_string) {

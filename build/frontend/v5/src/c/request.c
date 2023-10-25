@@ -8,6 +8,8 @@
 
 #include "./route_calendar/route_calendar.h"
 #include "./route_appointment_list_day/route_appointment_list_day.h"
+#include "./route_appointment_list_unread/route_appointment_list_unread.h"
+#include "./route_appointment_form/route_appointment_form.h"
 
 
 typedef int(*route_handler)(const char* url_segments, const char* query_parameters);
@@ -32,6 +34,16 @@ static const struct RouteHandler route_handlers[] = {
         .guard = route_appointment_list_day_guard,
         .handle_query_parameter = route_appointment_list_day_handle_query_parameter,
         .terminate = route_appointment_list_day_terminate
+    },
+    {
+        .guard = route_appointment_list_unread_guard,
+        .handle_query_parameter = route_appointment_list_unread_handle_query_parameter,
+        .terminate = route_appointment_list_unread_terminate
+    },
+    {
+        .guard = route_appointment_form_guard,
+        .handle_query_parameter = route_appointment_form_handle_query_parameter,
+        .terminate = route_appointment_form_terminate
     },
     {
         .guard = 0

@@ -1,5 +1,6 @@
 #include "./appointments_of_day_template.h"
 
+#include "../shared/prototypes.h"
 #include "../shared/assert.h"
 #include "../shared/date_string.h"
 #include "../shared/time_slot_string.h"
@@ -31,13 +32,13 @@ static unsigned char any_appointment(struct Root* self) {
 static void menu(struct Root* self) {
     UNUSED(self);
     menu_template(
-        MENU_TEMPLATE_HYPERLINK__CREATE_APPOINTMENT | MENU_TEMPLATE_HYPERLINK__BACK_TO_GRID
+        MENU_TEMPLATE_HYPERLINK__ALTER_CALENDAR | MENU_TEMPLATE_HYPERLINK__BACK_TO_GRID
     );
 }
 
 static void appointment_list(struct Root* self) {
     appointment_list_template(
-        self -> _focus_date,
+        0,
         &(self -> _appointment_times),
         &(self -> _unreads),
         &(self -> _isdayoffs),
@@ -56,18 +57,15 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
         {
             DateString date_string;
             date_string_from_days_from_epoch(focus_date, &date_string);
-            DateStringSeries dates_to_display; // Series of 1 date to display
-            date_string_series_create(&dates_to_display);
+            new(DateStringSeries, dates_to_display);
             series_push(&dates_to_display, &date_string);
             assert(series_size(&dates_to_display) == 1, "Inserting series of one element but size does not match");
 
             dataframe_select_isin(0, STRDATE_COLUMN_INDEX, &dates_to_display, &df);
         }
         {
-            StringSeries sortable_times;
-            string_series_create(&sortable_times);
-            StringSeries initial_times;
-            string_series_from_column(&initial_times, &df, STRTIME_COLUMN_INDEX);
+            series_create_empty(StringSeries, sortable_times, 0);
+            series_create_from_dataframe_column(StringSeries, initial_times, &df, STRTIME_COLUMN_INDEX);
 
             const unsigned int series_size = series_size(&initial_times);
             for(unsigned int i = 0; i < series_size; i++) {
@@ -96,14 +94,11 @@ int appointments_of_day_template(DaysFromEpoch focus_date) {
         }
     }
 
-    NumericSeries unreads, isdayoffs;
-    StringSeries appointment_times, descriptions, details;
-
-    numeric_series_from_column(&unreads, &df, UNREAD_COLUMN_INDEX);
-    numeric_series_from_column(&isdayoffs, &df, ISDAYOFF_COLUMN_INDEX);
-    string_series_from_column(&appointment_times, &df, STRTIME_COLUMN_INDEX);
-    string_series_from_column(&descriptions, &df, DESCRIPTION_COLUMN_INDEX);
-    string_series_from_column(&details, &df, DETAIL_COLUMN_INDEX);
+    series_create_from_dataframe_column(NumericSeries, unreads, &df, UNREAD_COLUMN_INDEX);
+    series_create_from_dataframe_column(NumericSeries, isdayoffs, &df, ISDAYOFF_COLUMN_INDEX);
+    series_create_from_dataframe_column(StringSeries, appointment_times, &df, STRTIME_COLUMN_INDEX);
+    series_create_from_dataframe_column(StringSeries, descriptions, &df, DESCRIPTION_COLUMN_INDEX);
+    series_create_from_dataframe_column(StringSeries, details, &df, DETAIL_COLUMN_INDEX);
 
     struct Root root = {
         ._focus_date = focus_date,

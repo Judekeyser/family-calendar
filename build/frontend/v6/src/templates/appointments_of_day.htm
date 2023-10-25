@@ -1,0 +1,12 @@
+<main>
+    {% menu}
+
+    <section>
+        {? any_appointment}
+            {% appointment_list}
+        {/}
+        {: any_appointment}
+            <p>Il n'y a pas de rendez-vous prévu à ce jour.</p>
+        {/}
+    </section>
+</main>

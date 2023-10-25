@@ -17,6 +17,9 @@ class Dataframe {
     }
 
     reindex(columnIndex) {
+        /**
+         * This sort is assumed to be **stable**
+         */
         const column = this.getColumnAtIndex(columnIndex);
 
         let rearrangement = [];

@@ -1,5 +1,6 @@
 #include "./numeric_series.h"
 
+#include "../shared/assert.h"
 #include "../js_library/js_library.h"
 
 
@@ -23,9 +24,24 @@ static struct ResourceStruct numeric_series_as_column(const NumericSeries* self)
     return self -> resource;
 }
 
+static void numeric_series_wrap(NumericSeries* series, const struct ResourceStruct resource) {
+    series -> resource = resource;
+}
+
+void numeric_series_zeros(NumericSeries* series, const unsigned int size) {
+    const int pointer = app_series_zeros(size);
+    assert(pointer, "Issue while instantiating series of zeros");
+    
+    struct ResourceStruct resource = { .external_id = pointer };
+    numeric_series_wrap(series, resource);
+}
+
 /* PROTOTYPE */
 
 static const struct NumericSeriesPrototype JS_PROTOTYPE = {
+    .fill = numeric_series_zeros,
+    .wrap = numeric_series_wrap,
+
     .get = numeric_series_get,
     .set = numeric_series_set,
     .push = numeric_series_push,
@@ -33,37 +49,6 @@ static const struct NumericSeriesPrototype JS_PROTOTYPE = {
     .as_column = numeric_series_as_column
 };
 
-
-static void numeric_series_wrap(NumericSeries* series, const struct ResourceStruct resource) {
-    series -> resource = resource;
+void numeric_series_create(NumericSeries* series) {
     series -> __proto__ = &JS_PROTOTYPE;
 }
-
-int numeric_series_create(NumericSeries* series) {
-    return numeric_series_zeros(series, 0);
-}
-
-int numeric_series_zeros(NumericSeries* series, const unsigned int size) {
-    const int pointer = app_series_zeros(size);
-    if(pointer) {
-        struct ResourceStruct resource = { .external_id = pointer };
-        numeric_series_wrap(series, resource);
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-#include "./dataframe.h"
-
-int numeric_series_from_column(NumericSeries* series, const Dataframe* dataframe, const unsigned int column_index) {
-    struct ResourceStruct resource;
-    int error = dataframe_get_resource_column_at_index(dataframe, column_index, &resource);
-    if(error) {
-        return error;
-    } else {
-        numeric_series_wrap(series, resource);
-        return 0;
-    }
-}
-

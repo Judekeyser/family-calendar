@@ -1,5 +1,6 @@
 #include "./menu_template.h"
 
+#include "../shared/prototypes.h"
 #include "../shared/string_copy.h"
 #include "../shared/small_int_on_one_digit.h"
 #include "../shared/small_int_on_two_digits.h"
@@ -33,7 +34,7 @@ static unsigned char calendar_grid(struct Root* root) {
 }
 
 static unsigned char create_appointment(struct Root* root) {
-    return (root -> hyperlinks) & MENU_TEMPLATE_HYPERLINK__CREATE_APPOINTMENT ? 1 : 0;
+    return (root -> hyperlinks) & MENU_TEMPLATE_HYPERLINK__ALTER_CALENDAR ? 1 : 0;
 }
 
 static const char* unread_size_as_string(struct Root* root) {
@@ -60,15 +61,14 @@ int menu_template(const unsigned int hyperlinks) {
         if(root.unread(&root)) {
             unsigned int unread_size;
             {
-                NumericSeries series_of_true;
-                numeric_series_create(&series_of_true);
+                series_create_empty(NumericSeries, series_of_true, 0);
                 series_push(&series_of_true, 1);
 
                 Dataframe df;
                 dataframe_select_isin(0, UNREAD_COLUMN_INDEX, &series_of_true, &df);
-
-                numeric_series_from_column(&series_of_true, &df, UNREAD_COLUMN_INDEX);
-                unread_size = series_size(&series_of_true);
+ 
+                series_create_from_dataframe_column(NumericSeries, series_of_unreads, &df, UNREAD_COLUMN_INDEX);
+                unread_size = series_size(&series_of_unreads);
             }
 
             if(unread_size >= 100) {

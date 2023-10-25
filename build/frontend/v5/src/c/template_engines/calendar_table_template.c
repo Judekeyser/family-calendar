@@ -6,7 +6,7 @@
 #include "../shared/string_copy.h"
 #include "../shared/days_since_epoch.h"
 #include "../shared/date_string.h"
-#include "../shared/month_to_french.h"
+#include "../shared/french_format.h"
 #include "../shared/small_int_on_two_digits.h"
 #include "../dynamic/series.h"
 
@@ -16,13 +16,13 @@ struct Cooperation;
 
 struct Col {
     struct Cooperation* cooperation_ref;
-    const char*(*strdate)(const struct Col* col);
-    const char*(*strday)(const struct Col* col);
-    unsigned char(*has_appointments)(const struct Col* col);
-    unsigned char(*is_today)(const struct Col* col);
-    unsigned char(*is_focus)(const struct Col* col);
-    unsigned char(*is_day_off)(const struct Col* col);
-    unsigned char(*has_unread)(const struct Col* col);
+    const char*(*strdate)(struct Col* col);
+    const char*(*strday)(struct Col* col);
+    unsigned char(*has_appointments)(struct Col* col);
+    unsigned char(*is_today)(struct Col* col);
+    unsigned char(*is_focus)(struct Col* col);
+    unsigned char(*is_day_off)(struct Col* col);
+    unsigned char(*has_unread)(struct Col* col);
 };
 
 struct Row {
@@ -31,9 +31,10 @@ struct Row {
 };
 
 struct Block {
+    FrenchFormat french_format;
     struct Cooperation* cooperation_ref;
     struct Row*(*rows)(struct Block* block);
-    const char*(*strmonth)(const struct Block* block);
+    const char*(*strmonth)(struct Block* block);
 };
 
 struct Root {
@@ -195,35 +196,36 @@ static struct Block* open_initial_block(struct Root* root) {
     return open_self_block(root);
 }
 
-static const char* strmonth(const struct Block* block) {
-    return month_to_french(block -> cooperation_ref -> opened_month);
+static const char* strmonth(struct Block* block) {
+    DaysFromEpoch recomposed = days_since_epoch_from_triple(2020, block -> cooperation_ref -> opened_month, 1);
+    return french_format_set(&(block -> french_format), &recomposed, 0);
 }
 
-static const char* strdate(const struct Col* col) {
+static const char* strdate(struct Col* col) {
     return date_string_open_buffer(&(col -> cooperation_ref -> current_date_string));
 }
 
-static const char* strday(const struct Col* col) {
+static const char* strday(struct Col* col) {
     return col -> cooperation_ref -> current_str_day;
 }
 
-static unsigned char has_unread(const struct Col* col) {
+static unsigned char has_unread(struct Col* col) {
     return col -> cooperation_ref -> current_has_unread;
 }
 
-static unsigned char is_day_off(const struct Col* col) {
+static unsigned char is_day_off(struct Col* col) {
     return col -> cooperation_ref -> current_is_day_off;
 }
 
-static unsigned char has_appointments(const struct Col* col) {
+static unsigned char has_appointments(struct Col* col) {
     return col -> cooperation_ref -> current_has_appointments;
 }
 
-static unsigned char is_focus(const struct Col* col) {
+static unsigned char is_focus(struct Col* col) {
     return col -> cooperation_ref -> current_is_focus;
 }
 
-static unsigned char is_today(const struct Col* col) {
+static unsigned char is_today(struct Col* col) {
     return col -> cooperation_ref -> current_is_today;
 }
 
@@ -292,6 +294,8 @@ int calendar_table_template(
             .is_day_off = is_day_off
         }
     };
+
+    french_format_use_pattern(&cooperation.block.french_format, MONTH_ONLY_PATTERN, 1);
 
     cooperation.root.cooperation_ref = &cooperation;
     cooperation.block.cooperation_ref = &cooperation;

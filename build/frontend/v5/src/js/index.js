@@ -62,10 +62,54 @@ function* protocol({ url, parameters }) {
 
 
 const navigator = {
+    __defaultValues: function({ url, parameters }) {
+        if(url == 'calendar') {
+            /**
+             * This route is special, as it should use default
+             * parameters from session storage and current today value.
+             * 
+             * We pach the parameters here.
+             */
+            let { focus_date, weeks_count } = parameters;
+
+            // Check MDN: Date.now returns a timestamp from epoch.
+            // Date constructor from number will agree on this convention.
+            // This means that for a belgian user, the iso string might not correspond
+            // to today date (because of timezone). We thus extract a local string
+            // and recreate the correct datestring.
+            const nowDate = new Date(Date.now());
+            const localString = nowDate.toLocaleDateString("fr-BE");
+            const [day, month, year] = localString.split("/");
+            console.log("", day, month, year);
+            const today_date = "2023-09-25";
+
+
+            if(weeks_count) {
+                window.sessionStorage.setItem('weeks_count', weeks_count);
+            } else {
+                weeks_count = window.sessionStorage.getItem('weeks_count') || 5;
+            }
+
+            if(focus_date) {
+                window.sessionStorage.setItem('focus_date', focus_date);
+            } else {
+                focus_date = window.sessionStorage.getItem('focus_date') || today_date;
+            }
+
+            return {
+                focus_date,
+                today_date,
+                weeks_count
+            };
+        } else {
+            return parameters;
+        }
+    },
     __handleNavigation: function({ url, parameters }) {
+        const patchedParameters = this.__defaultValues({ url, parameters });
         try {
-            pushNavigationStateInURL({ url, parameters });
-            this.__renderDocument(protocol({ url, parameters }));
+            pushNavigationStateInURL({ url, parameters: patchedParameters });
+            this.__renderDocument(protocol({ url, parameters: patchedParameters }));
         } catch(e) {
             console.error(e);
         }
@@ -135,8 +179,9 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
         const tic = Date.now();
         runtime.wasmSocket = new WasmSocket(protocol);
 
-        accept(heapBase, 1024);
+        accept(heapBase, 2048);
 
+        /*
         const cleanedUp = window.DOMPurify.sanitize(runtime.wasmSocket.output, {
             CUSTOM_ELEMENT_HANDLING: {
                 // allow all tags starting with "app-"
@@ -150,8 +195,9 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
                 allowCustomizedBuiltInElements: true, 
             }
         });
+        */
 
-        document.body.innerHTML = cleanedUp;
+        document.body.innerHTML = runtime.wasmSocket.output;
 
         const toc = Date.now();
         console.log("JS perspective, took", toc-tic);
@@ -160,24 +206,11 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
     };
 
     /* Sets today date to today, and initializes the view */
-
-    // Check MDN: Date.now returns a timestamp from epoch.
-    // Date constructor from number will agree on this convention.
-    // This means that for a belgian user, the iso string might not correspond
-    // to today date (because of timezone). We thus extract a local string
-    // and recreate the correct datestring.
-    const nowDate = new Date(Date.now());
-    const localString = nowDate.toLocaleDateString("fr-BE");
-    const [day, month, year] = localString.split("/");
-    console.log("", day, month, year);
     window.dispatchEvent(new CustomEvent(
         "app-navigate",
         { detail : {
             url: 'calendar',
-            parameters: {
-                today_date: "2023-09-25",// [year, month, day].join('-'),
-                weeks_count: '5'
-            }
+            parameters: {}
         } }
     ));
 });

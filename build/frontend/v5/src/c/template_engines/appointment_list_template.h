@@ -6,7 +6,7 @@
 
 
 int appointment_list_template(
-    DaysFromEpoch focus_date,
+    const StringSeries* appointment_dates, // NULLABLE
     const StringSeries* appointment_times,
     const NumericSeries* unreads,
     const NumericSeries* isdayoffs,

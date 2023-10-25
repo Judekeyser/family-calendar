@@ -58,7 +58,7 @@ static void calendar_table(const struct Root* self) {
 static void menu(const struct Root* self) {
     UNUSED(self);
     menu_template(
-        MENU_TEMPLATE_HYPERLINK__SEARCH | MENU_TEMPLATE_HYPERLINK__NEW_APPOINTMENTS
+        MENU_TEMPLATE_HYPERLINK__SEARCH | MENU_TEMPLATE_HYPERLINK__NEW_APPOINTMENTS | MENU_TEMPLATE_HYPERLINK__ALTER_CALENDAR
     );
 }
 

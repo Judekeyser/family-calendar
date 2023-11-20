@@ -1,2 +1,4 @@
 app_throw_error
-app_set_heap_base
+app_log
+app_get_env
+app_set_env

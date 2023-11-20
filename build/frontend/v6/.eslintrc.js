@@ -10,10 +10,6 @@ module.exports = {
     },
     "rules": {
         "no-param-reassign": "error",
-        "block-scoped-var": "error",
-        "guard-for-in": "error",
-        "curly": "error",
-        "max-len": ["error", { "code": 120 }],
-        "semi": ["error", "always"]
+        "max-len": ["error", { "code": 120 }]
     }
   }

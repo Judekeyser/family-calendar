@@ -1,103 +1,38 @@
-import { WasmRuntime } from "./wasm/wasm-memory.js";
-import { backend } from './backend/backend-store.js';
-import { now } from './backend/date-utils.js';
+import { createRuntime } from "./wasm/wasm-memory.js";
+import { backend } from "./backend/backend-store.js"
 
 
-function pushNavigationStateInURL({ url, parameters }) {
-    const currentState = history.state;
-    const sp = new URLSearchParams();
-    for(const [key, value] of Object.entries(parameters)) {
-        sp.append(key, value);
-    }
-    const queryString = `${url}?${sp.toString()}`;
-    const hash = `#${btoa(queryString)}`;
-    const state = { url, parameters };
+function pushNavigationStateInURL({ url }) {
+    const currentUrl = history.state;
+    const hash = `#${url}`;
 
-    if(currentState && currentState.url === state.url) {
-        history.replaceState(state, '', hash);
+    if(currentUrl && currentUrl == url) {
+        history.replaceState(url, '', hash);
     } else {
-        history.pushState(state, '', hash);
+        history.pushState(url, '', hash);
     }
 }
 
 
-function handleHistoryChange({ state, hash }) {
-    if(state) {
-        window.dispatchEvent(new CustomEvent(
-            "app-navigate",
-            { detail : state }
-        ));
-    } else {
-        if(hash == null) {
-            let nextHash = '';
-            try {
-                nextHash = atob(location.hash.substring(1));
-            } catch(error) {
-                console.warn(error);
-            }
-            return handleHistoryChange({ hash: nextHash });
-        } else {
-            const url = hash.substring(0, hash.indexOf('?'));
-            const parameters = Object.fromEntries(new URLSearchParams(
-                hash.substring(url.length+1, hash.length)
-            ));
-            return handleHistoryChange({ state: { url, parameters } });
-        }
-    }
+function handleHistoryChange({ url }) {
+    const effectiveUrl = url || location.hash.substring(1) || "";
+    window.dispatchEvent(new CustomEvent(
+        "app-navigate",
+        { detail : { url: effectiveUrl } }
+    ));
 }
 
 
 window.addEventListener("popstate",
-    e => void handleHistoryChange({ state: e.state })
+    e => void handleHistoryChange({ url: e.state })
 );
 
 
-function* protocol({ url, parameters }) {
-    yield `GET ${url}`;
-    for(const [key, value] of Object.entries(parameters)) {
-        yield `${key}:${value}`;
-    }
-}
-
-
 const navigator = {
-    __defaultValues: function({ url, parameters }) {
-        if(url == 'calendar') {
-            /**
-             * This route is special, as it should use default
-             * parameters from session storage and current today value.
-             * 
-             * We pach the parameters here.
-             */
-            let { focus_date, weeks_count } = parameters;
-            const today_date = now();
-
-            if(weeks_count) {
-                window.sessionStorage.setItem('weeks_count', weeks_count);
-            } else {
-                weeks_count = window.sessionStorage.getItem('weeks_count') || 5;
-            }
-
-            if(focus_date) {
-                window.sessionStorage.setItem('focus_date', focus_date);
-            } else {
-                focus_date = window.sessionStorage.getItem('focus_date') || today_date;
-            }
-
-            return {
-                focus_date,
-                today_date,
-                weeks_count
-            };
-        } else {
-            return parameters;
-        }
-    },
-    __handleNavigation: async function({ url, parameters }) {
-        const patchedParameters = this.__defaultValues({ url, parameters });
+    __handleNavigation: async function({ url }) {
         try {
-            pushNavigationStateInURL({ url, parameters: patchedParameters });
-            await this.__renderDocument(protocol({ url, parameters: patchedParameters }));
+            pushNavigationStateInURL({ url });
+            await this.__renderDocument();
         } catch(e) {
             console.error(e);
         }
@@ -114,47 +49,17 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
     );
 
     // Compile WASM module
-    const wasmMemory = new WebAssembly.Memory({'initial': 5});
-    const memoryBuffer = new Uint8Array(wasmMemory.buffer);
-
-    const runtime = new WasmRuntime(memoryBuffer);
-    // Fetch and compile module
-    const request = await fetch('app-module.wasm', { headers: {
-        "Accept": "application/wasm"
-    }});
-    const wasmProgram = await WebAssembly.instantiateStreaming(request, {
-        env: {
-            memory: wasmMemory,
-            ...runtime.imports
-        }
-    });
-    console.log(wasmProgram);
+    const runtime = await createRuntime();
 
     // Bind new processor in the navigator object
     navigatorWithRender.__renderDocument = async function() {
         const tic = Date.now();
 
-        {
-            try {
-                let _ignored = await backend.state;
-                console.log("Backend state", _ignored);
-            } catch(error) {
-                const { errorCode } = error;
-                if(errorCode == 401 || errorCode == 403) {
-                    const status = await backend.authentify({
-                        password: "kostas",
-                        userName: "justin"
-                    });
-                    console.log(status);
-                }
-                console.log(error);
-            }
-        }
-
-        wasmProgram.instance.exports.accept.bind(
-            wasmProgram.instance.exports
-        )();
-
+        await backend.authentify({
+            userName: "justin",
+            password: "kostas"
+        });
+        runtime.enter();
         document.body.innerHTML = "<p>No content for now</p>";
 
         const toc = Date.now();
@@ -165,8 +70,7 @@ window.addEventListener("load" /* DOMContentLoaded */, async () => {
     window.dispatchEvent(new CustomEvent(
         "app-navigate",
         { detail : {
-            url: 'calendar',
-            parameters: {}
+            url: "calendar?focus=2023-09-11"
         } }
     ));
 });

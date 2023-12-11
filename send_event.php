@@ -95,8 +95,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 #Connect the database
+$_con = new mysqli(DATABASE_HOST, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME);
 try {
-  $_con = new mysqli(DATABASE_HOST, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME);
   if(!is_null($_con -> connect_error))
     return terminate_in_error(500, 'Impossible de joindre la base de données');
   if(isset($data)) {

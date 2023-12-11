@@ -1,0 +1,96 @@
+/*@import url('https://fonts.googleapis.com/css?family=Roboto:600|Roboto:400');
+*/
+:root {
+    --size-h1: 4.210rem;
+    --size-h2: 3.158rem;
+    --size-h3: 2.369rem;
+    --size-h4: 1.777rem;
+    --size-h5: 1.333rem;
+    --size-small: 0.750rem;
+}
+
+template{display:none}
+html,body{font-size:18px;;font-family:'Courier'}
+main{min-width:800px}
+*{margin:0;padding:0;box-sizing:border-box;border-width:0;border-style:solid}
+
+.hidden{display:none}
+.shown{display:block}
+.nonvisible{visibility:hidden}
+
+.multi-col:after{clear:both;display:table;content:""}
+.col{float:left}
+.col-w-50{width:50%}
+.col-w-25{width:25%}
+.col-w-75{width:75%}
+.col-w-33{width:33%}
+
+.text-align-left{text-align:left}
+.text-align-right{text-align:right}
+.text-align-center{text-align:center}
+
+/** Text general **/
+p{margin-top:1.5em;margin-bottom:0.7em;line-height:1.5em}
+b{font-weight:bold}
+u{text-decoration:none}
+
+/** Form in general **/
+fieldset{border:0}
+input,select,button,textarea{padding:8px;font-size:1rem;cursor:pointer;border-radius:4px;border-width:1px}
+label{cursor:pointer}
+
+/** DIALOG **/
+#dialog{position:fixed;top:0;left:0;width:100vw;height:100vh}
+#dialog>div{margin-top:20vh;margin-left:20vw;width:60vw;padding:2em;border-width:1px;border-radius:8px}
+#dialog fieldset input{width:100%;margin-top:8px}
+#dialog fieldset select{width:100%;margin-top:8px}
+#dialog fieldset{width:75%;max-width:400px;margin-left:auto;margin-right:auto}
+
+#dialog.fading-in{animation-name:dialog-fade-in;animation-duration: 0.4s}
+@keyframes dialog-fade-in{0%{opacity:0}100% {opacity:100}}
+
+/** HEADER ZONE **/
+body>header menu ul{line-height:4em;text-align:right}
+body>header menu li{list-style-type:none;display:inline-block;padding-left:1em;padding-right:1em;cursor:pointer}
+body>header{width:100vw;position:fixed;top:0;left:0;padding-left:1em;padding-right:1em;}
+body>header input{padding:0;padding-right:0.4em;padding-left:0.4em;font-size:1rem;line-height:4em;cursor:pointer;border-width:0}
+body>header input[type=button]{padding-right:1em;padding-left:1em}
+body>header + *{margin-top:7em}
+
+/** MAIN SECTION **/
+main{width:75%;margin-left:auto;margin-right:auto;padding-top:3em}
+
+/** CALENDAR GRID **/
+#calendar-grid table{border-spacing:0;border-collapse:separate;width:94.5%;margin-left:auto;margin-right:auto}
+#calendar-grid table thead th{line-height:4em;font-weight:normal}
+#calendar-grid table tbody{overflow:hidden;border-radius:8px}
+#calendar-grid table tbody td{line-height:4em}
+#calendar-grid table tbody th{line-height:2.4em;font-size:0.8em}
+#calendar-grid table tbody th:nth-child(1){border-top-width:0}
+#calendar-grid table td,#calendar-grid table th{text-align:center}
+#calendar-grid table tbody td:nth-child(6),#calendar-grid table tbody th:nth-child(6){border-left-width:2px}
+#calendar-grid table tbody tr:nth-child(1) th:nth-child(1){border-top-left-radius:8px}
+#calendar-grid table tbody tr:nth-child(1) th:nth-last-child(1){border-top-right-radius:8px}
+#calendar-grid table tbody tr:nth-last-child(1) td:nth-child(1){border-bottom-left-radius:8px}
+#calendar-grid table tbody tr:nth-last-child(1) td:nth-child(7){border-bottom-right-radius:8px}
+#calendar-grid table tbody td[data-date]:hover{cursor:pointer}
+#calendar-grid table u{border-radius:50%;border-width:2px;display:inline-block;line-height:2.6em;width:2.9em}
+
+/** DAY VIEW */
+#day-view h1{margin-bottom:2.8em;}
+#day-view dl{margin-bottom:2em;margin-left:3em;margin-right:3em}
+#day-view dt{font-weight:bold;margin-top:1.6em;margin-bottom:0.7em}
+#day-view dd{padding-bottom:0.8em;padding-left:1em}
+#day-view .dayoff-card{border-width:1px;margin-left:auto;margin-right:auto;width:50vw;padding:1em;margin-bottom:3em;border-radius:8px}
+#day-view .dayoff-card dt{margin-top:0.8em}
+
+/** UNREADS VIEW */
+#unreads-view h1{margin-bottom:2.8em;}
+#unreads-view dl{margin-bottom:2em;margin-left:3em;margin-right:3em}
+#unreads-view dt{font-weight:bold;margin-top:1.6em;margin-bottom:0.7em}
+#unreads-view dd{padding-bottom:0.8em;padding-left:1em}
+#unreads-view .dayoff-card{border-width:1px;margin-left:auto;margin-right:auto;width:50vw;padding:1em;margin-bottom:3em;border-radius:8px}
+#unreads-view .dayoff-card dt{margin-top:0.8em}
+
+/** CALENDAR FORM */
+#alter-calendar textarea{}

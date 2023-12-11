@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Calendrier de famille</title>
+        <script src="main.js"></script>
+
+        <link rel="stylesheet" href="main.css" type="text/css">
+        <link rel="stylesheet" href="colors.css" type="text/css">
+    </head>
+    <body>
+        <header>
+            <div class="multi-col">
+                <nav class="col col-w-50">
+                    <form data-id="date-based-navigation">
+                        <fieldset>
+                            <input type="button" value="&#9664;" name="previous">
+                            <input type="date" name="focusdate">
+                            <input type="button" value="&#9654;" name="next">
+                        </fieldset>
+                    </form>
+                </nav>
+                <menu class="col col-w-50">
+                    <ul data-id="menu-navigation">
+                        <li data-id="back">Retour</li>
+                        <li data-id="create">Créer</li>
+                        <li data-id="unreads">Non lus (<span data-id="unread-counter"></span>)</li>
+                        <li data-id="search">Chercher</li>
+                    </ul>
+                </menu>
+            </div>
+        </header>
+
+        <main></main>
+
+        <template id="alter-appointment-template">
+            <section id="alter-appointment">
+                <header>
+                    <h1>Modification du calendrier</h1>
+                </header>
+
+                <form>
+                    <div class="multi-col text-align-center">
+                        <fieldset class="col-w-50 col">
+                            <p>
+                                <label>Jour du rendez-vous</label><br>
+                                <input type="date" name="appointment_date">
+                            </p>
+                            <p>
+                                <label>
+                                    <input type="checkbox" name="appointment_isdayoff">
+                                    Jour férié
+                                </label>
+                            </p>
+                        </fieldset>
+                        <fieldset class="col-w-50 col">
+                            <p>
+                                <label>Heure du rendez-vous</label><br>
+                                <input type="time" name="appointment_time">
+                            </p>
+                            <p>
+                                <select name="appointment_time_class">
+                                    <option value="" selected>Ponctuel</option>
+                                    <option value="fullday">Toute la journée</option>
+                                    <option value="morning">Au matin</option>
+                                    <option value="afternoon">En après-midi</option>
+                                </select>
+                            </p>
+                        </fieldset>
+                    </div>
+                    <fieldset class="text-align-center">
+                        <p>
+                            <label>Description succincte</label><br>
+                            <textarea rows="2" cols="64" name="appointment_description"></textarea>
+                        </p>
+                        <p>
+                            <label>Informations additionelles</label><br>
+                            <textarea rows="4" cols="64" name="appointment_details"></textarea>
+                        </p>
+                    </fieldset>
+                    <div class="multi-col">
+                        <fieldset class="col-w-50 col">
+                            <p>
+                                <label>
+                                    <input type="checkbox" name="appointment_cancel">
+                                    Annuler le rendez-vous
+                                </label>
+                            </p>
+                        </fieldset>
+                        <p class="col-w-50 col text-align-right">
+                            <button>Confirmer</button>
+                        </p>
+                    </div>
+                </form>
+            </section>
+        </template>
+
+        <template id="day-view-template">
+            <section id="day-view">
+                <header>
+                    <h1>Détail du
+                        <span slot="french-week-day"></span>
+                        <span slot="french-month-day"></span>
+                        <span slot="french-month"></span>
+                    </h1>
+                </header>
+                <dl slot="view-content"></dl>
+            </section>
+        </template>
+        <template id="unreads-view-template">
+            <section id="unreads-view">
+                <header>
+                    <h1>Rendez-vous non lus</h1>
+                </header>
+                <dl slot="view-content"></dl>
+                <hr>
+                <p class="text-align-right"><button>Tout marquer comme lu</button></p>
+            </section>
+        </template>
+        <template id="view-day-record-template">
+            <dt slot="record-title"></dt>
+            <dd slot="description"></dd>
+            <dd slot="detail"></dd>
+        </template>
+        <template id="view-unreads-record-template">
+            <dt>Le
+                <span slot="french-week-day">00</span>
+                <span slot="french-month-day"></span>
+                <span slot="french-month"></span>,
+                <span slot="record-time"></span>
+            </dt>
+            <dd slot="description"></dd>
+            <dd slot="detail"></dd>
+        </template>
+        <template id="view-unreads-record-wodetails-template">
+            <dt>Le
+                <span slot="french-week-day"></span>
+                <span slot="french-month-day"></span>
+                <span slot="french-month"></span>,
+                <span slot="record-time"></span>
+            </dt>
+            <dd slot="description"></dd>
+        </template>
+        <template id="view-day-record-wodetail-template">
+            <dt slot="record-title"></dt>
+            <dd slot="description"></dd>
+        </template>
+        <template id="view-day-dayoff-template">
+            <div class="dayoff-card" slot="dayoff-record"></div>
+        </template>
+        <template id="view-day-unread-mark-template">
+            <mark slot="record-title"></mark>
+        </template>
+        
+
+        <template id="calendar-grid-template">
+            <div id="calendar-grid">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lun.</th>
+                            <th>Mar.</th>
+                            <th>Mer.</th>
+                            <th>Jeu.</th>
+                            <th>Ven.</th>
+                            <th>Sam.</th>
+                            <th>Dim.</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <form>
+                    <fieldset>
+                        <p class="text-align-center">
+                            <label for="calendar-grid-weekscount">Nombre de semaines affichées&nbsp;:</label><br>
+                            <input id="calendar-grid-weekscount" name="weekscount" type="range" step="1" min="5" max="12">
+                        </p>
+                    </fieldset>
+                </form>
+            </div>
+        </template>
+        <template id="calendar-grid-header-row-template">
+            <tr>
+                <th colspan="7" slot="content"></th>
+            </tr>
+        </template>
+        <template id="calendar-grid-content-row-template">
+            <tr slot="content"></tr>
+        </template>
+        <template id="calendar-grid-content-cell-template">
+            <td><u slot="content"></u></td>
+        </template>
+
+        <aside id="dialog" class="hidden">
+            <div>
+                <form>
+                    <fieldset>
+                        <p class="hidden">
+                            <input type="text" name="username" autocomplete="username" value="appv2" readonly disabled>
+                        </p>
+                        <p>
+                            <label for="dialog-password">Mot de passe&nbsp;:</label><br>
+                            <input type="password" id="dialog-password" name="password" required autocomplete="new-password">
+                        </p>
+                        <p>
+                            <label for="dialog-firstname">Utilisateur&nbsp;:</label><br>
+                            <select name="firstname" id="dialog-firstname">
+                                <option value="caroline">Caroline</option>
+                                <option value="justin">Justin</option>
+                            </select>
+                        </p>
+                    </fieldset>
+                    <div class="multi-col">
+                        <p class="col col-w-75 text-align-left">
+                            <small class="error-text" slot="error-field"></small>
+                        </p>
+                        <p class="col col-w-25 text-align-right">
+                            <button>S'identifier</button>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </aside>
+    </body>
+</html>

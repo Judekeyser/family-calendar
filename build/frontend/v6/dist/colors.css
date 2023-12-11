@@ -1,0 +1,70 @@
+:root {
+    /**
+     * Usage of Nord color palette (https://www.nordtheme.com/docs/colors-and-palettes)
+     * We implement a bright mode. Near every color, one might find a short text about
+     * expected usage of color, as indicated in the Nord website.
+     */
+    --polarnight-0:#2E3440;/*nord0:plain text. no border*/
+    --polarnight-1:#3B4252;/*nord1:brighter text for hover, for example*/
+    --polarnight-2:#434C5E;/*nord2:brighter variation*/
+    --polarnight-3:#4C566A;/*nord3:used next to nord1/nord2 as a darker but brighter element*/
+
+    --snowstorm-0:#D8DEE9;/*nord4:base color*/
+    --snowstorm-1:#E5E9F0;/*nord5:lighter variation*/
+    --snowstorm-2:#ECEFF4;/*nord6:background*/
+
+    --frost-0:#8FBCBB;/*nord7:next to nord8, for important ui elements*/
+    --frost-1:#88C0D0;/*nord8:primary ui with the most attention*/
+    --frost-2:#81A1C1;/*nord9:secondary for the above*/
+    --frost-3:#5E81AC;/*nord10:ternary for the above*/
+
+    --aurora-0:#BF616A;/*nord11:errors*/
+    --aurora-1:#D08770;/*nord12:advanced or dangerous*/
+    --aurora-2:#EBCB8B;/*nord13:warning states*/
+    --aurora-3:#A3BE8C;/*nord14:success states*/
+    --aurora-4:#B48EAD;/*nord15:uncommon*/
+}
+
+body{color:var(--polarnight-1);background-color:var(--snowstorm-2);border-color:var(--polarnight-1)}
+*{border-color:var(--polarnight-1)}
+input,select{background-color:var(--snowstorm-0)}
+input:hover,select:hover,input:active,select:active,input:focus,select:focus{background-color:var(--snowstorm-1);color:var(--frost-3)}
+button{background-color:var(--frost-1)}
+button:hover{background-color:var(--frost-0);color:var(--polarnight-0)}
+
+.error-text{color:var(--aurora-0)}
+
+#dialog{background-color:rgba(33,33,33,0.3)}
+#dialog>div{background-color:var(--snowstorm-2)}
+#dialog input,#dialog select{background-color:var(--snowstorm-0)}
+#dialog input:hover,#dialog input:active,#dialog input:focus,#dialog select:hover,#dialog select:active,#dialog select:focus{background-color:var(--frost-1)}
+
+body>header{background-color:var(--snowstorm-0);box-shadow: 0px -2px 16px var(--polarnight-3)}
+body>header li:hover{background-color:var(--snowstorm-1);color:var(--frost-3)}
+
+/** CALENDAR GRID */
+#calendar-grid table tbody{box-shadow: 0px -2px 16px var(--polarnight-3)}
+#calendar-grid table tbody th{background-color:var(--snowstorm-0)}
+#calendar-grid table tbody td:nth-child(6),#calendar-grid table tbody th:nth-child(6){border-color:var(--snowstorm-0)}
+#calendar-grid table tbody td,#calendar-grid table tbody th{border-color:var(--snowstorm-1)}
+#calendar-grid table tbody th{border-color:var(--polarnight-3)}
+
+#calendar-grid table u{border-color:var(--snowstorm-2);color:var(--polarnight-0);background-color:var(--frost-1)}
+#calendar-grid table u.highlighted{background-color:var(--aurora-2)}
+#calendar-grid table u.adv-dayoff{background-color:var(--aurora-4)}
+#calendar-grid table td:hover u{background-color:var(--frost-0);border-color:var(--frost-0);color:var(--polarnight-0)}
+#calendar-grid table td:hover{color:var(--frost-3)}
+
+/** UNREADS VIEW */
+#unreads-view dt{color:var(--frost-3)}
+#unreads-view dt mark{background-color:var(--aurora-2)}
+#unreads-view .dayoff-card{border-color:var(--aurora-4);box-shadow: 0px 0px 8px var(--aurora-4)}
+
+/** DAY VIEW */
+#day-view dt{color:var(--frost-3)}
+#day-view dt mark{background-color:var(--aurora-2)}
+#day-view .dayoff-card{border-color:var(--aurora-4);box-shadow: 0px 0px 8px var(--aurora-4)}
+
+/** CALENDAR FORM */
+#alter-appointment input,#alter-appointment select,#alter-appointment textarea{background-color:var(--snowstorm-0)}
+#alter-appointment input:hover,#alter-appointment input:active,#alter-appointment input:focus,#alter-appointment select:hover,#alter-appointment select:active,#alter-appointment select:focus,#alter-appointment textarea:focus,#alter-appointment textarea:active,#alter-appointment textarea:hover{background-color:var(--frost-1)}
